@@ -1,9 +1,11 @@
 package vn.edu.iuh.fit.bookstorebackend.service.Impl;
 
+import org.springframework.stereotype.Service;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.*;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.AuthenticationResponse;
 import vn.edu.iuh.fit.bookstorebackend.service.AuthService;
 
+@Service
 public class AuthServiceImpl implements AuthService {
     @Override
     public void register(RegisterRequest request) {
