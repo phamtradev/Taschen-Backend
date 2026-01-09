@@ -25,7 +25,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService = new JwtService();
+    private final JwtService jwtService;
 
     @Override
     public UserResponse register(RegisterRequest request) {
