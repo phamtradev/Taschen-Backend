@@ -1,5 +1,6 @@
 package vn.edu.iuh.fit.bookstorebackend.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.*;
 
 @Getter
@@ -7,6 +8,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonPropertyOrder({"userId", "username", "expiresIn", "tokenType", "refreshToken", "accessToken"})
 public class AuthenticationResponse {
     private String tokenType;
     private String accessToken;
