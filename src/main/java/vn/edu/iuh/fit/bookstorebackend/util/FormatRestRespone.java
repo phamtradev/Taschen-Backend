@@ -1,0 +1,48 @@
+package vn.edu.iuh.fit.bookstorebackend.util;
+
+import org.springframework.core.MethodParameter;
+import org.springframework.http.MediaType;
+import org.springframework.http.server.ServerHttpRequest;
+import org.springframework.http.server.ServerHttpResponse;
+import org.springframework.http.server.ServletServerHttpResponse;
+import org.springframework.web.bind.annotation.ControllerAdvice;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyAdvice;
+
+import jakarta.servlet.http.HttpServletResponse;
+import vn.edu.iuh.fit.bookstorebackend.model.RestRespone;
+
+@ControllerAdvice
+public class FormatRestRespone implements ResponseBodyAdvice<Object> {
+
+    @Override
+    public Object beforeBodyWrite(
+            Object body,
+            MethodParameter returnType,
+            MediaType selectedContentType,
+            Class selectedConverterType,
+            ServerHttpRequest request,
+            ServerHttpResponse response) {
+        HttpServletResponse servletResponse = ((ServletServerHttpResponse) response).getServletResponse();
+        int status = servletResponse.getStatus();
+
+        RestRespone<Object> res = new RestRespone<Object>();
+        res.setStatusCode(status);
+        res.setError(null); //ko co loi
+
+        if (status >= 400) {
+            //case loi
+            return body;
+        } else {
+            //case ok
+            res.setData(body);
+            res.setMessage("CALL API SUCCESS");
+        }
+
+        return res;
+    }
+
+    @Override
+    public boolean supports(MethodParameter returnType, Class converterType) {
+        return true;
+    }
+}

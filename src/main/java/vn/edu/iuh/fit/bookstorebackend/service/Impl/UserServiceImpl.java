@@ -1,0 +1,147 @@
+package vn.edu.iuh.fit.bookstorebackend.service.Impl;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateUserRequest;
+import vn.edu.iuh.fit.bookstorebackend.dto.request.SetUserRolesRequest;
+import vn.edu.iuh.fit.bookstorebackend.dto.request.UpdateUserRequest;
+import vn.edu.iuh.fit.bookstorebackend.dto.response.UserResponse;
+import vn.edu.iuh.fit.bookstorebackend.model.Role;
+import vn.edu.iuh.fit.bookstorebackend.model.User;
+import vn.edu.iuh.fit.bookstorebackend.repository.RoleRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.UserRepository;
+import vn.edu.iuh.fit.bookstorebackend.service.UserService;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class UserServiceImpl implements UserService {
+
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    @Override
+    public UserResponse createUser(CreateUserRequest request) {
+        // Check if username or email already exists
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new RuntimeException("Username already exists: " + request.getUsername());
+        }
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("Email already exists: " + request.getEmail());
+        }
+
+        User user = new User();
+        user.setFirstName(request.getFirstName());
+        user.setLastName(request.getLastName());
+        user.setGender(request.getGender());
+        user.setEmail(request.getEmail());
+        user.setPhoneNumber(request.getPhoneNumber());
+        user.setUsername(request.getUsername());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setActive(request.getActive() != null ? request.getActive() : true);
+
+        // Set roles if provided
+        if (request.getRoleIds() != null && !request.getRoleIds().isEmpty()) {
+            Set<Role> roles = roleRepository.findByIdIn(request.getRoleIds());
+            user.setRoles(roles);
+        }
+
+        User savedUser = userRepository.save(user);
+        return convertToUserResponse(savedUser);
+    }
+
+    @Override
+    public List<UserResponse> getAllUsers() {
+        List<User> users = userRepository.findAll();
+        return users.stream()
+                .map(this::convertToUserResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public UserResponse getUserById(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+        return convertToUserResponse(user);
+    }
+
+    @Override
+    public UserResponse updateUser(Long id, UpdateUserRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+
+        if (request.getFirstName() != null) {
+            user.setFirstName(request.getFirstName());
+        }
+        if (request.getLastName() != null) {
+            user.setLastName(request.getLastName());
+        }
+        if (request.getGender() != null) {
+            user.setGender(request.getGender());
+        }
+        if (request.getPhoneNumber() != null) {
+            user.setPhoneNumber(request.getPhoneNumber());
+        }
+        if (request.getActive() != null) {
+            user.setActive(request.getActive());
+        }
+
+        User updatedUser = userRepository.save(user);
+        return convertToUserResponse(updatedUser);
+    }
+
+    @Override
+    public UserResponse setActive(Long id, boolean active) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+
+        user.setActive(active);
+        User updatedUser = userRepository.save(user);
+        return convertToUserResponse(updatedUser);
+    }
+
+    @Override
+    public UserResponse setRoles(Long userId, SetUserRolesRequest request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+
+        Set<Role> roles = roleRepository.findByIdIn(request.getRoleIds());
+        user.setRoles(roles);
+
+        User updatedUser = userRepository.save(user);
+        return convertToUserResponse(updatedUser);
+    }
+
+    @Override
+    public void deleteUser(Long id) {
+        if (!userRepository.existsById(id)) {
+            throw new RuntimeException("User not found with id: " + id);
+        }
+        userRepository.deleteById(id);
+    }
+
+    private UserResponse convertToUserResponse(User user) {
+        UserResponse response = new UserResponse();
+        response.setId(user.getId());
+        response.setUsername(user.getUsername());
+        response.setEmail(user.getEmail());
+        response.setFirstName(user.getFirstName());
+        response.setLastName(user.getLastName());
+        response.setGender(user.getGender());
+        response.setPhoneNumber(user.getPhoneNumber());
+        response.setActive(user.isActive());
+
+        if (user.getRoles() != null) {
+            response.setRoles(user.getRoles().stream()
+                    .map(Role::getCode)
+                    .collect(Collectors.toList()));
+        }
+
+        return response;
+    }
+}
