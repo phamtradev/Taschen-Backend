@@ -2,10 +2,11 @@ package vn.edu.iuh.fit.bookstorebackend.service;
 
 import vn.edu.iuh.fit.bookstorebackend.dto.request.*;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.AuthenticationResponse;
+import vn.edu.iuh.fit.bookstorebackend.dto.response.UserResponse;
 
 public interface AuthService {
 
-    void register(RegisterRequest request);
+    UserResponse register(RegisterRequest request);
 
     AuthenticationResponse login(AuthenticationRequest request);
 
