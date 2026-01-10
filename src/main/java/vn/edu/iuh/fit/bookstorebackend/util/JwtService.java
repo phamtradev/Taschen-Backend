@@ -16,6 +16,7 @@ import java.util.Date;
 import java.util.stream.Collectors;
 import java.util.Set;
 import java.util.Optional;
+import org.springframework.security.authentication.BadCredentialsException;
 
 @Service
 @RequiredArgsConstructor
@@ -43,7 +44,9 @@ public class JwtService {
                 .withSubject(user.getUsername())
                 .withClaim("userId", user.getId())
                 .withClaim("roles", user.getRoles() == null ? null :
-                        user.getRoles().stream().map(r -> r.getCode()).collect(Collectors.toList()))
+                        user.getRoles().stream()
+                        .map(r -> r.getCode())
+                        .collect(Collectors.toList()))
                 .withIssuedAt(Date.from(now))
                 .withExpiresAt(Date.from(exp))
                 .sign(algorithm());
@@ -66,7 +69,7 @@ public class JwtService {
                 boolean hasValid = tokens != null && tokens.stream().anyMatch(t ->
                         !t.isRevoked() && t.getExpiresAt() != null && t.getExpiresAt().isAfter(Instant.now()));
                 if (!hasValid) {
-                    throw new RuntimeException("Session invalid - login again");
+                    throw new BadCredentialsException("Session invalid - login again");
                 }
             }
         }

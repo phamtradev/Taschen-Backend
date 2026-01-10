@@ -15,6 +15,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.springframework.security.core.AuthenticationException;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -42,8 +43,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(username, null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(auth);
+            } catch (AuthenticationException ex) {
+                // authentication failure -> return 401
+                SecurityContextHolder.clearContext();
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, ex.getMessage());
+                return;
             } catch (Exception ex) {
-                //token hết hạn hoặc không hợp lệ -> xóa context và tiếp tục
+                // other errors -> clear context and continue (will likely be rejected)
                 SecurityContextHolder.clearContext();
             }
         }
