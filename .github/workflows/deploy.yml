@@ -38,10 +38,10 @@ jobs:
           cache: maven
 
       - name: Build & Test
-        #        env:
-        #          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/bookstoreecommerce?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
-        #          SPRING_DATASOURCE_USERNAME: root
-        #          SPRING_DATASOURCE_PASSWORD: 123456
+        env:
+          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/bookstoreecommerce?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+          SPRING_DATASOURCE_USERNAME: root
+          SPRING_DATASOURCE_PASSWORD: 123456
         run: mvn -q clean test
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
