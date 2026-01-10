@@ -1,42 +1,29 @@
-name: CI
+name: Deploy PROD to EC2
 
 on:
   push:
-    branches: [ "dev" ]
-  pull_request:
     branches: [ "main" ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: 123456
-          MYSQL_DATABASE: bookstoreecommerce
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -p123456"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
+  deploy:
+    runs-on: [ self-hosted ]  # hoặc [self-hosted, ec2] nếu runner bạn có label "ec2"
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "21"
-          cache: maven
+      - name: Build Docker image
+        run: docker build -t bookstore-backend:prod .
 
-      - name: Build & Test
-        env:
-          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/bookstoreecommerce?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
-          SPRING_DATASOURCE_USERNAME: root
-          SPRING_DATASOURCE_PASSWORD: 123456
-        run: mvn -q clean test
+      - name: Restart container
+        run: |
+          docker rm -f bookstore-prod || true
+          docker run -d --name bookstore-prod \
+            -p 8080:8080 \
+            -e SPRING_PROFILES_ACTIVE=prod \
+            -e DB_PASSWORD_PROD='${{ secrets.DB_PASSWORD_PROD }}' \
+            -e APP_JWT_SECRET='${{ secrets.APP_JWT_SECRET }}' \
+            --restart unless-stopped \
+            bookstore-backend:prod
+
+      - name: Show container status
+        run: docker ps --filter "name=bookstore-prod"
