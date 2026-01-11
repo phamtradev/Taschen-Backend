@@ -17,6 +17,7 @@ import vn.edu.iuh.fit.bookstorebackend.service.UserService;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import vn.edu.iuh.fit.bookstorebackend.dto.response.AddressResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -147,6 +148,23 @@ public class UserServiceImpl implements UserService {
             response.setRoles(user.getRoles().stream()
                     .map(Role::getCode)
                     .collect(Collectors.toList()));
+        }
+
+        if (user.getAddresses() != null) {
+            List<AddressResponse> addrResp = user.getAddresses().stream().map(a -> {
+                AddressResponse ar = new AddressResponse();
+                ar.setId(a.getId());
+                ar.setAddressType(a.getAddressType());
+                ar.setStreet(a.getStreet());
+                ar.setDistrict(a.getDistrict());
+                ar.setWard(a.getWard());
+                ar.setCity(a.getCity());
+                ar.setRecipientName(a.getRecipientName());
+                ar.setPhoneNumber(a.getPhoneNumber());
+                ar.setIsDefault(a.getIsDefault());
+                return ar;
+            }).collect(Collectors.toList());
+            response.setAddresses(addrResp);
         }
 
         return response;

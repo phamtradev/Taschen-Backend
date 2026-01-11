@@ -7,7 +7,7 @@ import vn.edu.iuh.fit.bookstorebackend.common.Gender;
 import java.util.List;
 
 @Data
-@JsonPropertyOrder({ "id", "username", "email", "firstName", "lastName", "gender", "phoneNumber", "active", "roles" })
+@JsonPropertyOrder({ "id", "username", "email", "firstName", "lastName", "gender", "phoneNumber", "active", "roles", "addresses" })
 public class UserResponse {
 
     private Long id;
@@ -22,4 +22,5 @@ public class UserResponse {
     private boolean isActive;
 
     private List<String> roles;
+    private List<AddressResponse> addresses;
 }
