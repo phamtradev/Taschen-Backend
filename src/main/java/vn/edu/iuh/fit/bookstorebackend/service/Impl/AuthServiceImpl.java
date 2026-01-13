@@ -1,6 +1,8 @@
 package vn.edu.iuh.fit.bookstorebackend.service.Impl;
 
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.*;
@@ -128,7 +130,20 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void changePassword(ChangePasswordRequest request) {
-        // not implemented
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (email == null) throw new RuntimeException("Not authenticated");
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found: " + email));
+
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new RuntimeException("Old password is incorrect");
+        }
+
+        if (request.getNewPassword() == null || request.getNewPassword().isEmpty()) {
+            throw new RuntimeException("New password must not be empty");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
     }
 
     @Override

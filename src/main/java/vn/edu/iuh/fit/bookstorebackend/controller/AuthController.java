@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.AuthenticationRequest;
+import vn.edu.iuh.fit.bookstorebackend.dto.request.ChangePasswordRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.RefreshTokenRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.RegisterRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.AuthenticationResponse;
@@ -40,6 +41,12 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(@RequestBody RefreshTokenRequest request) {
         authService.logout(request.getRefreshToken());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<Void> changePassword(@RequestBody ChangePasswordRequest request) {
+        authService.changePassword(request);
         return ResponseEntity.noContent().build();
     }
 }
