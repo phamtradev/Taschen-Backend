@@ -35,7 +35,7 @@ jobs:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
           message: |
-            🚀 DEPLOY OK (main)
+            Thưa sếp ! đã deploy lên môi trường AWS thành công rùi nhen !!!
             Actor: ${{ github.actor }}
             Repo: ${{ github.repository }}
             Ref: ${{ github.ref_name }}
@@ -49,7 +49,7 @@ jobs:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
           message: |
-            💥 DEPLOY FAIL (main)
+            Không ổn rồi sếp ơi :(( deploy lên AWS thất bại rồi ! fix bug đi sếp
             Actor: ${{ github.actor }}
             Repo: ${{ github.repository }}
             Ref: ${{ github.ref_name }}
