@@ -4,10 +4,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateUserRequest;
-// removed SetUserRolesRequest (use role codes API)
 import vn.edu.iuh.fit.bookstorebackend.dto.request.UpdateUserRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.UserResponse;
 import vn.edu.iuh.fit.bookstorebackend.service.UserService;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -39,8 +41,30 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.OK).body(user);
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<UserResponse> getCurrentUser() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth != null ? auth.getName() : null;
+        if (email == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
+        UserResponse user = userService.getUserByEmail(email);
+        return ResponseEntity.ok(user);
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<UserResponse> updateUser(@PathVariable Long id, @RequestBody UpdateUserRequest request) {
+        // chấp nhận cập nhật profile của chính mình
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String email = auth != null ? auth.getName() : null;
+        if (email == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
+        UserResponse current = userService.getUserByEmail(email);
+        if (!current.getId().equals(id)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot update other user's profile");
+        }
+
         UserResponse user = userService.updateUser(id, request);
         return ResponseEntity.status(HttpStatus.OK).body(user);
     }

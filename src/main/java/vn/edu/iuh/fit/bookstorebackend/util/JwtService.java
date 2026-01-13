@@ -42,7 +42,7 @@ public class JwtService {
         Instant exp = now.plusSeconds(accessTokenExpirationSeconds);
 
         return JWT.create()
-                .withSubject(user.getUsername())
+                .withSubject(user.getEmail())
                 .withClaim("userId", user.getId())
                 .withClaim("roles", user.getRoles() == null ? null :
                         user.getRoles().stream()
@@ -61,9 +61,9 @@ public class JwtService {
         DecodedJWT decoded = JWT.require(algorithm()).build().verify(token);
 
         //check tồn tại trong db
-        String username = decoded.getSubject();
-        if (username != null) {
-            Optional<User> maybeUser = userRepository.findByUsername(username);
+        String email = decoded.getSubject();
+        if (email != null) {
+            Optional<User> maybeUser = userRepository.findByEmail(email);
             if (maybeUser.isPresent()) {
                 User user = maybeUser.get();
                 List<RefreshToken> tokens = refreshTokenRepository.findByUser(user);

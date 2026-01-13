@@ -17,11 +17,12 @@ public interface UserService {
 
     UserResponse getUserById(Long id);
 
+    UserResponse getUserByEmail(String email);
+
     UserResponse updateUser(Long id, UpdateUserRequest request);
 
     UserResponse setActive(Long id, boolean active);
 
-    
     UserResponse setRolesByCodes(Long userId, SetUserRoleCodesRequest request);
 
     void deleteUser(Long id);

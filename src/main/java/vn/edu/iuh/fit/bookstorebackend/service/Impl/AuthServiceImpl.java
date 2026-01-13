@@ -1,6 +1,8 @@
 package vn.edu.iuh.fit.bookstorebackend.service.Impl;
 
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.*;
@@ -30,22 +32,23 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public UserResponse register(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Username already exists: " + request.getUsername());
-        }
+        // no username required; use email as login identifier
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already exists: " + request.getEmail());
+        }
+
+        if (request.getPassword() == null || request.getConfirmPassword() == null || !request.getPassword().equals(request.getConfirmPassword())) {
+            throw new RuntimeException("Password and confirm password do not match");
         }
 
         User user = new User();
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
         user.setEmail(request.getEmail());
-        user.setUsername(request.getUsername());
+        user.setUsername(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setActive(true);
         User saved = userRepository.save(user);
-
         UserResponse response = new UserResponse();
         response.setId(saved.getId());
         response.setUsername(saved.getUsername());
@@ -64,7 +67,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthenticationResponse login(AuthenticationRequest request) {
-        User user = userRepository.findByUsername(request.getUsername())
+        User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Invalid credentials"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
@@ -88,7 +91,7 @@ public class AuthServiceImpl implements AuthService {
                 .accessToken(accessToken)
                 .refreshToken(refreshTokenStr)
                 .userId(user.getId())
-                .username(user.getUsername())
+                .email(user.getEmail())
                 .expiresIn(jwtService.getAccessTokenExpirySeconds())
                 .build();
     }
@@ -111,7 +114,7 @@ public class AuthServiceImpl implements AuthService {
                 .accessToken(accessToken)
                 .refreshToken(refreshTokenStr)
                 .userId(user.getId())
-                .username(user.getUsername())
+                .email(user.getEmail())
                 .expiresIn(jwtService.getAccessTokenExpirySeconds())
                 .build();
     }
@@ -127,7 +130,20 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void changePassword(ChangePasswordRequest request) {
-        // not implemented
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (email == null) throw new RuntimeException("Not authenticated");
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found: " + email));
+
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new RuntimeException("Old password is incorrect");
+        }
+
+        if (request.getNewPassword() == null || request.getNewPassword().isEmpty()) {
+            throw new RuntimeException("New password must not be empty");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
     }
 
     @Override
@@ -139,4 +155,6 @@ public class AuthServiceImpl implements AuthService {
     public void resetPassword(ResetPasswordRequest request) {
         // not implemented
     }
+
+    
 }

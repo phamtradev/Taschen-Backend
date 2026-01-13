@@ -19,4 +19,5 @@ public interface AuthService {
     void sendPasswordResetEmail(ForgotPasswordRequest request);
 
     void resetPassword(ResetPasswordRequest request);
+    
 }
