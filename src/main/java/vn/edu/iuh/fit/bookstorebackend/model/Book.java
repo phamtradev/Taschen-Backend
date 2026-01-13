@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.util.Set;
+import java.util.List;
 
 @Entity
 @Data
@@ -32,9 +33,6 @@ public class Book {
     @Column(name = "page_count")
     private Integer pageCount;
 
-    @Column(name = "format", length = 100)
-    private String format;  //doi thanh varant
-
     @Column(name = "price", nullable = false)
     private double price;
 
@@ -46,6 +44,9 @@ public class Book {
 
     @Column(name = "is_active")
     private Boolean isActive = true;
+
+    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Variant> variants;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
