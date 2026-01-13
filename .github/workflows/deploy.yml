@@ -35,7 +35,7 @@ jobs:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
           message: |
-            Thưa sếp ! đã deploy lên môi trường AWS thành công rùi nhen !!!
+            Thưa sếp ! đã deploy lên môi trường AWS thành công rùi !!!
             Actor: ${{ github.actor }}
             Repo: ${{ github.repository }}
             Ref: ${{ github.ref_name }}
