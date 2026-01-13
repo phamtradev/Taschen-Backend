@@ -30,22 +30,23 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public UserResponse register(RegisterRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Username already exists: " + request.getUsername());
-        }
+        // no username required; use email as login identifier
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already exists: " + request.getEmail());
+        }
+
+        if (request.getPassword() == null || request.getConfirmPassword() == null || !request.getPassword().equals(request.getConfirmPassword())) {
+            throw new RuntimeException("Password and confirm password do not match");
         }
 
         User user = new User();
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
         user.setEmail(request.getEmail());
-        user.setUsername(request.getUsername());
+        user.setUsername(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setActive(true);
         User saved = userRepository.save(user);
-
         UserResponse response = new UserResponse();
         response.setId(saved.getId());
         response.setUsername(saved.getUsername());
@@ -64,7 +65,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthenticationResponse login(AuthenticationRequest request) {
-        User user = userRepository.findByUsername(request.getUsername())
+        User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("Invalid credentials"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
@@ -88,7 +89,7 @@ public class AuthServiceImpl implements AuthService {
                 .accessToken(accessToken)
                 .refreshToken(refreshTokenStr)
                 .userId(user.getId())
-                .username(user.getUsername())
+                .email(user.getEmail())
                 .expiresIn(jwtService.getAccessTokenExpirySeconds())
                 .build();
     }
@@ -111,7 +112,7 @@ public class AuthServiceImpl implements AuthService {
                 .accessToken(accessToken)
                 .refreshToken(refreshTokenStr)
                 .userId(user.getId())
-                .username(user.getUsername())
+                .email(user.getEmail())
                 .expiresIn(jwtService.getAccessTokenExpirySeconds())
                 .build();
     }
@@ -139,4 +140,6 @@ public class AuthServiceImpl implements AuthService {
     public void resetPassword(ResetPasswordRequest request) {
         // not implemented
     }
+
+    
 }

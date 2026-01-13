@@ -8,12 +8,12 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonPropertyOrder({"userId", "username", "expiresIn", "tokenType", "refreshToken", "accessToken"})
+@JsonPropertyOrder({"userId", "email", "expiresIn", "tokenType", "refreshToken", "accessToken"})
 public class AuthenticationResponse {
     private String tokenType;
     private String accessToken;
     private String refreshToken;
     private Long userId;
-    private String username;
+    private String email;
     private long expiresIn;
 }
