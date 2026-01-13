@@ -11,15 +11,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build
-        run: |
-          echo "Run your build here"
-          # npm ci && npm run build
-          # or: mvn test, gradle build, go test ./..., etc.
-
       - name: Send telegram message on success
         if: success()
         uses: appleboy/telegram-action@master
