@@ -48,7 +48,7 @@ jobs:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
           message: |
-            CI OK (dev)
+            Thưa sếp ! CI đã build thành công rùi !!!
             Actor: ${{ github.actor }}
             Repo: ${{ github.repository }}
             Ref: ${{ github.ref_name }}
@@ -62,7 +62,7 @@ jobs:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
           message: |
-            CI FAIL (dev)
+            Không ổn rồi sếp ơi :(( build nhánh dev thất bại rồi ! fix bug đi sếp
             Actor: ${{ github.actor }}
             Repo: ${{ github.repository }}
             Ref: ${{ github.ref_name }}
