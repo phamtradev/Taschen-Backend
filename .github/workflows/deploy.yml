@@ -27,3 +27,31 @@ jobs:
 
       - name: Show container status
         run: docker ps --filter "name=bookstore-prod"
+
+      - name: Send telegram message on success
+        if: success()
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            🚀 DEPLOY OK (main)
+            Actor: ${{ github.actor }}
+            Repo: ${{ github.repository }}
+            Ref: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Send telegram message on failure
+        if: failure()
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            💥 DEPLOY FAIL (main)
+            Actor: ${{ github.actor }}
+            Repo: ${{ github.repository }}
+            Ref: ${{ github.ref_name }}
+            Commit: ${{ github.sha }}
+            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
