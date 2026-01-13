@@ -48,7 +48,7 @@ jobs:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
           message: |
-            ✅ CI OK (dev)
+            CI OK (dev)
             Actor: ${{ github.actor }}
             Repo: ${{ github.repository }}
             Ref: ${{ github.ref_name }}
@@ -62,7 +62,7 @@ jobs:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
           message: |
-            ❌ CI FAIL (dev)
+            CI FAIL (dev)
             Actor: ${{ github.actor }}
             Repo: ${{ github.repository }}
             Ref: ${{ github.ref_name }}
