@@ -33,7 +33,7 @@ public class Book {
     private Integer pageCount;
 
     @Column(name = "format", length = 100)
-    private String format;
+    private String format;  //doi thanh varant
 
     @Column(name = "price", nullable = false)
     private double price;
