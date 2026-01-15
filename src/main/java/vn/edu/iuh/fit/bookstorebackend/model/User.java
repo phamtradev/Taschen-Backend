@@ -36,8 +36,7 @@ public class User {
     @Column(name = "is_active", nullable = false)
     private boolean isActive;
 
-    @Column(name = "username", length = 100, nullable = false)
-    private String username;
+
 
     @JsonIgnore //api ko tra du lieu password
     @Column(name = "password", nullable = false, length = 255)

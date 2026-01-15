@@ -9,6 +9,7 @@ import vn.edu.iuh.fit.bookstorebackend.dto.response.UserResponse;
 import vn.edu.iuh.fit.bookstorebackend.service.UserService;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
@@ -44,10 +45,10 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String email = auth != null ? auth.getName() : null;
-        if (email == null) {
+        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
         }
+        String email = auth.getName();
         UserResponse user = userService.getUserByEmail(email);
         return ResponseEntity.ok(user);
     }
@@ -56,10 +57,10 @@ public class UserController {
     public ResponseEntity<UserResponse> updateUser(@PathVariable Long id, @RequestBody UpdateUserRequest request) {
         // chấp nhận cập nhật profile của chính mình
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        String email = auth != null ? auth.getName() : null;
-        if (email == null) {
+        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
         }
+        String email = auth.getName();
         UserResponse current = userService.getUserByEmail(email);
         if (!current.getId().equals(id)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot update other user's profile");
@@ -77,6 +78,10 @@ public class UserController {
 
     @PatchMapping("/{id}/roles/codes")
     public ResponseEntity<UserResponse> setRolesByCodes(@PathVariable Long id, @RequestBody vn.edu.iuh.fit.bookstorebackend.dto.request.SetUserRoleCodesRequest request) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        }
         UserResponse user = userService.setRolesByCodes(id, request);
         return ResponseEntity.status(HttpStatus.OK).body(user);
     }

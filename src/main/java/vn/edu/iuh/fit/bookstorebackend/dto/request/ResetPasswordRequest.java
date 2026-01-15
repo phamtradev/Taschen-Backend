@@ -6,7 +6,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ResetPasswordRequest {
-    private String username;
+    private String email;
     private String token;
     private String newPassword;
 }
