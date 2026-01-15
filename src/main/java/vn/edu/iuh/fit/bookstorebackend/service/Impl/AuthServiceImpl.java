@@ -1,37 +1,55 @@
 package vn.edu.iuh.fit.bookstorebackend.service.Impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.*;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.AuthenticationResponse;
+import vn.edu.iuh.fit.bookstorebackend.dto.response.RegisterResponse;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.UserResponse;
 import vn.edu.iuh.fit.bookstorebackend.model.RefreshToken;
+import vn.edu.iuh.fit.bookstorebackend.model.Role;
 import vn.edu.iuh.fit.bookstorebackend.model.User;
+import vn.edu.iuh.fit.bookstorebackend.model.VerificationToken;
 import vn.edu.iuh.fit.bookstorebackend.repository.RefreshTokenRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.RoleRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.UserRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.VerificationTokenRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.AuthService;
 import vn.edu.iuh.fit.bookstorebackend.util.JwtService;
+
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import vn.edu.iuh.fit.bookstorebackend.util.MailService;
 
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final VerificationTokenRepository verificationTokenRepository;
+    private final MailService mailService;
 
     @Override
-    public UserResponse register(RegisterRequest request) {
+    public RegisterResponse register(RegisterRequest request) {
         // no username required; use email as login identifier
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already exists: " + request.getEmail());
@@ -45,14 +63,34 @@ public class AuthServiceImpl implements AuthService {
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
         user.setEmail(request.getEmail());
-        user.setUsername(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setActive(true);
+        user.setActive(false);
+
+        // assign default USER role
+        Role userRole = roleRepository.findByCode("USER")
+                .orElseThrow(() -> new RuntimeException("Default role USER not found"));
+        Set<Role> roles = new HashSet<>();
+        roles.add(userRole);
+        user.setRoles(roles);
+
         User saved = userRepository.save(user);
-        UserResponse response = new UserResponse();
+
+        // create verification token and send email
+        String token = UUID.randomUUID().toString();
+        VerificationToken vt = new VerificationToken();
+        vt.setToken(token);
+        vt.setUser(saved);
+        vt.setExpiresAt(Instant.now().plusSeconds(60L * 60L * 24L)); // 24 hours
+        verificationTokenRepository.save(vt);
+        try {
+            mailService.sendVerificationEmail(saved.getEmail(), token);
+        } catch (Exception e) {
+            log.warn("Failed to send verification email: {}", e.getMessage());
+        }
+        vn.edu.iuh.fit.bookstorebackend.dto.response.RegisterResponse response = new vn.edu.iuh.fit.bookstorebackend.dto.response.RegisterResponse();
         response.setId(saved.getId());
-        response.setUsername(saved.getUsername());
         response.setEmail(saved.getEmail());
+        response.setVerifyToken(token);
         response.setFirstName(saved.getFirstName());
         response.setLastName(saved.getLastName());
         response.setGender(saved.getGender());
@@ -74,6 +112,10 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Invalid credentials");
         }
 
+        if (!user.isActive()) {
+            throw new RuntimeException("Account not verified");
+        }
+
         String accessToken = jwtService.generateAccessToken(user);
         // xóa toàn bộ token cũ của người dùng để tránh trùng lặp
         refreshTokenRepository.deleteByUser(user);
@@ -86,6 +128,12 @@ public class AuthServiceImpl implements AuthService {
         refreshToken.setRevoked(false);
         refreshTokenRepository.save(refreshToken);
 
+        List<String> roles = user.getRoles() != null ?
+                user.getRoles().stream()
+                        .map(Role::getCode)
+                        .collect(Collectors.toList()) :
+                Collections.emptyList();
+
         return AuthenticationResponse.builder()
                 .tokenType("Bearer")
                 .accessToken(accessToken)
@@ -93,6 +141,7 @@ public class AuthServiceImpl implements AuthService {
                 .userId(user.getId())
                 .email(user.getEmail())
                 .expiresIn(jwtService.getAccessTokenExpirySeconds())
+                .roles(roles)
                 .build();
     }
 
@@ -147,6 +196,21 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    public void createVerificationForUser(Long userId, String token) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found: " + userId));
+        VerificationToken vt = new VerificationToken();
+        vt.setToken(token);
+        vt.setUser(user);
+        vt.setExpiresAt(Instant.now().plusSeconds(60L * 60L * 24L));// 24 hours
+        verificationTokenRepository.save(vt);
+        try {
+            mailService.sendVerificationEmail(user.getEmail(), token);
+        } catch (Exception e) {
+            log.warn("Failed to send verification email: {}", e.getMessage());
+        }
+    }
+
+    @Override
     public void sendPasswordResetEmail(ForgotPasswordRequest request) {
         // not implemented
     }
@@ -156,5 +220,31 @@ public class AuthServiceImpl implements AuthService {
         // not implemented
     }
 
-    
+
+    @Transactional
+    @Override
+    public void verifyEmailToken(String token) {
+        VerificationToken vt = verificationTokenRepository.findByToken(token)
+                .orElseThrow(() -> new RuntimeException("Invalid verification token"));
+        if (vt.getExpiresAt().isBefore(Instant.now())) throw new RuntimeException("Verification token expired");
+        User u = vt.getUser();
+        u.setActive(true);
+        userRepository.save(u);
+        verificationTokenRepository.deleteByToken(token);
+    }
+
+    @Transactional
+    @Override
+    public void verifyEmailTokenForUser(Long userId, String token) {
+        VerificationToken vt = verificationTokenRepository.findByToken(token)
+                .orElseThrow(() -> new RuntimeException("Invalid verification token"));
+        if (vt.getExpiresAt().isBefore(Instant.now())) throw new RuntimeException("Verification token expired");
+        if (!vt.getUser().getId().equals(userId)) throw new RuntimeException("Token does not belong to user");
+        User u = vt.getUser();
+        u.setActive(true);
+        userRepository.save(u);
+        verificationTokenRepository.deleteByToken(token);
+    }
+
+
 }

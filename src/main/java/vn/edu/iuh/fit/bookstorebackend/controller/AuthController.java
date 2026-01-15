@@ -7,8 +7,8 @@ import vn.edu.iuh.fit.bookstorebackend.dto.request.AuthenticationRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.ChangePasswordRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.RefreshTokenRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.RegisterRequest;
+import vn.edu.iuh.fit.bookstorebackend.dto.request.VerifyTokenRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.AuthenticationResponse;
-import vn.edu.iuh.fit.bookstorebackend.dto.response.UserResponse;
 import vn.edu.iuh.fit.bookstorebackend.service.AuthService;
 
 @RestController
@@ -22,9 +22,15 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<UserResponse> register(@RequestBody RegisterRequest request) {
-        UserResponse user = authService.register(request);
+    public ResponseEntity<vn.edu.iuh.fit.bookstorebackend.dto.response.RegisterResponse> register(@RequestBody RegisterRequest request) {
+        vn.edu.iuh.fit.bookstorebackend.dto.response.RegisterResponse user = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(user);
+    }
+
+    @PostMapping("/verify/{userId}")
+    public ResponseEntity<Void> verifyEmailByUser(@PathVariable("userId") Long userId, @RequestBody VerifyTokenRequest request) {
+        authService.verifyEmailTokenForUser(userId, request.getVerifyToken());
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/login")

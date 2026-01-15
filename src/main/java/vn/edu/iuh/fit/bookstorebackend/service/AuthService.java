@@ -6,7 +6,7 @@ import vn.edu.iuh.fit.bookstorebackend.dto.response.UserResponse;
 
 public interface AuthService {
 
-    UserResponse register(RegisterRequest request);
+    vn.edu.iuh.fit.bookstorebackend.dto.response.RegisterResponse register(RegisterRequest request);
 
     AuthenticationResponse login(AuthenticationRequest request);
 
@@ -19,5 +19,10 @@ public interface AuthService {
     void sendPasswordResetEmail(ForgotPasswordRequest request);
 
     void resetPassword(ResetPasswordRequest request);
+
+    void createVerificationForUser(Long userId, String token);
+
+    void verifyEmailToken(String token);
     
+    void verifyEmailTokenForUser(Long userId, String token);
 }
