@@ -33,6 +33,12 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/verify")
+    public ResponseEntity<Void> verifyEmail(@RequestParam("token") String token) {
+        authService.verifyEmailToken(token);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/login")
     public ResponseEntity<AuthenticationResponse> login(@RequestBody AuthenticationRequest request) {
         AuthenticationResponse response = authService.login(request);

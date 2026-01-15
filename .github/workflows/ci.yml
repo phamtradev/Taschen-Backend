@@ -48,8 +48,7 @@ jobs:
           to: ${{ secrets.TELEGRAM_TO }}
           token: ${{ secrets.TELEGRAM_TOKEN }}
           message: |
-            Thưa sếp ! CI đã build thành công rùi !!!
-            Nhớ merge qua nhánh main để deploy nhen !
+            CI Build Successfully
             Actor: ${{ github.actor }}
             Repo: ${{ github.repository }}
             Ref: ${{ github.ref_name }}
