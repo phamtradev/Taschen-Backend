@@ -10,14 +10,17 @@ import vn.edu.iuh.fit.bookstorebackend.dto.request.SetUserRoleCodesRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.UserResponse;
 import vn.edu.iuh.fit.bookstorebackend.model.Role;
 import vn.edu.iuh.fit.bookstorebackend.model.User;
+import vn.edu.iuh.fit.bookstorebackend.repository.RefreshTokenRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.RoleRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.UserRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.VerificationTokenRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.UserService;
 
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.AddressResponse;
 
 @Service
@@ -26,6 +29,8 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final VerificationTokenRepository verificationTokenRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -129,11 +134,18 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public void deleteUser(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new RuntimeException("User not found with id: " + id);
-        }
-        userRepository.deleteById(id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+
+        // Delete related entities first to avoid foreign key constraint violations
+        refreshTokenRepository.deleteByUser(user);
+        verificationTokenRepository.deleteByUser(user);
+
+        // Addresses will be cascade deleted due to orphanRemoval=true in User entity
+
+        userRepository.delete(user);
     }
 
     private UserResponse convertToUserResponse(User user) {
