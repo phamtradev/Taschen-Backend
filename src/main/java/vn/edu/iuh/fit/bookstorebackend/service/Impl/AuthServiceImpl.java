@@ -3,6 +3,7 @@ package vn.edu.iuh.fit.bookstorebackend.service.Impl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.core.env.Environment;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import vn.edu.iuh.fit.bookstorebackend.util.MailService;
 
 import java.time.Instant;
@@ -47,6 +49,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final VerificationTokenRepository verificationTokenRepository;
     private final MailService mailService;
+    private final Environment environment;
 
     @Override
     public RegisterResponse register(RegisterRequest request) {
@@ -87,7 +90,7 @@ public class AuthServiceImpl implements AuthService {
         } catch (Exception e) {
             log.warn("Failed to send verification email: {}", e.getMessage());
         }
-        vn.edu.iuh.fit.bookstorebackend.dto.response.RegisterResponse response = new vn.edu.iuh.fit.bookstorebackend.dto.response.RegisterResponse();
+        RegisterResponse response = new RegisterResponse();
         response.setId(saved.getId());
         response.setEmail(saved.getEmail());
         response.setVerifyToken(token);
@@ -98,6 +101,11 @@ public class AuthServiceImpl implements AuthService {
         response.setActive(saved.isActive());
         response.setRoles(saved.getRoles() == null ? null :
                 saved.getRoles().stream().map(r -> r.getCode()).collect(Collectors.toList()));
+
+//        System.out.println("ENV MAIL_USERNAME = " + System.getenv("MAIL_USERNAME"));
+//        System.out.println("ENV MAIL_PASSWORD = " + System.getenv("MAIL_PASSWORD"));
+//        System.out.println("PROP spring.mail.username = " + environment.getProperty("spring.mail.username"));
+//        System.out.println("PROP spring.mail.password = " + environment.getProperty("spring.mail.password"));
 
         return response;
     }
