@@ -43,15 +43,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             try {
                 logger.debug("Verifying access token");
                 DecodedJWT decoded = jwtService.verify(token);
-                String username = decoded.getSubject();
+                String email = decoded.getSubject();
                 List<String> roles = decoded.getClaim("roles").isNull() ? List.of() : decoded.getClaim("roles").asList(String.class);
-                logger.debug("Token valid for subject='{}', roles={}", username, roles);
+                logger.debug("Token valid for subject='{}', roles={}", email, roles);
 
                 List<SimpleGrantedAuthority> authorities = roles.stream()
                         .map(r -> new SimpleGrantedAuthority("ROLE_" + r))
                         .collect(Collectors.toList());
 
-                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(username, null, authorities);
+                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(email, null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(auth);
             } catch (AuthenticationException ex) {
                 logger.warn("Authentication exception while verifying token: {}", ex.getMessage());
