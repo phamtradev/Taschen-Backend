@@ -17,6 +17,7 @@ import vn.edu.iuh.fit.bookstorebackend.service.UserService;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 import vn.edu.iuh.fit.bookstorebackend.dto.response.AddressResponse;
 
 @Service
@@ -29,10 +30,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponse createUser(CreateUserRequest request) {
-        // Check if username or email already exists
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Username already exists: " + request.getUsername());
-        }
+        // Check if email already exists
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new RuntimeException("Email already exists: " + request.getEmail());
         }
@@ -43,7 +41,6 @@ public class UserServiceImpl implements UserService {
         user.setGender(request.getGender());
         user.setEmail(request.getEmail());
         user.setPhoneNumber(request.getPhoneNumber());
-        user.setUsername(request.getUsername());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setActive(request.getActive() != null ? request.getActive() : true);
 
@@ -142,7 +139,6 @@ public class UserServiceImpl implements UserService {
     private UserResponse convertToUserResponse(User user) {
         UserResponse response = new UserResponse();
         response.setId(user.getId());
-        response.setUsername(user.getUsername());
         response.setEmail(user.getEmail());
         response.setFirstName(user.getFirstName());
         response.setLastName(user.getLastName());

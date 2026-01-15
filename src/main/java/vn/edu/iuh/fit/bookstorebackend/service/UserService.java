@@ -22,7 +22,7 @@ public interface UserService {
     UserResponse updateUser(Long id, UpdateUserRequest request);
 
     UserResponse setActive(Long id, boolean active);
-
+    
     UserResponse setRolesByCodes(Long userId, SetUserRoleCodesRequest request);
 
     void deleteUser(Long id);
