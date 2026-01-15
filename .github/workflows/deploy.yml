@@ -22,8 +22,6 @@ jobs:
             -e SPRING_PROFILES_ACTIVE=prod \
             -e DB_PASSWORD_PROD='${{ secrets.DB_PASSWORD_PROD }}' \
             -e APP_JWT_SECRET='${{ secrets.APP_JWT_SECRET }}' \
-            -e MAIL_USERNAME='${{ secrets.MAIL_USERNAME }}' \
-            -e MAIL_PASSWORD='${{ secrets.MAIL_PASSWORD }}' \
             --restart unless-stopped \
             bookstore-backend:prod
 
