@@ -63,7 +63,7 @@ public class AuthServiceImpl implements AuthService {
                 // Find verification token for this user
                 List<VerificationToken> tokens = verificationTokenRepository.findByUser(existingUser);
                 boolean hasValidToken = tokens.stream()
-                    .anyMatch(token -> token.getExpiresAt().isAfter(Instant.now()));
+                        .anyMatch(token -> token.getExpiresAt().isAfter(Instant.now()));
 
                 // If no valid tokens (all expired or revoked, or no tokens at all), allow re-registration
                 if (!hasValidToken) {
@@ -250,6 +250,7 @@ public class AuthServiceImpl implements AuthService {
         } catch (Exception e) {
             log.warn("Failed to send verification email: {}", e.getMessage());
         }
+        log.info("Created verification token for email={} token={} userId={}", user.getEmail(), token, user.getId());
     }
 
     @Override
