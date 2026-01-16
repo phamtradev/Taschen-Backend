@@ -24,11 +24,11 @@ public class MailService {
     @Value("${app.mail.from-name:}")
     private String fromName;
 
-    @Value("${app.frontend.verify-url:http://localhost:8080/api/auth/verify?token=}")
+    @Value("${app.frontend.verify-url:http://13.239.226.13:8080/api/auth/verify?token=}")
     private String verifyUrlPrefix;
 
-    public void sendVerificationEmail(String to, String token) throws MessagingException {
-        String verifyLink = verifyUrlPrefix + token;
+    public void sendVerificationEmail(String to, String token, Long userId) throws MessagingException {
+        String verifyLink = verifyUrlPrefix + token + "&userId=" + userId;
         String html = "<!doctype html>"
                 + "<html><body style=\"font-family:Arial,sans-serif;color:#333;\">"
                 + "<h3>Please verify your account</h3>"

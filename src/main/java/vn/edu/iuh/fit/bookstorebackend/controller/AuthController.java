@@ -9,6 +9,7 @@ import vn.edu.iuh.fit.bookstorebackend.dto.request.RefreshTokenRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.RegisterRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.VerifyTokenRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.AuthenticationResponse;
+import vn.edu.iuh.fit.bookstorebackend.dto.response.RefreshTokenResponse;
 import vn.edu.iuh.fit.bookstorebackend.service.AuthService;
 
 @RestController
@@ -27,6 +28,12 @@ public class AuthController {
         return ResponseEntity.status(HttpStatus.CREATED).body(user);
     }
 
+    @GetMapping("/verify")
+    public ResponseEntity<Void> verifyEmail(@RequestParam("token") String token, @RequestParam("userId") Long userId) {
+        authService.verifyEmailTokenForUser(userId, token);
+        return ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/verify/{userId}")
     public ResponseEntity<Void> verifyEmailByUser(@PathVariable("userId") Long userId, @RequestBody VerifyTokenRequest request) {
         authService.verifyEmailTokenForUser(userId, request.getVerifyToken());
@@ -39,8 +46,8 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
     @PostMapping("/refresh")
-    public ResponseEntity<AuthenticationResponse> refresh(@RequestBody RefreshTokenRequest request) {
-        AuthenticationResponse response = authService.refreshToken(request);
+    public ResponseEntity<RefreshTokenResponse> refresh(@RequestBody RefreshTokenRequest request) {
+        RefreshTokenResponse response = authService.refreshToken(request);
         return ResponseEntity.ok(response);
     }
 

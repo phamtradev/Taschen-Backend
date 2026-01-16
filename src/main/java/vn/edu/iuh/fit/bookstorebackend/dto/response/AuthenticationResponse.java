@@ -3,6 +3,8 @@ package vn.edu.iuh.fit.bookstorebackend.dto.response;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.*;
 
+import java.util.List;
+
 @Getter
 @Setter
 @Builder
@@ -16,5 +18,5 @@ public class AuthenticationResponse {
     private Long userId;
     private String email;
     private long expiresIn;
-    private java.util.List<String> roles;
+    private List<String> roles;
 }

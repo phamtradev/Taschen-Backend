@@ -2,6 +2,7 @@ package vn.edu.iuh.fit.bookstorebackend.service;
 
 import vn.edu.iuh.fit.bookstorebackend.dto.request.*;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.AuthenticationResponse;
+import vn.edu.iuh.fit.bookstorebackend.dto.response.RefreshTokenResponse;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.UserResponse;
 
 public interface AuthService {
@@ -10,7 +11,7 @@ public interface AuthService {
 
     AuthenticationResponse login(AuthenticationRequest request);
 
-    AuthenticationResponse refreshToken(RefreshTokenRequest request);
+    RefreshTokenResponse refreshToken(RefreshTokenRequest request);
 
     void logout(String refreshToken);
 
