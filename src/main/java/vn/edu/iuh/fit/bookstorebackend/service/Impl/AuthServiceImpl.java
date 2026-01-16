@@ -84,7 +84,7 @@ public class AuthServiceImpl implements AuthService {
         VerificationToken vt = new VerificationToken();
         vt.setToken(token);
         vt.setUser(saved);
-        vt.setExpiresAt(Instant.now().plusSeconds(60L * 60L * 24L)); // 24 hours
+        vt.setExpiresAt(Instant.now().plusSeconds(60L * 2L)); // 2 minutes for testing
         verificationTokenRepository.save(vt);
         try {
             mailService.sendVerificationEmail(saved.getEmail(), token, saved.getId());
@@ -223,7 +223,7 @@ public class AuthServiceImpl implements AuthService {
         VerificationToken vt = new VerificationToken();
         vt.setToken(token);
         vt.setUser(user);
-        vt.setExpiresAt(Instant.now().plusSeconds(60L * 60L * 24L));// 24 hours
+        vt.setExpiresAt(Instant.now().plusSeconds(60L * 2L)); // 2 minutes for testing
         verificationTokenRepository.save(vt);
         try {
             mailService.sendVerificationEmail(user.getEmail(), token, user.getId());
@@ -248,7 +248,15 @@ public class AuthServiceImpl implements AuthService {
     public void verifyEmailToken(String token) {
         VerificationToken vt = verificationTokenRepository.findByToken(token)
                 .orElseThrow(() -> new RuntimeException("Invalid verification token"));
-        if (vt.getExpiresAt().isBefore(Instant.now())) throw new RuntimeException("Verification token expired");
+
+        if (vt.getExpiresAt().isBefore(Instant.now())) {
+            // Token expired - delete user and token
+            User expiredUser = vt.getUser();
+            verificationTokenRepository.delete(vt);
+            userRepository.delete(expiredUser);
+            throw new RuntimeException("Verification token expired - account deleted. Please register again.");
+        }
+
         User u = vt.getUser();
         u.setActive(true);
         userRepository.save(u);
@@ -260,7 +268,15 @@ public class AuthServiceImpl implements AuthService {
     public void verifyEmailTokenForUser(Long userId, String token) {
         VerificationToken vt = verificationTokenRepository.findByToken(token)
                 .orElseThrow(() -> new RuntimeException("Invalid verification token"));
-        if (vt.getExpiresAt().isBefore(Instant.now())) throw new RuntimeException("Verification token expired");
+
+        if (vt.getExpiresAt().isBefore(Instant.now())) {
+            // Token expired - delete user and token
+            User expiredUser = vt.getUser();
+            verificationTokenRepository.delete(vt);
+            userRepository.delete(expiredUser);
+            throw new RuntimeException("Verification token expired - account deleted. Please register again.");
+        }
+
         if (!vt.getUser().getId().equals(userId)) throw new RuntimeException("Token does not belong to user");
         User u = vt.getUser();
         u.setActive(true);
