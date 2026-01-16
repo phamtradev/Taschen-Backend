@@ -4,6 +4,8 @@ import lombok.Getter;
 import lombok.Setter;
 import vn.edu.iuh.fit.bookstorebackend.common.Gender;
 
+import java.util.List;
+
 @Getter
 @Setter
 public class UpdateUserRequest {
@@ -15,4 +17,6 @@ public class UpdateUserRequest {
     private String phoneNumber;
 
     private Boolean active;
+
+    private List<String> roleCodes;
 }

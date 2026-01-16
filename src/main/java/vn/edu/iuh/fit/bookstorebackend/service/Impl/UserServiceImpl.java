@@ -3,6 +3,7 @@ package vn.edu.iuh.fit.bookstorebackend.service.Impl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateUserRequest;
 // removed SetUserRolesRequest - using role codes API instead
 import vn.edu.iuh.fit.bookstorebackend.dto.request.UpdateUserRequest;
@@ -13,14 +14,12 @@ import vn.edu.iuh.fit.bookstorebackend.model.User;
 import vn.edu.iuh.fit.bookstorebackend.repository.RefreshTokenRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.RoleRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.UserRepository;
-import vn.edu.iuh.fit.bookstorebackend.repository.VerificationTokenRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.UserService;
 
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.AddressResponse;
 
 @Service
@@ -30,7 +29,6 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final VerificationTokenRepository verificationTokenRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Override
@@ -104,6 +102,14 @@ public class UserServiceImpl implements UserService {
             user.setActive(request.getActive());
         }
 
+        if (request.getRoleCodes() != null) {
+            Set<Role> roles = request.getRoleCodes().stream()
+                    .map(code -> roleRepository.findByCode(code)
+                            .orElseThrow(() -> new RuntimeException("Role not found with code: " + code)))
+                    .collect(Collectors.toSet());
+            user.setRoles(roles);
+        }
+
         User updatedUser = userRepository.save(user);
         return convertToUserResponse(updatedUser);
     }
@@ -139,11 +145,8 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
 
-        // Delete related entities first to avoid foreign key constraint violations
+        // Xóa tất cả refresh tokens của user trước khi xóa user
         refreshTokenRepository.deleteByUser(user);
-        verificationTokenRepository.deleteByUser(user);
-
-        // Addresses will be cascade deleted due to orphanRemoval=true in User entity
 
         userRepository.delete(user);
     }
