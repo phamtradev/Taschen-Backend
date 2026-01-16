@@ -53,10 +53,30 @@ public class AuthServiceImpl implements AuthService {
     private final Environment environment;
 
     @Override
+    @Transactional
     public RegisterResponse register(RegisterRequest request) {
         // no username required; use email as login identifier
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already exists: " + request.getEmail());
+            // Check if existing user is inactive and has expired verification token
+            User existingUser = userRepository.findByEmail(request.getEmail()).get();
+            if (!existingUser.isActive()) {
+                // Find verification token for this user
+                List<VerificationToken> tokens = verificationTokenRepository.findByUser(existingUser);
+                boolean hasValidToken = tokens.stream()
+                    .anyMatch(token -> token.getExpiresAt().isAfter(Instant.now()));
+
+                // If no valid tokens (all expired or revoked, or no tokens at all), allow re-registration
+                if (!hasValidToken) {
+                    // Delete all tokens and user
+                    verificationTokenRepository.deleteByUser(existingUser);
+                    userRepository.delete(existingUser);
+                    log.info("Deleted inactive user with expired/revoked tokens: {}", request.getEmail());
+                } else {
+                    throw new RuntimeException("Email already exists: " + request.getEmail());
+                }
+            } else {
+                throw new RuntimeException("Email already exists: " + request.getEmail());
+            }
         }
 
         if (request.getPassword() == null || request.getConfirmPassword() == null || !request.getPassword().equals(request.getConfirmPassword())) {
