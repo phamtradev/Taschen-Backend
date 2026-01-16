@@ -7,12 +7,10 @@ import vn.edu.iuh.fit.bookstorebackend.common.Gender;
 import java.util.List;
 
 @Data
-@JsonPropertyOrder({ "id", "email", "verifyToken", "firstName", "lastName", "gender", "phoneNumber", "active", "roles", "addresses" })
+@JsonPropertyOrder({ "id", "email", "firstName", "lastName", "gender", "phoneNumber", "active", "roles", "addresses" })
 public class RegisterResponse {
     private Long id;
     private String email;
-
-    private String verifyToken;
 
     private String firstName;
     private String lastName;

@@ -7,8 +7,10 @@ import org.springframework.core.env.Environment;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.*;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.AuthenticationResponse;
+import vn.edu.iuh.fit.bookstorebackend.dto.response.RefreshTokenResponse;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.RegisterResponse;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.UserResponse;
 import vn.edu.iuh.fit.bookstorebackend.model.RefreshToken;
@@ -22,7 +24,6 @@ import vn.edu.iuh.fit.bookstorebackend.repository.VerificationTokenRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.AuthService;
 import vn.edu.iuh.fit.bookstorebackend.util.JwtService;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -33,7 +34,7 @@ import vn.edu.iuh.fit.bookstorebackend.util.MailService;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
+import java.util.Collections;
 
 import org.springframework.transaction.annotation.Transactional;
 
@@ -86,14 +87,13 @@ public class AuthServiceImpl implements AuthService {
         vt.setExpiresAt(Instant.now().plusSeconds(60L * 60L * 24L)); // 24 hours
         verificationTokenRepository.save(vt);
         try {
-            mailService.sendVerificationEmail(saved.getEmail(), token);
+            mailService.sendVerificationEmail(saved.getEmail(), token, saved.getId());
         } catch (Exception e) {
             log.warn("Failed to send verification email: {}", e.getMessage());
         }
         RegisterResponse response = new RegisterResponse();
         response.setId(saved.getId());
         response.setEmail(saved.getEmail());
-        response.setVerifyToken(token);
         response.setFirstName(saved.getFirstName());
         response.setLastName(saved.getLastName());
         response.setGender(saved.getGender());
@@ -140,7 +140,7 @@ public class AuthServiceImpl implements AuthService {
                 user.getRoles().stream()
                         .map(Role::getCode)
                         .collect(Collectors.toList()) :
-                Collections.emptyList();
+                java.util.Collections.emptyList();
 
         return AuthenticationResponse.builder()
                 .tokenType("Bearer")
@@ -154,7 +154,8 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
-    public AuthenticationResponse refreshToken(RefreshTokenRequest request) {
+    @Transactional
+    public RefreshTokenResponse refreshToken(RefreshTokenRequest request) {
         String refreshTokenStr = request.getRefreshToken();
         RefreshToken stored = refreshTokenRepository.findByToken(refreshTokenStr)
                 .orElseThrow(() -> new RuntimeException("Invalid refresh token"));
@@ -164,14 +165,27 @@ public class AuthServiceImpl implements AuthService {
         }
 
         User user = stored.getUser();
+
+        // Revoke old refresh token
+        stored.setRevoked(true);
+        refreshTokenRepository.save(stored);
+
+        // Generate new access token
         String accessToken = jwtService.generateAccessToken(user);
 
-        return AuthenticationResponse.builder()
+        // Generate new refresh token
+        String newRefreshTokenStr = UUID.randomUUID().toString();
+        RefreshToken newRefreshToken = new RefreshToken();
+        newRefreshToken.setToken(newRefreshTokenStr);
+        newRefreshToken.setUser(user);
+        newRefreshToken.setExpiresAt(Instant.now().plusSeconds(60L * 60L * 24L * 30L)); // 30 days
+        newRefreshToken.setRevoked(false);
+        refreshTokenRepository.save(newRefreshToken);
+
+        return RefreshTokenResponse.builder()
                 .tokenType("Bearer")
                 .accessToken(accessToken)
-                .refreshToken(refreshTokenStr)
-                .userId(user.getId())
-                .email(user.getEmail())
+                .refreshToken(newRefreshTokenStr)
                 .expiresIn(jwtService.getAccessTokenExpirySeconds())
                 .build();
     }
@@ -212,7 +226,7 @@ public class AuthServiceImpl implements AuthService {
         vt.setExpiresAt(Instant.now().plusSeconds(60L * 60L * 24L));// 24 hours
         verificationTokenRepository.save(vt);
         try {
-            mailService.sendVerificationEmail(user.getEmail(), token);
+            mailService.sendVerificationEmail(user.getEmail(), token, user.getId());
         } catch (Exception e) {
             log.warn("Failed to send verification email: {}", e.getMessage());
         }
