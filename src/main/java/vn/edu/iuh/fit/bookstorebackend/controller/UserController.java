@@ -55,15 +55,24 @@ public class UserController {
 
     @PutMapping("/{id}")
     public ResponseEntity<UserResponse> updateUser(@PathVariable Long id, @RequestBody UpdateUserRequest request) {
-        // chấp nhận cập nhật profile của chính mình
+        // chấp nhận cập nhật profile của chính mình hoặc admin có thể update bất kỳ user nào
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
         }
         String email = auth.getName();
         UserResponse current = userService.getUserByEmail(email);
-        if (!current.getId().equals(id)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot update other user's profile");
+
+        // Nếu request có roleCodes thì chỉ admin mới được phép
+        if (request.getRoleCodes() != null) {
+            if (!current.getRoles().contains("ADMIN")) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admin can update user roles");
+            }
+        } else {
+            // Nếu chỉ cập nhật profile thì user có thể update chính mình hoặc admin có thể update bất kỳ ai
+            if (!current.getRoles().contains("ADMIN") && !current.getId().equals(id)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot update other user's profile");
+            }
         }
 
         UserResponse user = userService.updateUser(id, request);
@@ -82,6 +91,14 @@ public class UserController {
         if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
         }
+        String email = auth.getName();
+        UserResponse currentUser = userService.getUserByEmail(email);
+
+        // Chỉ admin mới được phép thay đổi role của user khác
+        if (!currentUser.getRoles().contains("ADMIN")) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admin can change user roles");
+        }
+
         UserResponse user = userService.setRolesByCodes(id, request);
         return ResponseEntity.status(HttpStatus.OK).body(user);
     }
