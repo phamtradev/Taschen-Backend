@@ -1,10 +1,12 @@
 package vn.edu.iuh.fit.bookstorebackend.service.Impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.AddToCartRequest;
-import vn.edu.iuh.fit.bookstorebackend.dto.request.UpdateCartItemRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.CartItemResponse;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.CartResponse;
 import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
@@ -46,13 +48,31 @@ public class CartServiceImpl implements CartService {
                     Cart newCart = new Cart();
                     newCart.setUser(user);
                     newCart.setTotalPrice(0.0);
-                    newCart.setItems(new ArrayList<>());
                     return cartRepository.save(newCart);
                 });
 
-        // Fetch items to ensure they are loaded
-        List<CartItem> items = cartItemRepository.findByCart(cart);
-        cart.setItems(items != null ? items : new ArrayList<>());
+        return convertToCartResponse(cart);
+    }
+
+    @Override
+    @Transactional
+    public CartResponse getCartByCurrentUser() throws IdInvalidException {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
+            throw new RuntimeException("User is not authenticated");
+        }
+
+        String email = auth.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+
+        Cart cart = cartRepository.findByUser(user)
+                .orElseGet(() -> {
+                    Cart newCart = new Cart();
+                    newCart.setUser(user);
+                    newCart.setTotalPrice(0.0);
+                    return cartRepository.save(newCart);
+                });
 
         return convertToCartResponse(cart);
     }
@@ -95,7 +115,6 @@ public class CartServiceImpl implements CartService {
                     Cart newCart = new Cart();
                     newCart.setUser(user);
                     newCart.setTotalPrice(0.0);
-                    newCart.setItems(new ArrayList<>());
                     return cartRepository.save(newCart);
                 });
 
@@ -138,7 +157,6 @@ public class CartServiceImpl implements CartService {
 
         cartItemRepository.deleteByCart(cart);
         cart.setTotalPrice(0.0);
-        cart.setItems(new ArrayList<>());
         cartRepository.save(cart);
     }
 
@@ -182,7 +200,53 @@ public class CartServiceImpl implements CartService {
         // Clear cart after checkout
         cartItemRepository.deleteByCart(cart);
         cart.setTotalPrice(0.0);
-        cart.setItems(new ArrayList<>());
+        Cart clearedCart = cartRepository.save(cart);
+
+        return convertToCartResponse(clearedCart);
+    }
+
+    @Override
+    @Transactional
+    public CartResponse checkoutCurrentUser() throws IdInvalidException {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
+            throw new RuntimeException("User is not authenticated");
+        }
+
+        String email = auth.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+
+        Cart cart = cartRepository.findByUser(user)
+                .orElseThrow(() -> new RuntimeException("Cart not found for user: " + email));
+
+        // Fetch items to ensure they are loaded
+        List<CartItem> items = cartItemRepository.findByCart(cart);
+        if (items == null || items.isEmpty()) {
+            throw new RuntimeException("Cart is empty. Cannot checkout");
+        }
+
+        // Validate stock for all items
+        for (CartItem item : items) {
+            Book book = item.getBook();
+            if (book.getIsActive() == null || !book.getIsActive()) {
+                throw new RuntimeException("Book is not active: " + book.getId());
+            }
+            if (book.getStockQuantity() < item.getQuantity()) {
+                throw new RuntimeException("Insufficient stock for book: " + book.getTitle() + ". Available: " + book.getStockQuantity() + ", Requested: " + item.getQuantity());
+            }
+        }
+
+        // Update stock quantities
+        for (CartItem item : items) {
+            Book book = item.getBook();
+            book.setStockQuantity(book.getStockQuantity() - item.getQuantity());
+            bookRepository.save(book);
+        }
+
+        // Clear cart after checkout
+        cartItemRepository.deleteByCart(cart);
+        cart.setTotalPrice(0.0);
         Cart clearedCart = cartRepository.save(cart);
 
         return convertToCartResponse(clearedCart);
@@ -192,7 +256,6 @@ public class CartServiceImpl implements CartService {
         List<CartItem> items = cartItemRepository.findByCart(cart);
         if (items == null || items.isEmpty()) {
             cart.setTotalPrice(0.0);
-            cart.setItems(new ArrayList<>());
             return;
         }
 
@@ -200,7 +263,6 @@ public class CartServiceImpl implements CartService {
                 .mapToDouble(item -> item.getUnitPrice() * item.getQuantity())
                 .sum();
         cart.setTotalPrice(totalPrice);
-        cart.setItems(items);
     }
 
     private CartResponse convertToCartResponse(Cart cart) {
@@ -209,8 +271,10 @@ public class CartServiceImpl implements CartService {
         cartResponse.setUserId(cart.getUser().getId());
         cartResponse.setTotalPrice(cart.getTotalPrice());
 
-        if (cart.getItems() != null) {
-            List<CartItemResponse> cartItemResponses = cart.getItems().stream()
+        // Fetch items from repository to avoid lazy loading issues
+        List<CartItem> items = cartItemRepository.findByCart(cart);
+        if (items != null && !items.isEmpty()) {
+            List<CartItemResponse> cartItemResponses = items.stream()
                     .map(this::convertToCartItemResponse)
                     .collect(Collectors.toList());
             cartResponse.setItems(cartItemResponses);

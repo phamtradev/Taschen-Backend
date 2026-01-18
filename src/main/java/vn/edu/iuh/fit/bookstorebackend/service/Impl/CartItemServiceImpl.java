@@ -12,7 +12,6 @@ import vn.edu.iuh.fit.bookstorebackend.repository.CartItemRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.CartRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.CartItemService;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -136,13 +135,11 @@ public class CartItemServiceImpl implements CartItemService {
         List<CartItem> items = cartItemRepository.findByCart(cart);
         if (items == null || items.isEmpty()) {
             cart.setTotalPrice(0.0);
-            cart.setItems(new ArrayList<>());
         } else {
             double totalPrice = items.stream()
                     .mapToDouble(item -> item.getUnitPrice() * item.getQuantity())
                     .sum();
             cart.setTotalPrice(totalPrice);
-            cart.setItems(items);
         }
         cartRepository.save(cart);
     }
