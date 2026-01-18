@@ -11,4 +11,6 @@ import java.util.List;
 public interface BookRepository extends JpaRepository<Book, Long> {
 
     List<Book> findAll(Sort sort);
+    
+    boolean existsByTitle(String title);
 }
