@@ -13,8 +13,10 @@ import vn.edu.iuh.fit.bookstorebackend.model.Category;
 import vn.edu.iuh.fit.bookstorebackend.model.Variant;
 import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.CategoryRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.VariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.BookService;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -26,6 +28,7 @@ public class BookServiceImpl implements BookService {
 
     private final BookRepository bookRepository;
     private final CategoryRepository categoryRepository;
+    private final VariantRepository variantRepository;
 
     @Override
     @Transactional
@@ -63,6 +66,23 @@ public class BookServiceImpl implements BookService {
         }
 
         Book savedBook = bookRepository.save(book);
+
+        // Create variants if provided
+        if (request.getVariantFormats() != null && !request.getVariantFormats().isEmpty()) {
+            List<Variant> variants = new ArrayList<>();
+            for (String format : request.getVariantFormats()) {
+                if (format != null && !format.trim().isEmpty()) {
+                    Variant variant = new Variant();
+                    variant.setFormat(format.trim());
+                    variant.setBook(savedBook);
+                    variants.add(variant);
+                }
+            }
+            if (!variants.isEmpty()) {
+                variantRepository.saveAll(variants);
+            }
+        }
+
         return convertToBookResponse(savedBook);
     }
 
@@ -148,6 +168,32 @@ public class BookServiceImpl implements BookService {
         }
 
         Book updatedBook = bookRepository.save(book);
+
+        // Update variants if provided
+        if (request.getVariantFormats() != null) {
+            // Delete existing variants
+            List<Variant> existingVariants = variantRepository.findByBook(updatedBook);
+            if (existingVariants != null && !existingVariants.isEmpty()) {
+                variantRepository.deleteAll(existingVariants);
+            }
+
+            // Create new variants
+            if (!request.getVariantFormats().isEmpty()) {
+                List<Variant> variants = new ArrayList<>();
+                for (String format : request.getVariantFormats()) {
+                    if (format != null && !format.trim().isEmpty()) {
+                        Variant variant = new Variant();
+                        variant.setFormat(format.trim());
+                        variant.setBook(updatedBook);
+                        variants.add(variant);
+                    }
+                }
+                if (!variants.isEmpty()) {
+                    variantRepository.saveAll(variants);
+                }
+            }
+        }
+
         return convertToBookResponse(updatedBook);
     }
 
@@ -197,11 +243,14 @@ public class BookServiceImpl implements BookService {
         bookResponse.setIsActive(book.getIsActive());
 
         // Convert variants to list of formats
-        if (book.getVariants() != null) {
-            List<String> variantFormatList = book.getVariants().stream()
+        List<Variant> variants = variantRepository.findByBook(book);
+        if (variants != null && !variants.isEmpty()) {
+            List<String> variantFormatList = variants.stream()
                     .map(Variant::getFormat)
                     .collect(Collectors.toList());
             bookResponse.setVariantFormats(variantFormatList);
+        } else {
+            bookResponse.setVariantFormats(new ArrayList<>());
         }
 
         // Convert categories to list of identifiers
