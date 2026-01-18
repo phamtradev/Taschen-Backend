@@ -20,4 +20,6 @@ public interface BookService {
     void deleteBook(Long bookId) throws IdInvalidException;
     
     List<BookResponse> getAllBooksSorted(String sortByField, String sortDirection);
+    
+    List<BookResponse> getBooksByCategoryId(Long categoryId) throws IdInvalidException;
 }

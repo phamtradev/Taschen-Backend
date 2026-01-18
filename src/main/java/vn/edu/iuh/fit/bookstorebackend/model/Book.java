@@ -3,7 +3,6 @@ package vn.edu.iuh.fit.bookstorebackend.model;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.util.Set;
 import java.util.List;
 
 @Entity
@@ -54,5 +53,5 @@ public class Book {
             joinColumns = @JoinColumn(name = "book_id"),
             inverseJoinColumns = @JoinColumn(name = "category_id")
     )
-    private Set<Category> categories;
+    private List<Category> categories;
 }

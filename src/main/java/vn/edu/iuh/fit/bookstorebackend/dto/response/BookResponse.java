@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 
 import java.util.List;
-import java.util.Set;
 
 @Data
 @JsonPropertyOrder({ "id", "title", "author", "description", "publicationYear", "weightGrams", "pageCount", "price", "stockQuantity", "imageUrl", "isActive", "variantFormats", "categoryIds" })
@@ -21,5 +20,5 @@ public class BookResponse {
     private String imageUrl;
     private Boolean isActive;
     private List<String> variantFormats;
-    private Set<Long> categoryIds;
+    private List<Long> categoryIds;
 }
