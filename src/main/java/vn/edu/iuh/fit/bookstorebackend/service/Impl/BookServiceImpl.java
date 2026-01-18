@@ -1,0 +1,208 @@
+package vn.edu.iuh.fit.bookstorebackend.service.Impl;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateBookRequest;
+import vn.edu.iuh.fit.bookstorebackend.dto.request.UpdateBookRequest;
+import vn.edu.iuh.fit.bookstorebackend.dto.response.BookResponse;
+import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
+import vn.edu.iuh.fit.bookstorebackend.model.Book;
+import vn.edu.iuh.fit.bookstorebackend.model.Category;
+import vn.edu.iuh.fit.bookstorebackend.model.Variant;
+import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.CategoryRepository;
+import vn.edu.iuh.fit.bookstorebackend.service.BookService;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class BookServiceImpl implements BookService {
+
+    private final BookRepository bookRepository;
+    private final CategoryRepository categoryRepository;
+
+    @Override
+    @Transactional
+    public BookResponse createBook(CreateBookRequest request) throws IdInvalidException {
+        if (request == null) {
+            throw new IdInvalidException("CreateBookRequest cannot be null");
+        }
+
+        Book book = new Book();
+        book.setTitle(request.getTitle());
+        book.setAuthor(request.getAuthor());
+        book.setDescription(request.getDescription());
+        book.setPublicationYear(request.getPublicationYear());
+        book.setWeightGrams(request.getWeightGrams());
+        book.setPageCount(request.getPageCount());
+        book.setPrice(request.getPrice() != null ? request.getPrice() : 0.0);
+        book.setStockQuantity(request.getStockQuantity() != null ? request.getStockQuantity() : 0);
+        book.setImageUrl(request.getImageUrl());
+        book.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
+
+        // Set categories if provided
+        if (request.getCategoryIds() != null && !request.getCategoryIds().isEmpty()) {
+            Set<Category> categories = categoryRepository.findByIdIn(request.getCategoryIds());
+            if (categories.size() != request.getCategoryIds().size()) {
+                throw new IdInvalidException("One or more category identifiers are invalid");
+            }
+            book.setCategories(categories);
+        } else {
+            book.setCategories(new HashSet<>());
+        }
+
+        Book savedBook = bookRepository.save(book);
+        return convertToBookResponse(savedBook);
+    }
+
+    @Override
+    public BookResponse getBookById(Long bookId) throws IdInvalidException {
+        if (bookId == null || bookId <= 0) {
+            throw new IdInvalidException("Book identifier is invalid: " + bookId);
+        }
+
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
+        return convertToBookResponse(book);
+    }
+
+    @Override
+    public List<BookResponse> getAllBooks() {
+        List<Book> books = bookRepository.findAll();
+        return books.stream()
+                .map(this::convertToBookResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public BookResponse updateBook(Long bookId, UpdateBookRequest request) throws IdInvalidException {
+        if (bookId == null || bookId <= 0) {
+            throw new IdInvalidException("Book identifier is invalid: " + bookId);
+        }
+
+        if (request == null) {
+            throw new IdInvalidException("UpdateBookRequest cannot be null");
+        }
+
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
+
+        if (request.getTitle() != null) {
+            book.setTitle(request.getTitle());
+        }
+        if (request.getAuthor() != null) {
+            book.setAuthor(request.getAuthor());
+        }
+        if (request.getDescription() != null) {
+            book.setDescription(request.getDescription());
+        }
+        if (request.getPublicationYear() != null) {
+            book.setPublicationYear(request.getPublicationYear());
+        }
+        if (request.getWeightGrams() != null) {
+            book.setWeightGrams(request.getWeightGrams());
+        }
+        if (request.getPageCount() != null) {
+            book.setPageCount(request.getPageCount());
+        }
+        if (request.getPrice() != null) {
+            book.setPrice(request.getPrice());
+        }
+        if (request.getStockQuantity() != null) {
+            book.setStockQuantity(request.getStockQuantity());
+        }
+        if (request.getImageUrl() != null) {
+            book.setImageUrl(request.getImageUrl());
+        }
+        if (request.getIsActive() != null) {
+            book.setIsActive(request.getIsActive());
+        }
+
+        // Update categories if provided
+        if (request.getCategoryIds() != null) {
+            if (request.getCategoryIds().isEmpty()) {
+                book.setCategories(new HashSet<>());
+            } else {
+                Set<Category> categories = categoryRepository.findByIdIn(request.getCategoryIds());
+                if (categories.size() != request.getCategoryIds().size()) {
+                    throw new IdInvalidException("One or more category identifiers are invalid");
+                }
+                book.setCategories(categories);
+            }
+        }
+
+        Book updatedBook = bookRepository.save(book);
+        return convertToBookResponse(updatedBook);
+    }
+
+    @Override
+    @Transactional
+    public void deleteBook(Long bookId) throws IdInvalidException {
+        if (bookId == null || bookId <= 0) {
+            throw new IdInvalidException("Book identifier is invalid: " + bookId);
+        }
+
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
+
+        bookRepository.delete(book);
+    }
+
+    @Override
+    public List<BookResponse> getAllBooksSorted(String sortByField, String sortDirection) {
+        if (sortByField == null || sortByField.trim().isEmpty()) {
+            sortByField = "id";
+        }
+
+        Sort.Direction direction = Sort.Direction.ASC;
+        if (sortDirection != null && sortDirection.equalsIgnoreCase("desc")) {
+            direction = Sort.Direction.DESC;
+        }
+
+        Sort sort = Sort.by(direction, sortByField);
+        List<Book> books = bookRepository.findAll(sort);
+        return books.stream()
+                .map(this::convertToBookResponse)
+                .collect(Collectors.toList());
+    }
+
+    private BookResponse convertToBookResponse(Book book) {
+        BookResponse bookResponse = new BookResponse();
+        bookResponse.setId(book.getId());
+        bookResponse.setTitle(book.getTitle());
+        bookResponse.setAuthor(book.getAuthor());
+        bookResponse.setDescription(book.getDescription());
+        bookResponse.setPublicationYear(book.getPublicationYear());
+        bookResponse.setWeightGrams(book.getWeightGrams());
+        bookResponse.setPageCount(book.getPageCount());
+        bookResponse.setPrice(book.getPrice());
+        bookResponse.setStockQuantity(book.getStockQuantity());
+        bookResponse.setImageUrl(book.getImageUrl());
+        bookResponse.setIsActive(book.getIsActive());
+
+        // Convert variants to list of formats
+        if (book.getVariants() != null) {
+            List<String> variantFormatList = book.getVariants().stream()
+                    .map(Variant::getFormat)
+                    .collect(Collectors.toList());
+            bookResponse.setVariantFormats(variantFormatList);
+        }
+
+        // Convert categories to list of identifiers
+        if (book.getCategories() != null) {
+            Set<Long> categoryIdentifierSet = book.getCategories().stream()
+                    .map(Category::getId)
+                    .collect(Collectors.toSet());
+            bookResponse.setCategoryIds(categoryIdentifierSet);
+        }
+
+        return bookResponse;
+    }
+}
