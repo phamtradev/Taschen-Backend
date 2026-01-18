@@ -3,6 +3,7 @@ package vn.edu.iuh.fit.bookstorebackend.dto.request;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -19,4 +20,5 @@ public class CreateBookRequest {
     private String imageUrl;
     private Boolean isActive;
     private Set<Long> categoryIds;
+    private List<String> variantFormats;
 }
