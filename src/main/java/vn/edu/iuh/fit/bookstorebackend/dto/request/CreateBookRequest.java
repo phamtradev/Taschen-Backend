@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
-import java.util.Set;
 
 @Getter
 @Setter
@@ -19,6 +18,6 @@ public class CreateBookRequest {
     private Integer stockQuantity;
     private String imageUrl;
     private Boolean isActive;
-    private Set<Long> categoryIds;
+    private List<Long> categoryIds;
     private List<String> variantFormats;
 }
