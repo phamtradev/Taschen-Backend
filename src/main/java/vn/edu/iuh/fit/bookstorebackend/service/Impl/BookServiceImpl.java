@@ -34,6 +34,11 @@ public class BookServiceImpl implements BookService {
             throw new IdInvalidException("CreateBookRequest cannot be null");
         }
 
+        // Check if book with same title already exists
+        if (request.getTitle() != null && bookRepository.existsByTitle(request.getTitle())) {
+            throw new RuntimeException("Book with title already exists: " + request.getTitle());
+        }
+
         Book book = new Book();
         book.setTitle(request.getTitle());
         book.setAuthor(request.getAuthor());
@@ -94,7 +99,11 @@ public class BookServiceImpl implements BookService {
         Book book = bookRepository.findById(bookId)
                 .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
 
-        if (request.getTitle() != null) {
+        // Check if title is being changed and if new title already exists for another book
+        if (request.getTitle() != null && !request.getTitle().equals(book.getTitle())) {
+            if (bookRepository.existsByTitle(request.getTitle())) {
+                throw new RuntimeException("Book with title already exists: " + request.getTitle());
+            }
             book.setTitle(request.getTitle());
         }
         if (request.getAuthor() != null) {
