@@ -125,60 +125,6 @@ public class CartServiceImpl implements CartService {
 
     @Override
     @Transactional
-    public CartResponse updateCartItem(Long cartItemId, UpdateCartItemRequest request) throws IdInvalidException {
-        if (cartItemId == null || cartItemId <= 0) {
-            throw new IdInvalidException("Cart item identifier is invalid: " + cartItemId);
-        }
-
-        if (request == null) {
-            throw new IdInvalidException("UpdateCartItemRequest cannot be null");
-        }
-
-        if (request.getQuantity() == null || request.getQuantity() <= 0) {
-            throw new IdInvalidException("Quantity must be greater than 0");
-        }
-
-        CartItem cartItem = cartItemRepository.findById(cartItemId)
-                .orElseThrow(() -> new RuntimeException("Cart item not found with identifier: " + cartItemId));
-
-        Book book = cartItem.getBook();
-        if (book.getIsActive() == null || !book.getIsActive()) {
-            throw new RuntimeException("Book is not active: " + book.getId());
-        }
-
-        if (book.getStockQuantity() < request.getQuantity()) {
-            throw new RuntimeException("Insufficient stock. Available: " + book.getStockQuantity() + ", Requested: " + request.getQuantity());
-        }
-
-        cartItem.setQuantity(request.getQuantity());
-        cartItemRepository.save(cartItem);
-
-        Cart cart = cartItem.getCart();
-        updateCartTotalPrice(cart);
-        Cart updatedCart = cartRepository.save(cart);
-        return convertToCartResponse(updatedCart);
-    }
-
-    @Override
-    @Transactional
-    public CartResponse removeCartItem(Long cartItemId) throws IdInvalidException {
-        if (cartItemId == null || cartItemId <= 0) {
-            throw new IdInvalidException("Cart item identifier is invalid: " + cartItemId);
-        }
-
-        CartItem cartItem = cartItemRepository.findById(cartItemId)
-                .orElseThrow(() -> new RuntimeException("Cart item not found with identifier: " + cartItemId));
-
-        Cart cart = cartItem.getCart();
-        cartItemRepository.delete(cartItem);
-
-        updateCartTotalPrice(cart);
-        Cart updatedCart = cartRepository.save(cart);
-        return convertToCartResponse(updatedCart);
-    }
-
-    @Override
-    @Transactional
     public void clearCart(Long userId) throws IdInvalidException {
         if (userId == null || userId <= 0) {
             throw new IdInvalidException("User identifier is invalid: " + userId);
