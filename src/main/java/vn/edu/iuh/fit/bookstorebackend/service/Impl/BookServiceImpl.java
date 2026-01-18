@@ -17,7 +17,6 @@ import vn.edu.iuh.fit.bookstorebackend.repository.VariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.BookService;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -56,13 +55,16 @@ public class BookServiceImpl implements BookService {
 
         // Set categories if provided
         if (request.getCategoryIds() != null && !request.getCategoryIds().isEmpty()) {
-            Set<Category> categories = categoryRepository.findByIdIn(request.getCategoryIds());
-            if (categories.size() != request.getCategoryIds().size()) {
+            // Pass List directly - repository method now accepts List<Long>
+            Set<Category> categoriesSet = categoryRepository.findByIdIn(request.getCategoryIds());
+            if (categoriesSet.size() != request.getCategoryIds().size()) {
                 throw new IdInvalidException("One or more category identifiers are invalid");
             }
-            book.setCategories(categories);
+            // Convert Set to List
+            List<Category> categoriesList = new ArrayList<>(categoriesSet);
+            book.setCategories(categoriesList);
         } else {
-            book.setCategories(new HashSet<>());
+            book.setCategories(new ArrayList<>());
         }
 
         Book savedBook = bookRepository.save(book);
@@ -157,15 +159,20 @@ public class BookServiceImpl implements BookService {
         // Update categories if provided
         if (request.getCategoryIds() != null) {
             if (request.getCategoryIds().isEmpty()) {
-                book.setCategories(new HashSet<>());
+                // If empty list is provided, clear categories
+                book.setCategories(new ArrayList<>());
             } else {
-                Set<Category> categories = categoryRepository.findByIdIn(request.getCategoryIds());
-                if (categories.size() != request.getCategoryIds().size()) {
+                // Pass List directly - repository method now accepts List<Long>
+                Set<Category> categoriesSet = categoryRepository.findByIdIn(request.getCategoryIds());
+                if (categoriesSet.size() != request.getCategoryIds().size()) {
                     throw new IdInvalidException("One or more category identifiers are invalid");
                 }
-                book.setCategories(categories);
+                // Convert Set to List
+                List<Category> categoriesList = new ArrayList<>(categoriesSet);
+                book.setCategories(categoriesList);
             }
         }
+        // If categoryIds is null, keep existing categories
 
         Book updatedBook = bookRepository.save(book);
 
@@ -228,6 +235,25 @@ public class BookServiceImpl implements BookService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookResponse> getBooksByCategoryId(Long categoryId) throws IdInvalidException {
+        if (categoryId == null || categoryId <= 0) {
+            throw new IdInvalidException("Category identifier is invalid: " + categoryId);
+        }
+
+        // Verify category exists
+        categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("Category not found with identifier: " + categoryId));
+
+        // Use query with JOIN FETCH to load categories together
+        List<Book> books = bookRepository.findByCategoryIdWithCategories(categoryId);
+        
+        return books.stream()
+                .map(this::convertToBookResponse)
+                .collect(Collectors.toList());
+    }
+
     private BookResponse convertToBookResponse(Book book) {
         BookResponse bookResponse = new BookResponse();
         bookResponse.setId(book.getId());
@@ -254,11 +280,19 @@ public class BookServiceImpl implements BookService {
         }
 
         // Convert categories to list of identifiers
-        if (book.getCategories() != null) {
-            Set<Long> categoryIdentifierSet = book.getCategories().stream()
-                    .map(Category::getId)
-                    .collect(Collectors.toSet());
-            bookResponse.setCategoryIds(categoryIdentifierSet);
+        try {
+            List<Category> categories = book.getCategories();
+            if (categories != null && !categories.isEmpty()) {
+                List<Long> categoryIdentifierList = categories.stream()
+                        .map(Category::getId)
+                        .collect(Collectors.toList());
+                bookResponse.setCategoryIds(categoryIdentifierList);
+            } else {
+                bookResponse.setCategoryIds(new ArrayList<>());
+            }
+        } catch (Exception e) {
+            // If lazy loading fails or any other error, set empty list
+            bookResponse.setCategoryIds(new ArrayList<>());
         }
 
         return bookResponse;

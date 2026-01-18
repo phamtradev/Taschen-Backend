@@ -10,25 +10,33 @@ import vn.edu.iuh.fit.bookstorebackend.model.RestRespone;
 
 @RestControllerAdvice
 public class GlobalException {
+    
     @ExceptionHandler(value = Exception.class)
     public ResponseEntity<RestRespone<Object>> handleException(Exception exception) {
         RestRespone<Object> res = new RestRespone<Object>();
         res.setStatusCode(HttpStatus.BAD_REQUEST.value());
-        res.setError(exception.getMessage());
-
+        
+        String errorMessage = exception.getMessage();
+        if (errorMessage == null || errorMessage.trim().isEmpty()) {
+            errorMessage = exception.getClass().getSimpleName();
+        }
+        
+        res.setError(errorMessage);
         
         String userMessage = "Validation Error";
-        if (exception instanceof BadCredentialsException
+        if (exception instanceof BadCredentialsException 
                 || exception instanceof CredentialsExpiredException
-                || (exception.getMessage() != null && (
-                        exception.getMessage().toLowerCase().contains("invalid credentials") ||
-                        exception.getMessage().toLowerCase().contains("old password") ||
-                        exception.getMessage().toLowerCase().contains("not authenticated") ||
-                        exception.getMessage().toLowerCase().contains("user not found")
+                || (errorMessage != null && (
+                        errorMessage.toLowerCase().contains("invalid credentials") ||
+                        errorMessage.toLowerCase().contains("old password") ||
+                        errorMessage.toLowerCase().contains("not authenticated") ||
+                        errorMessage.toLowerCase().contains("user not found")
                 ))) {
-            userMessage = exception.getMessage();
+            userMessage = errorMessage;
+        } else if (errorMessage != null && !errorMessage.trim().isEmpty()) {
+            userMessage = errorMessage;
         }
-
+        
         res.setMessage(userMessage);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
     }

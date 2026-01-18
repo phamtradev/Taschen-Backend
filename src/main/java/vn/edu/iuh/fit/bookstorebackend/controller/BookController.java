@@ -51,6 +51,12 @@ public class BookController {
         return ResponseEntity.status(HttpStatus.OK).body(books);
     }
 
+    @GetMapping("/category/{categoryId}")
+    public ResponseEntity<List<BookResponse>> getBooksByCategoryId(@PathVariable Long categoryId) throws IdInvalidException {
+        List<BookResponse> books = bookService.getBooksByCategoryId(categoryId);
+        return ResponseEntity.status(HttpStatus.OK).body(books);
+    }
+
     @GetMapping("/{bookId}")
     public ResponseEntity<BookResponse> getBookById(@PathVariable Long bookId) throws IdInvalidException {
         BookResponse bookResponse = bookService.getBookById(bookId);
