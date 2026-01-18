@@ -12,7 +12,6 @@ import vn.edu.iuh.fit.bookstorebackend.dto.request.*;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.AuthenticationResponse;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.RefreshTokenResponse;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.RegisterResponse;
-import vn.edu.iuh.fit.bookstorebackend.dto.response.UserResponse;
 import vn.edu.iuh.fit.bookstorebackend.model.RefreshToken;
 import vn.edu.iuh.fit.bookstorebackend.model.Role;
 import vn.edu.iuh.fit.bookstorebackend.model.User;
@@ -34,9 +33,7 @@ import vn.edu.iuh.fit.bookstorebackend.util.MailService;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.Collections;
 
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
