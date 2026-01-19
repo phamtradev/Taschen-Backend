@@ -85,6 +85,8 @@ public class AuthServiceImpl implements AuthService {
         user.setLastName(request.getLastName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setGender(request.getGender());
+        user.setPhoneNumber(request.getPhoneNumber());
         user.setActive(false);
 
         // assign default USER role
@@ -159,14 +161,22 @@ public class AuthServiceImpl implements AuthService {
                         .collect(Collectors.toList()) :
                 java.util.Collections.emptyList();
 
+        AuthenticationResponse.UserInfo userInfo = AuthenticationResponse.UserInfo.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .firstName(user.getFirstName())
+                .lastName(user.getLastName())
+                .gender(user.getGender())
+                .phoneNumber(user.getPhoneNumber())
+                .roles(roles)
+                .build();
+
         return AuthenticationResponse.builder()
                 .tokenType("Bearer")
                 .accessToken(accessToken)
                 .refreshToken(refreshTokenStr)
-                .userId(user.getId())
-                .email(user.getEmail())
                 .expiresIn(jwtService.getAccessTokenExpirySeconds())
-                .roles(roles)
+                .user(userInfo)
                 .build();
     }
 
