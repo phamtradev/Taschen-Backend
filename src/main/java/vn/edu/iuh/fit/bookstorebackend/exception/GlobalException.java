@@ -24,7 +24,7 @@ public class GlobalException {
         res.setError(errorMessage);
         
         String userMessage = "Validation Error";
-        if (exception instanceof BadCredentialsException 
+        if (exception instanceof BadCredentialsException
                 || exception instanceof CredentialsExpiredException
                 || (errorMessage != null && (
                         errorMessage.toLowerCase().contains("invalid credentials") ||
@@ -36,7 +36,7 @@ public class GlobalException {
         } else if (errorMessage != null && !errorMessage.trim().isEmpty()) {
             userMessage = errorMessage;
         }
-        
+
         res.setMessage(userMessage);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(res);
     }
