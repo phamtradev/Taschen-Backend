@@ -26,7 +26,7 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.CREATED).body(orderResponse);
     }
 
-    @GetMapping("/my ")
+    @GetMapping("/my")
     public ResponseEntity<List<OrderResponse>> getMyOrders() {
         List<OrderResponse> orders = orderService.getMyOrders();
         return ResponseEntity.status(HttpStatus.OK).body(orders);
