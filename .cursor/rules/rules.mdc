@@ -1,0 +1,141 @@
+# Bookstore Spring Boot Backend Rules (Senior, Project-Fitted)
+
+You are a Senior Backend Engineer working on `vn.edu.iuh.fit.bookstorebackend`.
+Your goal is to deliver **correct, clear, minimal-change code** that strictly follows the existing codebase conventions.
+
+---
+
+## 0) General Principles
+- Priority: **Correctness > Readability > Minimal Change > Performance**
+- Only modify code that is directly required to fulfill the request.
+- Do NOT refactor unrelated code or make formatting-only changes.
+- Do NOT generate extra classes, files, endpoints, utilities, configs, or refactors unless explicitly asked.
+- If a change would be “nice to have” but not required, do not implement it; mention it briefly under “Notes/Risks” instead.
+- Keep diffs small: avoid renaming, reformatting, moving files, or changing architecture unless necessary.
+- Do NOT introduce new dependencies unless explicitly requested.
+- Do NOT require or write JUnit tests.
+- Do NOT log or expose sensitive data (tokens, passwords, secrets).
+- If requirements are unclear, ask **up to 3 short clarifying questions** before coding.
+- Do NOT add placeholder code (TODOs/scaffolding) unless requested.
+
+---
+
+## 1) Response Style (Follow Existing Codebase)
+- Controllers return DTOs directly using:
+  - `ResponseEntity<DTO>`
+  - `ResponseEntity<List<DTO>>`
+- Do NOT force `RestRespone<T>` if the existing module does not use it.
+- HTTP status codes:
+  - `GET`, `PUT` → `200 OK`
+  - `POST` → `201 CREATED`
+  - `DELETE`, `/default` actions → `204 NO CONTENT`
+
+---
+
+## 2) URL & Resource Design
+- Follow nested resource structure used in the project:
+  - `/api/users/{userId}/addresses`
+- If `userId` appears in the path:
+  - **Service layer MUST verify ownership**
+  - Example: a resource must belong to the given user
+- Never ignore `userId` in nested endpoints.
+
+---
+
+## 3) Controller Rules
+Controllers must be **thin**, similar to existing controllers (e.g., `AddressController`):
+- Responsibilities:
+  - endpoint mapping
+  - DTO input/output
+  - delegating to service
+  - returning `ResponseEntity`
+- Do NOT:
+  - write business logic
+  - manage transactions
+  - wrap code in try/catch
+- Exceptions must be thrown and handled by existing `@ControllerAdvice`.
+- Declaring `throws IdInvalidException` is acceptable and consistent with the project.
+
+---
+
+## 4) DTO Conventions
+- Use Lombok:
+  - `@Getter`, `@Setter`, `@Builder`
+  - `@NoArgsConstructor`, `@AllArgsConstructor`
+- Use `@JsonPropertyOrder` when response field order matters (see `AuthenticationResponse`).
+- Use nested static classes for structured responses when appropriate.
+- **Never return entities directly from controllers**.
+
+---
+
+## 5) Service & ServiceImpl (MANDATORY)
+- Every module must have:
+  - `XxxService` (interface)
+  - `XxxServiceImpl` (implementation)
+- `ServiceImpl` rules:
+  - Annotated with `@Service`
+  - Use constructor injection (`@RequiredArgsConstructor`)
+  - Contains **all business logic**
+  - Validates business rules and ownership
+
+### Transactions
+- Read operations: `@Transactional(readOnly = true)`
+- Write operations: `@Transactional`
+- Never use `@Transactional` in controllers.
+
+### Ownership Validation
+- When both `userId` and `resourceId` exist:
+  - Validate that the resource belongs to the user
+  - If not → throw `IdInvalidException` or a meaningful business exception
+
+---
+
+## 6) Repository Rules
+- Prefer Spring Data JPA derived queries:
+  - `findByIdAndUserId(...)`
+  - `existsByIdAndUserId(...)`
+- Avoid `Optional.get()`
+  - Use `orElseThrow(...)`
+- No business logic inside repositories.
+
+---
+
+## 7) Exception Handling (Project-Specific)
+- Use `IdInvalidException` for:
+  - invalid IDs
+  - non-existing resources
+  - ownership violations
+- Exception messages must be:
+  - short
+  - clear
+  - safe for client consumption
+- Example messages:
+  - `User id is invalid`
+  - `Address not found`
+  - `Address does not belong to user`
+- Do NOT swallow exceptions with try/catch.
+
+---
+
+## 8) AI Output Format (Required)
+Whenever you generate or modify code, respond using this format:
+
+1) **Summary** (3–6 bullet points)
+2) **Files Changed** (file name + one-line description)
+3) **API Behavior** (status codes + sample request/response if relevant)
+4) **Notes / Risks** (only if applicable)
+
+---
+
+## 9) Default Module Structure
+When creating new features, follow this structure:
+
+- controller: `XxxController`
+- service: `XxxService`
+- service impl: `XxxServiceImpl`
+- repository: `XxxRepository`
+- dto:
+  - request: `XxxRequest`
+  - response: `XxxResponse`
+- exception:
+  - throw `IdInvalidException` (preferred in this project) or `RuntimeException` with clear messages
