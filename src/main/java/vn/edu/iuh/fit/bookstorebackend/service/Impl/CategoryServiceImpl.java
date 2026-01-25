@@ -8,6 +8,7 @@ import vn.edu.iuh.fit.bookstorebackend.dto.request.UpdateCategoryRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.CategoryResponse;
 import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
 import vn.edu.iuh.fit.bookstorebackend.model.Category;
+import vn.edu.iuh.fit.bookstorebackend.mapper.CategoryMapper;
 import vn.edu.iuh.fit.bookstorebackend.repository.CategoryRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.CategoryService;
 
@@ -19,113 +20,133 @@ import java.util.stream.Collectors;
 public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final CategoryMapper categoryMapper;
 
     @Override
     @Transactional
     public CategoryResponse createCategory(CreateCategoryRequest request) throws IdInvalidException {
+        validateRequest(request);
+        validateCategoryCode(request.getCode());
+        validateCategoryName(request.getName());
+        validateCodeNotExists(request.getCode());
+        
+        Category category = createCategoryFromRequest(request);
+        Category savedCategory = categoryRepository.save(category);
+        
+        return categoryMapper.toCategoryResponse(savedCategory);
+    }
+    
+    private void validateRequest(CreateCategoryRequest request) throws IdInvalidException {
         if (request == null) {
             throw new IdInvalidException("CreateCategoryRequest cannot be null");
         }
-
-        if (request.getCode() == null || request.getCode().trim().isEmpty()) {
+    }
+    
+    private void validateCategoryCode(String code) throws IdInvalidException {
+        if (code == null || code.trim().isEmpty()) {
             throw new IdInvalidException("Category code cannot be null or empty");
         }
-
-        if (request.getName() == null || request.getName().trim().isEmpty()) {
+    }
+    
+    private void validateCategoryName(String name) throws IdInvalidException {
+        if (name == null || name.trim().isEmpty()) {
             throw new IdInvalidException("Category name cannot be null or empty");
         }
-
-        // Check if code already exists
-        if (categoryRepository.existsByCode(request.getCode())) {
-            throw new RuntimeException("Category with code already exists: " + request.getCode());
+    }
+    
+    private void validateCodeNotExists(String code) {
+        if (categoryRepository.existsByCode(code)) {
+            throw new RuntimeException("Category with code already exists: " + code);
         }
-
-        Category category = new Category();
+    }
+    
+    private Category createCategoryFromRequest(CreateCategoryRequest request) {
+        Category category = categoryMapper.toCategory(request);
         category.setCode(request.getCode().trim());
         category.setName(request.getName().trim());
-
-        Category savedCategory = categoryRepository.save(category);
-        return convertToCategoryResponse(savedCategory);
+        return category;
     }
 
     @Override
     public CategoryResponse getCategoryById(Long categoryId) throws IdInvalidException {
-        if (categoryId == null || categoryId <= 0) {
-            throw new IdInvalidException("Category identifier is invalid: " + categoryId);
-        }
-
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Category not found with identifier: " + categoryId));
-        return convertToCategoryResponse(category);
+        validateCategoryId(categoryId);
+        Category category = findCategoryById(categoryId);
+        return categoryMapper.toCategoryResponse(category);
     }
 
     @Override
     public CategoryResponse getCategoryByCode(String code) throws IdInvalidException {
-        if (code == null || code.trim().isEmpty()) {
-            throw new IdInvalidException("Category code cannot be null or empty");
-        }
-
-        Category category = categoryRepository.findByCode(code)
-                .orElseThrow(() -> new RuntimeException("Category not found with code: " + code));
-        return convertToCategoryResponse(category);
+        validateCategoryCode(code);
+        Category category = findCategoryByCode(code);
+        return categoryMapper.toCategoryResponse(category);
     }
 
     @Override
     public List<CategoryResponse> getAllCategories() {
         List<Category> categories = categoryRepository.findAll();
         return categories.stream()
-                .map(this::convertToCategoryResponse)
+                .map(categoryMapper::toCategoryResponse)
                 .collect(Collectors.toList());
+    }
+    
+    private void validateCategoryId(Long categoryId) throws IdInvalidException {
+        if (categoryId == null || categoryId <= 0) {
+            throw new IdInvalidException("Category identifier is invalid: " + categoryId);
+        }
+    }
+    
+    private Category findCategoryById(Long categoryId) {
+        return categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("Category not found with identifier: " + categoryId));
+    }
+    
+    private Category findCategoryByCode(String code) {
+        return categoryRepository.findByCode(code)
+                .orElseThrow(() -> new RuntimeException("Category not found with code: " + code));
     }
 
     @Override
     @Transactional
     public CategoryResponse updateCategory(Long categoryId, UpdateCategoryRequest request) throws IdInvalidException {
-        if (categoryId == null || categoryId <= 0) {
-            throw new IdInvalidException("Category identifier is invalid: " + categoryId);
-        }
-
+        validateCategoryId(categoryId);
+        validateRequest(request);
+        
+        Category category = findCategoryById(categoryId);
+        updateCategoryFields(category, request);
+        
+        Category updatedCategory = categoryRepository.save(category);
+        return categoryMapper.toCategoryResponse(updatedCategory);
+    }
+    
+    private void validateRequest(UpdateCategoryRequest request) throws IdInvalidException {
         if (request == null) {
             throw new IdInvalidException("UpdateCategoryRequest cannot be null");
         }
-
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Category not found with identifier: " + categoryId));
-
-        // Check if code is being changed and if new code already exists for another category
+    }
+    
+    private void updateCategoryFields(Category category, UpdateCategoryRequest request) {
         if (request.getCode() != null && !request.getCode().trim().isEmpty()) {
-            if (!request.getCode().equals(category.getCode()) && categoryRepository.existsByCode(request.getCode())) {
-                throw new RuntimeException("Category with code already exists: " + request.getCode());
-            }
+            validateCodeChange(category, request.getCode());
             category.setCode(request.getCode().trim());
         }
-
+        
         if (request.getName() != null && !request.getName().trim().isEmpty()) {
             category.setName(request.getName().trim());
         }
-
-        Category updatedCategory = categoryRepository.save(category);
-        return convertToCategoryResponse(updatedCategory);
+    }
+    
+    private void validateCodeChange(Category category, String newCode) {
+        if (!newCode.equals(category.getCode()) 
+                && categoryRepository.existsByCode(newCode)) {
+            throw new RuntimeException("Category with code already exists: " + newCode);
+        }
     }
 
     @Override
     @Transactional
     public void deleteCategory(Long categoryId) throws IdInvalidException {
-        if (categoryId == null || categoryId <= 0) {
-            throw new IdInvalidException("Category identifier is invalid: " + categoryId);
-        }
-
-        Category category = categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Category not found with identifier: " + categoryId));
-
+        validateCategoryId(categoryId);
+        Category category = findCategoryById(categoryId);
         categoryRepository.delete(category);
-    }
-
-    private CategoryResponse convertToCategoryResponse(Category category) {
-        CategoryResponse categoryResponse = new CategoryResponse();
-        categoryResponse.setId(category.getId());
-        categoryResponse.setCode(category.getCode());
-        categoryResponse.setName(category.getName());
-        return categoryResponse;
     }
 }
