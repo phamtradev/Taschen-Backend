@@ -25,7 +25,8 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity<UserResponse> createUser(@RequestBody CreateUserRequest request) {
+    public ResponseEntity<UserResponse> createUser(
+            @RequestBody CreateUserRequest request) {
         UserResponse user = userService.createUser(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(user);
     }
@@ -45,8 +46,10 @@ public class UserController {
     @GetMapping("/me")
     public ResponseEntity<UserResponse> getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        if (auth == null || !auth.isAuthenticated() 
+                || auth instanceof AnonymousAuthenticationToken) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, "Not authenticated");
         }
         String email = auth.getName();
         UserResponse user = userService.getUserByEmail(email);
@@ -54,24 +57,28 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UserResponse> updateUser(@PathVariable Long id, @RequestBody UpdateUserRequest request) {
-        // chấp nhận cập nhật profile của chính mình hoặc admin có thể update bất kỳ user nào
+    public ResponseEntity<UserResponse> updateUser(
+            @PathVariable Long id,
+            @RequestBody UpdateUserRequest request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        if (auth == null || !auth.isAuthenticated() 
+                || auth instanceof AnonymousAuthenticationToken) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, "Not authenticated");
         }
         String email = auth.getName();
         UserResponse current = userService.getUserByEmail(email);
 
-        // Nếu request có roleCodes thì chỉ admin mới được phép
         if (request.getRoleCodes() != null) {
             if (!current.getRoles().contains("ADMIN")) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admin can update user roles");
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN, "Only admin can update user roles");
             }
         } else {
-            // Nếu chỉ cập nhật profile thì user có thể update chính mình hoặc admin có thể update bất kỳ ai
-            if (!current.getRoles().contains("ADMIN") && !current.getId().equals(id)) {
-                throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Cannot update other user's profile");
+            if (!current.getRoles().contains("ADMIN") 
+                    && !current.getId().equals(id)) {
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN, "Cannot update other user's profile");
             }
         }
 
@@ -80,23 +87,29 @@ public class UserController {
     }
 
     @PatchMapping("/{id}/active")
-    public ResponseEntity<UserResponse> setActive(@PathVariable Long id, @RequestParam boolean active) {
+    public ResponseEntity<UserResponse> setActive(
+            @PathVariable Long id,
+            @RequestParam boolean active) {
         UserResponse user = userService.setActive(id, active);
         return ResponseEntity.status(HttpStatus.OK).body(user);
     }
 
     @PatchMapping("/{id}/roles/codes")
-    public ResponseEntity<UserResponse> setRolesByCodes(@PathVariable Long id, @RequestBody vn.edu.iuh.fit.bookstorebackend.dto.request.SetUserRoleCodesRequest request) {
+    public ResponseEntity<UserResponse> setRolesByCodes(
+            @PathVariable Long id,
+            @RequestBody vn.edu.iuh.fit.bookstorebackend.dto.request.SetUserRoleCodesRequest request) {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
-            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Not authenticated");
+        if (auth == null || !auth.isAuthenticated() 
+                || auth instanceof AnonymousAuthenticationToken) {
+            throw new ResponseStatusException(
+                    HttpStatus.UNAUTHORIZED, "Not authenticated");
         }
         String email = auth.getName();
         UserResponse currentUser = userService.getUserByEmail(email);
 
-        // Chỉ admin mới được phép thay đổi role của user khác
         if (!currentUser.getRoles().contains("ADMIN")) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only admin can change user roles");
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN, "Only admin can change user roles");
         }
 
         UserResponse user = userService.setRolesByCodes(id, request);

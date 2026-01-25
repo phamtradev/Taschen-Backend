@@ -22,7 +22,8 @@ public class CategoryController {
     }
 
     @PostMapping
-    public ResponseEntity<CategoryResponse> createCategory(@RequestBody CreateCategoryRequest request) throws IdInvalidException {
+    public ResponseEntity<CategoryResponse> createCategory(
+            @RequestBody CreateCategoryRequest request) throws IdInvalidException {
         CategoryResponse categoryResponse = categoryService.createCategory(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(categoryResponse);
     }
@@ -34,13 +35,15 @@ public class CategoryController {
     }
 
     @GetMapping("/{categoryId}")
-    public ResponseEntity<CategoryResponse> getCategoryById(@PathVariable Long categoryId) throws IdInvalidException {
+    public ResponseEntity<CategoryResponse> getCategoryById(
+            @PathVariable Long categoryId) throws IdInvalidException {
         CategoryResponse categoryResponse = categoryService.getCategoryById(categoryId);
         return ResponseEntity.status(HttpStatus.OK).body(categoryResponse);
     }
 
     @GetMapping("/code/{code}")
-    public ResponseEntity<CategoryResponse> getCategoryByCode(@PathVariable String code) throws IdInvalidException {
+    public ResponseEntity<CategoryResponse> getCategoryByCode(
+            @PathVariable String code) throws IdInvalidException {
         CategoryResponse categoryResponse = categoryService.getCategoryByCode(code);
         return ResponseEntity.status(HttpStatus.OK).body(categoryResponse);
     }
@@ -49,12 +52,14 @@ public class CategoryController {
     public ResponseEntity<CategoryResponse> updateCategory(
             @PathVariable Long categoryId,
             @RequestBody UpdateCategoryRequest request) throws IdInvalidException {
-        CategoryResponse categoryResponse = categoryService.updateCategory(categoryId, request);
+        CategoryResponse categoryResponse = categoryService.updateCategory(
+                categoryId, request);
         return ResponseEntity.status(HttpStatus.OK).body(categoryResponse);
     }
 
     @DeleteMapping("/{categoryId}")
-    public ResponseEntity<Void> deleteCategory(@PathVariable Long categoryId) throws IdInvalidException {
+    public ResponseEntity<Void> deleteCategory(
+            @PathVariable Long categoryId) throws IdInvalidException {
         categoryService.deleteCategory(categoryId);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }

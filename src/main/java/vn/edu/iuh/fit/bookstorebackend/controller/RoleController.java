@@ -8,8 +8,6 @@ import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateRoleRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.RoleResponse;
 import vn.edu.iuh.fit.bookstorebackend.service.RoleService;
-// role/permission repositories used in PermissionController
-// imports moved to PermissionController
 
 import java.util.List;
 
@@ -21,7 +19,8 @@ public class RoleController {
     private final RoleService roleService;
 
     @PostMapping
-    public ResponseEntity<RoleResponse> createRole(@RequestBody CreateRoleRequest request) {
+    public ResponseEntity<RoleResponse> createRole(
+            @RequestBody CreateRoleRequest request) {
         RoleResponse created = roleService.createRole(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
@@ -37,7 +36,9 @@ public class RoleController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<RoleResponse> updateRole(@PathVariable Long id, @RequestBody CreateRoleRequest request) {
+    public ResponseEntity<RoleResponse> updateRole(
+            @PathVariable Long id,
+            @RequestBody CreateRoleRequest request) {
         return ResponseEntity.ok(roleService.updateRole(id, request));
     }
 
@@ -46,9 +47,6 @@ public class RoleController {
         roleService.deleteRole(id);
         return ResponseEntity.noContent().build();
     }
-
-    
- 
 }
 
 

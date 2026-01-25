@@ -17,8 +17,8 @@ public class CloudinaryController {
     private final CloudinaryService cloudinaryService;
 
     @PostMapping("/upload")
-    public ResponseEntity<Map<String, Object>> uploadImage(@RequestParam("file") MultipartFile file) 
-            throws IOException {
+    public ResponseEntity<Map<String, Object>> uploadImage(
+            @RequestParam("file") MultipartFile file) throws IOException {
         return ResponseEntity.ok(cloudinaryService.uploadImage(file));
     }
 
@@ -30,14 +30,14 @@ public class CloudinaryController {
     }
 
     @DeleteMapping("/delete/{*publicId}")
-    public ResponseEntity<Map<String, Object>> deleteImage(@PathVariable("publicId") String publicId)
-            throws IOException {
+    public ResponseEntity<Map<String, Object>> deleteImage(
+            @PathVariable("publicId") String publicId) throws IOException {
         return ResponseEntity.ok(cloudinaryService.deleteImage(publicId));
     }
 
     @DeleteMapping("/delete")
-    public ResponseEntity<Map<String, Object>> deleteImageByQuery(@RequestParam("publicId") String publicId)
-            throws IOException {
+    public ResponseEntity<Map<String, Object>> deleteImageByQuery(
+            @RequestParam("publicId") String publicId) throws IOException {
         return ResponseEntity.ok(cloudinaryService.deleteImage(publicId));
     }
 

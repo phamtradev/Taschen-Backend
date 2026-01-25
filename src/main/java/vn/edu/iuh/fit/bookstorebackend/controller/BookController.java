@@ -22,7 +22,8 @@ public class BookController {
     }
 
     @PostMapping
-    public ResponseEntity<BookResponse> createBook(@RequestBody CreateBookRequest request) throws IdInvalidException {
+    public ResponseEntity<BookResponse> createBook(
+            @RequestBody CreateBookRequest request) throws IdInvalidException {
         BookResponse bookResponse = bookService.createBook(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(bookResponse);
     }
@@ -35,8 +36,7 @@ public class BookController {
         if (sortByField != null || sortDirection != null) {
             books = bookService.getAllBooksSorted(
                     sortByField != null ? sortByField : "id",
-                    sortDirection != null ? sortDirection : "asc"
-            );
+                    sortDirection != null ? sortDirection : "asc");
         } else {
             books = bookService.getAllBooks();
         }
@@ -47,18 +47,21 @@ public class BookController {
     public ResponseEntity<List<BookResponse>> getAllBooksSorted(
             @RequestParam(required = false, defaultValue = "id") String sortByField,
             @RequestParam(required = false, defaultValue = "asc") String sortDirection) {
-        List<BookResponse> books = bookService.getAllBooksSorted(sortByField, sortDirection);
+        List<BookResponse> books = bookService.getAllBooksSorted(
+                sortByField, sortDirection);
         return ResponseEntity.status(HttpStatus.OK).body(books);
     }
 
     @GetMapping("/category/{categoryId}")
-    public ResponseEntity<List<BookResponse>> getBooksByCategoryId(@PathVariable Long categoryId) throws IdInvalidException {
+    public ResponseEntity<List<BookResponse>> getBooksByCategoryId(
+            @PathVariable Long categoryId) throws IdInvalidException {
         List<BookResponse> books = bookService.getBooksByCategoryId(categoryId);
         return ResponseEntity.status(HttpStatus.OK).body(books);
     }
 
     @GetMapping("/{bookId}")
-    public ResponseEntity<BookResponse> getBookById(@PathVariable Long bookId) throws IdInvalidException {
+    public ResponseEntity<BookResponse> getBookById(
+            @PathVariable Long bookId) throws IdInvalidException {
         BookResponse bookResponse = bookService.getBookById(bookId);
         return ResponseEntity.status(HttpStatus.OK).body(bookResponse);
     }
@@ -72,7 +75,8 @@ public class BookController {
     }
 
     @DeleteMapping("/{bookId}")
-    public ResponseEntity<Void> deleteBook(@PathVariable Long bookId) throws IdInvalidException {
+    public ResponseEntity<Void> deleteBook(
+            @PathVariable Long bookId) throws IdInvalidException {
         bookService.deleteBook(bookId);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }

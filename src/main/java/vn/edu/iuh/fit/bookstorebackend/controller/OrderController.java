@@ -21,7 +21,8 @@ public class OrderController {
     private final OrderService orderService;
 
     @PostMapping
-    public ResponseEntity<OrderResponse> createOrder(@RequestBody CreateOrderRequest request) throws IdInvalidException {
+    public ResponseEntity<OrderResponse> createOrder(
+            @RequestBody CreateOrderRequest request) throws IdInvalidException {
         OrderResponse orderResponse = orderService.createOrder(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(orderResponse);
     }
@@ -33,7 +34,8 @@ public class OrderController {
     }
 
     @GetMapping("/{orderId}")
-    public ResponseEntity<OrderResponse> getOrderById(@PathVariable Long orderId) throws IdInvalidException {
+    public ResponseEntity<OrderResponse> getOrderById(
+            @PathVariable Long orderId) throws IdInvalidException {
         OrderResponse orderResponse = orderService.getOrderById(orderId);
         return ResponseEntity.status(HttpStatus.OK).body(orderResponse);
     }
@@ -42,7 +44,8 @@ public class OrderController {
     public ResponseEntity<OrderResponse> updateOrderStatus(
             @PathVariable Long orderId,
             @RequestBody UpdateOrderStatusRequest request) throws IdInvalidException {
-        OrderResponse orderResponse = orderService.updateOrderStatus(orderId, request.getStatus());
+        OrderResponse orderResponse = orderService.updateOrderStatus(
+                orderId, request.getStatus());
         return ResponseEntity.status(HttpStatus.OK).body(orderResponse);
     }
 
@@ -50,18 +53,21 @@ public class OrderController {
     public ResponseEntity<OrderResponse> updatePaymentMethod(
             @PathVariable Long orderId,
             @RequestBody UpdatePaymentMethodRequest request) throws IdInvalidException {
-        OrderResponse orderResponse = orderService.updatePaymentMethod(orderId, request.getPaymentMethod());
+        OrderResponse orderResponse = orderService.updatePaymentMethod(
+                orderId, request.getPaymentMethod());
         return ResponseEntity.status(HttpStatus.OK).body(orderResponse);
     }
 
     @PutMapping("/{orderId}/cancel")
-    public ResponseEntity<OrderResponse> cancelOrderByCustomer(@PathVariable Long orderId) throws IdInvalidException {
+    public ResponseEntity<OrderResponse> cancelOrderByCustomer(
+            @PathVariable Long orderId) throws IdInvalidException {
         OrderResponse orderResponse = orderService.cancelOrderByCustomer(orderId);
         return ResponseEntity.status(HttpStatus.OK).body(orderResponse);
     }
 
     @PutMapping("/{orderId}/confirm-received")
-    public ResponseEntity<OrderResponse> confirmReceivedByCustomer(@PathVariable Long orderId) throws IdInvalidException {
+    public ResponseEntity<OrderResponse> confirmReceivedByCustomer(
+            @PathVariable Long orderId) throws IdInvalidException {
         OrderResponse orderResponse = orderService.confirmReceivedByCustomer(orderId);
         return ResponseEntity.status(HttpStatus.OK).body(orderResponse);
     }

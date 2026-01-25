@@ -20,19 +20,24 @@ public class NotificationController {
     private final NotificationService notificationService;
 
     @GetMapping
-    public ResponseEntity<List<NotificationResponse>> getMyNotifications() throws IdInvalidException {
-        List<NotificationResponse> notifications = notificationService.getMyNotifications();
+    public ResponseEntity<List<NotificationResponse>> getMyNotifications() 
+            throws IdInvalidException {
+        List<NotificationResponse> notifications = 
+                notificationService.getMyNotifications();
         return ResponseEntity.status(HttpStatus.OK).body(notifications);
     }
 
     @PatchMapping("/{notificationId}/read")
-    public ResponseEntity<NotificationResponse> markAsRead(@PathVariable Long notificationId) throws IdInvalidException {
-        NotificationResponse notificationResponse = notificationService.markAsRead(notificationId);
+    public ResponseEntity<NotificationResponse> markAsRead(
+            @PathVariable Long notificationId) throws IdInvalidException {
+        NotificationResponse notificationResponse = 
+                notificationService.markAsRead(notificationId);
         return ResponseEntity.status(HttpStatus.OK).body(notificationResponse);
     }
 
     @PatchMapping("/read-all")
-    public ResponseEntity<Map<String, String>> markAllAsRead() throws IdInvalidException {
+    public ResponseEntity<Map<String, String>> markAllAsRead() 
+            throws IdInvalidException {
         notificationService.markAllAsRead();
         Map<String, String> response = new HashMap<>();
         response.put("message", "All notifications marked as read");
@@ -40,7 +45,8 @@ public class NotificationController {
     }
 
     @GetMapping("/unread-count")
-    public ResponseEntity<Map<String, Long>> getUnreadCount() throws IdInvalidException {
+    public ResponseEntity<Map<String, Long>> getUnreadCount() 
+            throws IdInvalidException {
         long count = notificationService.getUnreadCount();
         Map<String, Long> response = new HashMap<>();
         response.put("unreadCount", count);
