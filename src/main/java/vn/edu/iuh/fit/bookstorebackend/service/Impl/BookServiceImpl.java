@@ -11,6 +11,7 @@ import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
 import vn.edu.iuh.fit.bookstorebackend.model.Book;
 import vn.edu.iuh.fit.bookstorebackend.model.Category;
 import vn.edu.iuh.fit.bookstorebackend.model.Variant;
+import vn.edu.iuh.fit.bookstorebackend.mapper.BookMapper;
 import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.CategoryRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.VariantRepository;
@@ -28,104 +29,131 @@ public class BookServiceImpl implements BookService {
     private final BookRepository bookRepository;
     private final CategoryRepository categoryRepository;
     private final VariantRepository variantRepository;
+    private final BookMapper bookMapper;
 
     @Override
     @Transactional
     public BookResponse createBook(CreateBookRequest request) throws IdInvalidException {
+        validateRequest(request);
+        validateTitleNotExists(request.getTitle());
+        
+        Book book = createBookFromRequest(request);
+        setBookCategories(book, request.getCategoryIds());
+        
+        Book savedBook = bookRepository.save(book);
+        createBookVariants(savedBook, request.getVariantFormats());
+        
+        return bookMapper.toBookResponse(savedBook);
+    }
+    
+    private void validateRequest(CreateBookRequest request) throws IdInvalidException {
         if (request == null) {
             throw new IdInvalidException("CreateBookRequest cannot be null");
         }
-
-        // Check if book with same title already exists
-        if (request.getTitle() != null && bookRepository.existsByTitle(request.getTitle())) {
-            throw new RuntimeException("Book with title already exists: " + request.getTitle());
+    }
+    
+    private void validateTitleNotExists(String title) {
+        if (title != null && bookRepository.existsByTitle(title)) {
+            throw new RuntimeException("Book with title already exists: " + title);
         }
-
-        Book book = new Book();
-        book.setTitle(request.getTitle());
-        book.setAuthor(request.getAuthor());
-        book.setDescription(request.getDescription());
-        book.setPublicationYear(request.getPublicationYear());
-        book.setWeightGrams(request.getWeightGrams());
-        book.setPageCount(request.getPageCount());
+    }
+    
+    private Book createBookFromRequest(CreateBookRequest request) {
+        Book book = bookMapper.toBook(request);
         book.setPrice(request.getPrice() != null ? request.getPrice() : 0.0);
-        book.setStockQuantity(request.getStockQuantity() != null ? request.getStockQuantity() : 0);
-        book.setImageUrl(request.getImageUrl());
-        book.setIsActive(request.getIsActive() != null ? request.getIsActive() : true);
-
-        // Set categories if provided
-        if (request.getCategoryIds() != null && !request.getCategoryIds().isEmpty()) {
-            // Pass List directly - repository method now accepts List<Long>
-            Set<Category> categoriesSet = categoryRepository.findByIdIn(request.getCategoryIds());
-            if (categoriesSet.size() != request.getCategoryIds().size()) {
-                throw new IdInvalidException("One or more category identifiers are invalid");
-            }
-            // Convert Set to List
-            List<Category> categoriesList = new ArrayList<>(categoriesSet);
-            book.setCategories(categoriesList);
-        } else {
+        book.setStockQuantity(request.getStockQuantity() != null 
+                ? request.getStockQuantity() : 0);
+        book.setIsActive(request.getIsActive() != null 
+                ? request.getIsActive() : true);
+        return book;
+    }
+    
+    private void setBookCategories(Book book, List<Long> categoryIds) throws IdInvalidException {
+        if (categoryIds == null || categoryIds.isEmpty()) {
             book.setCategories(new ArrayList<>());
+            return;
         }
-
-        Book savedBook = bookRepository.save(book);
-
-        // Create variants if provided
-        if (request.getVariantFormats() != null && !request.getVariantFormats().isEmpty()) {
-            List<Variant> variants = new ArrayList<>();
-            for (String format : request.getVariantFormats()) {
-                if (format != null && !format.trim().isEmpty()) {
-                    Variant variant = new Variant();
-                    variant.setFormat(format.trim());
-                    variant.setBook(savedBook);
-                    variants.add(variant);
-                }
-            }
-            if (!variants.isEmpty()) {
-                variantRepository.saveAll(variants);
-            }
+        
+        Set<Category> categoriesSet = categoryRepository.findByIdIn(categoryIds);
+        if (categoriesSet.size() != categoryIds.size()) {
+            throw new IdInvalidException("One or more category identifiers are invalid");
         }
-
-        return convertToBookResponse(savedBook);
+        book.setCategories(new ArrayList<>(categoriesSet));
+    }
+    
+    private void createBookVariants(Book book, List<String> variantFormats) {
+        if (variantFormats == null || variantFormats.isEmpty()) {
+            return;
+        }
+        
+        List<Variant> variants = variantFormats.stream()
+                .filter(format -> format != null && !format.trim().isEmpty())
+                .map(format -> createVariant(book, format.trim()))
+                .collect(Collectors.toList());
+        
+        if (!variants.isEmpty()) {
+            variantRepository.saveAll(variants);
+        }
+    }
+    
+    private Variant createVariant(Book book, String format) {
+        Variant variant = new Variant();
+        variant.setFormat(format);
+        variant.setBook(book);
+        return variant;
     }
 
     @Override
     public BookResponse getBookById(Long bookId) throws IdInvalidException {
-        if (bookId == null || bookId <= 0) {
-            throw new IdInvalidException("Book identifier is invalid: " + bookId);
-        }
-
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
-        return convertToBookResponse(book);
+        validateBookId(bookId);
+        Book book = findBookById(bookId);
+        return bookMapper.toBookResponse(book);
     }
 
     @Override
     public List<BookResponse> getAllBooks() {
         List<Book> books = bookRepository.findAll();
         return books.stream()
-                .map(this::convertToBookResponse)
+                .map(bookMapper::toBookResponse)
                 .collect(Collectors.toList());
+    }
+    
+    private void validateBookId(Long bookId) throws IdInvalidException {
+        if (bookId == null || bookId <= 0) {
+            throw new IdInvalidException("Book identifier is invalid: " + bookId);
+        }
+    }
+    
+    private Book findBookById(Long bookId) {
+        return bookRepository.findById(bookId)
+                .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
     }
 
     @Override
     @Transactional
     public BookResponse updateBook(Long bookId, UpdateBookRequest request) throws IdInvalidException {
-        if (bookId == null || bookId <= 0) {
-            throw new IdInvalidException("Book identifier is invalid: " + bookId);
-        }
-
+        validateBookId(bookId);
+        validateRequest(request);
+        
+        Book book = findBookById(bookId);
+        updateBookFields(book, request);
+        updateBookCategories(book, request.getCategoryIds());
+        
+        Book updatedBook = bookRepository.save(book);
+        updateBookVariants(updatedBook, request.getVariantFormats());
+        
+        return bookMapper.toBookResponse(updatedBook);
+    }
+    
+    private void validateRequest(UpdateBookRequest request) throws IdInvalidException {
         if (request == null) {
             throw new IdInvalidException("UpdateBookRequest cannot be null");
         }
-
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
-
-        // Check if title is being changed and if new title already exists for another book
+    }
+    
+    private void updateBookFields(Book book, UpdateBookRequest request) {
         if (request.getTitle() != null && !request.getTitle().equals(book.getTitle())) {
-            if (bookRepository.existsByTitle(request.getTitle())) {
-                throw new RuntimeException("Book with title already exists: " + request.getTitle());
-            }
+            validateTitleNotExists(request.getTitle());
             book.setTitle(request.getTitle());
         }
         if (request.getAuthor() != null) {
@@ -155,146 +183,99 @@ public class BookServiceImpl implements BookService {
         if (request.getIsActive() != null) {
             book.setIsActive(request.getIsActive());
         }
-
-        // Update categories if provided
-        if (request.getCategoryIds() != null) {
-            if (request.getCategoryIds().isEmpty()) {
-                // If empty list is provided, clear categories
-                book.setCategories(new ArrayList<>());
-            } else {
-                // Pass List directly - repository method now accepts List<Long>
-                Set<Category> categoriesSet = categoryRepository.findByIdIn(request.getCategoryIds());
-                if (categoriesSet.size() != request.getCategoryIds().size()) {
-                    throw new IdInvalidException("One or more category identifiers are invalid");
-                }
-                // Convert Set to List
-                List<Category> categoriesList = new ArrayList<>(categoriesSet);
-                book.setCategories(categoriesList);
-            }
+    }
+    
+    private void updateBookCategories(Book book, List<Long> categoryIds) throws IdInvalidException {
+        if (categoryIds == null) {
+            return;
         }
-        // If categoryIds is null, keep existing categories
-
-        Book updatedBook = bookRepository.save(book);
-
-        // Update variants if provided
-        if (request.getVariantFormats() != null) {
-            // Delete existing variants
-            List<Variant> existingVariants = variantRepository.findByBook(updatedBook);
-            if (existingVariants != null && !existingVariants.isEmpty()) {
-                variantRepository.deleteAll(existingVariants);
+        
+        if (categoryIds.isEmpty()) {
+            book.setCategories(new ArrayList<>());
+        } else {
+            Set<Category> categoriesSet = categoryRepository.findByIdIn(categoryIds);
+            if (categoriesSet.size() != categoryIds.size()) {
+                throw new IdInvalidException("One or more category identifiers are invalid");
             }
-
-            // Create new variants
-            if (!request.getVariantFormats().isEmpty()) {
-                List<Variant> variants = new ArrayList<>();
-                for (String format : request.getVariantFormats()) {
-                    if (format != null && !format.trim().isEmpty()) {
-                        Variant variant = new Variant();
-                        variant.setFormat(format.trim());
-                        variant.setBook(updatedBook);
-                        variants.add(variant);
-                    }
-                }
-                if (!variants.isEmpty()) {
-                    variantRepository.saveAll(variants);
-                }
-            }
+            book.setCategories(new ArrayList<>(categoriesSet));
         }
-
-        return convertToBookResponse(updatedBook);
+    }
+    
+    private void updateBookVariants(Book book, List<String> variantFormats) {
+        if (variantFormats == null) {
+            return;
+        }
+        
+        deleteExistingVariants(book);
+        
+        if (!variantFormats.isEmpty()) {
+            createBookVariants(book, variantFormats);
+        }
+    }
+    
+    private void deleteExistingVariants(Book book) {
+        List<Variant> existingVariants = variantRepository.findByBook(book);
+        if (existingVariants != null && !existingVariants.isEmpty()) {
+            variantRepository.deleteAll(existingVariants);
+        }
     }
 
     @Override
     @Transactional
     public void deleteBook(Long bookId) throws IdInvalidException {
-        if (bookId == null || bookId <= 0) {
-            throw new IdInvalidException("Book identifier is invalid: " + bookId);
-        }
-
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
-
+        validateBookId(bookId);
+        Book book = findBookById(bookId);
         bookRepository.delete(book);
     }
 
     @Override
     public List<BookResponse> getAllBooksSorted(String sortByField, String sortDirection) {
-        if (sortByField == null || sortByField.trim().isEmpty()) {
-            sortByField = "id";
-        }
-
-        Sort.Direction direction = Sort.Direction.ASC;
-        if (sortDirection != null && sortDirection.equalsIgnoreCase("desc")) {
-            direction = Sort.Direction.DESC;
-        }
-
-        Sort sort = Sort.by(direction, sortByField);
+        String field = getSortField(sortByField);
+        Sort.Direction direction = getSortDirection(sortDirection);
+        
+        Sort sort = Sort.by(direction, field);
         List<Book> books = bookRepository.findAll(sort);
+        
         return books.stream()
-                .map(this::convertToBookResponse)
+                .map(bookMapper::toBookResponse)
                 .collect(Collectors.toList());
+    }
+    
+    private String getSortField(String sortByField) {
+        if (sortByField == null || sortByField.trim().isEmpty()) {
+            return "id";
+        }
+        return sortByField;
+    }
+    
+    private Sort.Direction getSortDirection(String sortDirection) {
+        if (sortDirection != null && sortDirection.equalsIgnoreCase("desc")) {
+            return Sort.Direction.DESC;
+        }
+        return Sort.Direction.ASC;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<BookResponse> getBooksByCategoryId(Long categoryId) throws IdInvalidException {
+        validateCategoryId(categoryId);
+        validateCategoryExists(categoryId);
+        
+        List<Book> books = bookRepository.findByCategoryIdWithCategories(categoryId);
+        return books.stream()
+                .map(bookMapper::toBookResponse)
+                .collect(Collectors.toList());
+    }
+    
+    private void validateCategoryId(Long categoryId) throws IdInvalidException {
         if (categoryId == null || categoryId <= 0) {
             throw new IdInvalidException("Category identifier is invalid: " + categoryId);
         }
-
-        // Verify category exists
-        categoryRepository.findById(categoryId)
-                .orElseThrow(() -> new RuntimeException("Category not found with identifier: " + categoryId));
-
-        // Use query with JOIN FETCH to load categories together
-        List<Book> books = bookRepository.findByCategoryIdWithCategories(categoryId);
-        
-        return books.stream()
-                .map(this::convertToBookResponse)
-                .collect(Collectors.toList());
     }
-
-    private BookResponse convertToBookResponse(Book book) {
-        BookResponse bookResponse = new BookResponse();
-        bookResponse.setId(book.getId());
-        bookResponse.setTitle(book.getTitle());
-        bookResponse.setAuthor(book.getAuthor());
-        bookResponse.setDescription(book.getDescription());
-        bookResponse.setPublicationYear(book.getPublicationYear());
-        bookResponse.setWeightGrams(book.getWeightGrams());
-        bookResponse.setPageCount(book.getPageCount());
-        bookResponse.setPrice(book.getPrice());
-        bookResponse.setStockQuantity(book.getStockQuantity());
-        bookResponse.setImageUrl(book.getImageUrl());
-        bookResponse.setIsActive(book.getIsActive());
-
-        // Convert variants to list of formats
-        List<Variant> variants = variantRepository.findByBook(book);
-        if (variants != null && !variants.isEmpty()) {
-            List<String> variantFormatList = variants.stream()
-                    .map(Variant::getFormat)
-                    .collect(Collectors.toList());
-            bookResponse.setVariantFormats(variantFormatList);
-        } else {
-            bookResponse.setVariantFormats(new ArrayList<>());
-        }
-
-        // Convert categories to list of identifiers
-        try {
-            List<Category> categories = book.getCategories();
-            if (categories != null && !categories.isEmpty()) {
-                List<Long> categoryIdentifierList = categories.stream()
-                        .map(Category::getId)
-                        .collect(Collectors.toList());
-                bookResponse.setCategoryIds(categoryIdentifierList);
-            } else {
-                bookResponse.setCategoryIds(new ArrayList<>());
-            }
-        } catch (Exception e) {
-            // If lazy loading fails or any other error, set empty list
-            bookResponse.setCategoryIds(new ArrayList<>());
-        }
-
-        return bookResponse;
+    
+    private void validateCategoryExists(Long categoryId) {
+        categoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException(
+                        "Category not found with identifier: " + categoryId));
     }
 }
