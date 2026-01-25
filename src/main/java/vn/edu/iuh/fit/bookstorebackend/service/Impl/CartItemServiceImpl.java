@@ -8,6 +8,7 @@ import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
 import vn.edu.iuh.fit.bookstorebackend.model.Book;
 import vn.edu.iuh.fit.bookstorebackend.model.Cart;
 import vn.edu.iuh.fit.bookstorebackend.model.CartItem;
+import vn.edu.iuh.fit.bookstorebackend.mapper.CartItemMapper;
 import vn.edu.iuh.fit.bookstorebackend.repository.CartItemRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.CartRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.CartItemService;
@@ -20,138 +21,123 @@ public class CartItemServiceImpl implements CartItemService {
 
     private final CartItemRepository cartItemRepository;
     private final CartRepository cartRepository;
+    private final CartItemMapper cartItemMapper;
 
     @Override
     @Transactional
     public CartItemResponse updateQuantity(Long cartItemId, Integer quantity) throws IdInvalidException {
+        validateCartItemId(cartItemId);
+        validateQuantity(quantity);
+        
+        CartItem cartItem = findCartItemById(cartItemId);
+        validateBookForQuantity(cartItem.getBook(), quantity);
+        
+        updateCartItemQuantity(cartItem, quantity);
+        CartItem savedCartItem = cartItemRepository.save(cartItem);
+        updateCartTotalPrice(cartItem.getCart());
+        
+        return cartItemMapper.toCartItemResponse(savedCartItem);
+    }
+    
+    private void validateCartItemId(Long cartItemId) throws IdInvalidException {
         if (cartItemId == null || cartItemId <= 0) {
             throw new IdInvalidException("Cart item identifier is invalid: " + cartItemId);
         }
-
+    }
+    
+    private void validateQuantity(Integer quantity) throws IdInvalidException {
         if (quantity == null || quantity <= 0) {
             throw new IdInvalidException("Quantity must be greater than 0");
         }
-
-        CartItem cartItem = cartItemRepository.findById(cartItemId)
+    }
+    
+    private CartItem findCartItemById(Long cartItemId) {
+        return cartItemRepository.findById(cartItemId)
                 .orElseThrow(() -> new RuntimeException("Cart item not found with identifier: " + cartItemId));
-
-        Book book = cartItem.getBook();
+    }
+    
+    private void validateBookForQuantity(Book book, Integer quantity) {
         if (book.getIsActive() == null || !book.getIsActive()) {
             throw new RuntimeException("Book is not active: " + book.getId());
         }
-
         if (book.getStockQuantity() < quantity) {
             throw new RuntimeException("Insufficient stock. Available: " + book.getStockQuantity() + ", Requested: " + quantity);
         }
-
+    }
+    
+    private void updateCartItemQuantity(CartItem cartItem, Integer quantity) {
         cartItem.setQuantity(quantity);
-        CartItem savedCartItem = cartItemRepository.save(cartItem);
-
-        updateCartTotalPrice(cartItem.getCart());
-
-        return convertToCartItemResponse(savedCartItem);
     }
 
     @Override
     @Transactional
     public CartItemResponse increaseQuantity(Long cartItemId) throws IdInvalidException {
-        if (cartItemId == null || cartItemId <= 0) {
-            throw new IdInvalidException("Cart item identifier is invalid: " + cartItemId);
-        }
-
-        CartItem cartItem = cartItemRepository.findById(cartItemId)
-                .orElseThrow(() -> new RuntimeException("Cart item not found with identifier: " + cartItemId));
-
-        Book book = cartItem.getBook();
-        if (book.getIsActive() == null || !book.getIsActive()) {
-            throw new RuntimeException("Book is not active: " + book.getId());
-        }
-
+        validateCartItemId(cartItemId);
+        CartItem cartItem = findCartItemById(cartItemId);
+        
         int newQuantity = cartItem.getQuantity() + 1;
-        if (book.getStockQuantity() < newQuantity) {
-            throw new RuntimeException("Insufficient stock. Available: " + book.getStockQuantity() + ", Requested: " + newQuantity);
-        }
-
-        cartItem.setQuantity(newQuantity);
+        validateBookForQuantity(cartItem.getBook(), newQuantity);
+        
+        updateCartItemQuantity(cartItem, newQuantity);
         CartItem savedCartItem = cartItemRepository.save(cartItem);
-
         updateCartTotalPrice(cartItem.getCart());
-
-        return convertToCartItemResponse(savedCartItem);
+        
+        return cartItemMapper.toCartItemResponse(savedCartItem);
     }
 
     @Override
     @Transactional
     public CartItemResponse decreaseQuantity(Long cartItemId) throws IdInvalidException {
-        if (cartItemId == null || cartItemId <= 0) {
-            throw new IdInvalidException("Cart item identifier is invalid: " + cartItemId);
-        }
-
-        CartItem cartItem = cartItemRepository.findById(cartItemId)
-                .orElseThrow(() -> new RuntimeException("Cart item not found with identifier: " + cartItemId));
-
-        int currentQuantity = cartItem.getQuantity();
+        validateCartItemId(cartItemId);
+        CartItem cartItem = findCartItemById(cartItemId);
+        
+        validateQuantityCanBeDecreased(cartItem.getQuantity());
+        
+        int newQuantity = cartItem.getQuantity() - 1;
+        updateCartItemQuantity(cartItem, newQuantity);
+        CartItem savedCartItem = cartItemRepository.save(cartItem);
+        updateCartTotalPrice(cartItem.getCart());
+        
+        return cartItemMapper.toCartItemResponse(savedCartItem);
+    }
+    
+    private void validateQuantityCanBeDecreased(int currentQuantity) {
         if (currentQuantity <= 1) {
             throw new RuntimeException("Quantity cannot be decreased below 1. Use removeItem to delete the item");
         }
-
-        cartItem.setQuantity(currentQuantity - 1);
-        CartItem savedCartItem = cartItemRepository.save(cartItem);
-
-        updateCartTotalPrice(cartItem.getCart());
-
-        return convertToCartItemResponse(savedCartItem);
     }
 
     @Override
     @Transactional
     public void removeItem(Long cartItemId) throws IdInvalidException {
-        if (cartItemId == null || cartItemId <= 0) {
-            throw new IdInvalidException("Cart item identifier is invalid: " + cartItemId);
-        }
-
-        CartItem cartItem = cartItemRepository.findById(cartItemId)
-                .orElseThrow(() -> new RuntimeException("Cart item not found with identifier: " + cartItemId));
-
+        validateCartItemId(cartItemId);
+        CartItem cartItem = findCartItemById(cartItemId);
+        
         Cart cart = cartItem.getCart();
         cartItemRepository.delete(cartItem);
-
         updateCartTotalPrice(cart);
     }
 
     @Override
     public CartItemResponse getItem(Long cartItemId) throws IdInvalidException {
-        if (cartItemId == null || cartItemId <= 0) {
-            throw new IdInvalidException("Cart item identifier is invalid: " + cartItemId);
-        }
-
-        CartItem cartItem = cartItemRepository.findById(cartItemId)
-                .orElseThrow(() -> new RuntimeException("Cart item not found with identifier: " + cartItemId));
-
-        return convertToCartItemResponse(cartItem);
+        validateCartItemId(cartItemId);
+        CartItem cartItem = findCartItemById(cartItemId);
+        return cartItemMapper.toCartItemResponse(cartItem);
     }
 
     private void updateCartTotalPrice(Cart cart) {
         List<CartItem> items = cartItemRepository.findByCart(cart);
-        if (items == null || items.isEmpty()) {
-            cart.setTotalPrice(0.0);
-        } else {
-            double totalPrice = items.stream()
-                    .mapToDouble(item -> item.getUnitPrice() * item.getQuantity())
-                    .sum();
-            cart.setTotalPrice(totalPrice);
-        }
+        double totalPrice = calculateCartTotalPrice(items);
+        cart.setTotalPrice(totalPrice);
         cartRepository.save(cart);
     }
-
-    private CartItemResponse convertToCartItemResponse(CartItem cartItem) {
-        CartItemResponse cartItemResponse = new CartItemResponse();
-        cartItemResponse.setId(cartItem.getId());
-        cartItemResponse.setBookId(cartItem.getBook().getId());
-        cartItemResponse.setBookTitle(cartItem.getBook().getTitle());
-        cartItemResponse.setQuantity(cartItem.getQuantity());
-        cartItemResponse.setUnitPrice(cartItem.getUnitPrice());
-        cartItemResponse.setTotalPrice(cartItem.getTotalPrice());
-        return cartItemResponse;
+    
+    private double calculateCartTotalPrice(List<CartItem> items) {
+        if (items == null || items.isEmpty()) {
+            return 0.0;
+        }
+        return items.stream()
+                .mapToDouble(item -> item.getUnitPrice() * item.getQuantity())
+                .sum();
     }
 }
