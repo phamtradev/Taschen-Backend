@@ -12,6 +12,7 @@ import vn.edu.iuh.fit.bookstorebackend.dto.response.PromotionResponse;
 import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
 import vn.edu.iuh.fit.bookstorebackend.model.Promotion;
 import vn.edu.iuh.fit.bookstorebackend.model.User;
+import vn.edu.iuh.fit.bookstorebackend.mapper.PromotionMapper;
 import vn.edu.iuh.fit.bookstorebackend.repository.PromotionRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.UserRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.NotificationService;
@@ -28,133 +29,135 @@ public class PromotionServiceImpl implements PromotionService {
     private final PromotionRepository promotionRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final PromotionMapper promotionMapper;
 
     @Override
     @Transactional
     public PromotionResponse createPromotion(CreatePromotionRequest request) throws IdInvalidException {
+        validateRequest(request);
+        validateCreatePromotionRequest(request);
+        validateCodeNotExists(request.getCode());
+        
+        User currentUser = getCurrentUser();
+        Promotion promotion = createPromotionFromRequest(request, currentUser);
+        
+        Promotion savedPromotion = promotionRepository.save(promotion);
+        return promotionMapper.toPromotionResponse(savedPromotion);
+    }
+    
+    private void validateRequest(CreatePromotionRequest request) throws IdInvalidException {
         if (request == null) {
             throw new IdInvalidException("CreatePromotionRequest cannot be null");
         }
-
-        // Validate request
-        validateCreatePromotionRequest(request);
-
-        // Check if code already exists
-        if (promotionRepository.existsByCode(request.getCode())) {
-            throw new RuntimeException("Promotion code already exists: " + request.getCode());
+    }
+    
+    private void validateCodeNotExists(String code) {
+        if (promotionRepository.existsByCode(code)) {
+            throw new RuntimeException("Promotion code already exists: " + code);
         }
-
-        // Get current user (creator)
-        User currentUser = getCurrentUser();
-
-        // Create promotion
-        Promotion promotion = new Promotion();
-        promotion.setName(request.getName());
-        promotion.setCode(request.getCode());
-        promotion.setDiscountPercent(request.getDiscountPercent());
-        promotion.setStartDate(request.getStartDate());
-        promotion.setEndDate(request.getEndDate());
-        promotion.setQuantity(request.getQuantity());
-        promotion.setPriceOrderActive(request.getPriceOrderActive() != null ? request.getPriceOrderActive() : 0.0);
-        promotion.setStatus(PromotionStatus.PENDING); // Mặc định chờ duyệt
+    }
+    
+    private Promotion createPromotionFromRequest(CreatePromotionRequest request, User currentUser) {
+        Promotion promotion = promotionMapper.toPromotion(request);
+        promotion.setPriceOrderActive(request.getPriceOrderActive() != null 
+                ? request.getPriceOrderActive() : 0.0);
+        promotion.setStatus(PromotionStatus.PENDING);
         promotion.setIsActive(true);
         promotion.setCreatedBy(currentUser);
-        promotion.setApprovedBy(null); // Chưa được duyệt
-
-        Promotion savedPromotion = promotionRepository.save(promotion);
-        return convertToPromotionResponse(savedPromotion);
+        promotion.setApprovedBy(null);
+        return promotion;
     }
 
     @Override
     @Transactional
     public PromotionResponse approvePromotion(Long promotionId) throws IdInvalidException {
+        validatePromotionId(promotionId);
+        Promotion promotion = findPromotionById(promotionId);
+        validatePromotionStatus(promotion, PromotionStatus.PENDING, "Only PENDING promotions can be approved");
+        
+        User currentUser = getCurrentUser();
+        approvePromotion(promotion, currentUser);
+        
+        Promotion updatedPromotion = promotionRepository.save(promotion);
+        notifyActiveCustomers(promotionId);
+        
+        return promotionMapper.toPromotionResponse(updatedPromotion);
+    }
+    
+    private void validatePromotionId(Long promotionId) throws IdInvalidException {
         if (promotionId == null || promotionId <= 0) {
             throw new IdInvalidException("Promotion identifier is invalid: " + promotionId);
         }
-
-        Promotion promotion = promotionRepository.findById(promotionId)
+    }
+    
+    private Promotion findPromotionById(Long promotionId) {
+        return promotionRepository.findById(promotionId)
                 .orElseThrow(() -> new RuntimeException("Promotion not found with identifier: " + promotionId));
-
-        if (promotion.getStatus() != PromotionStatus.PENDING) {
-            throw new RuntimeException("Only PENDING promotions can be approved");
+    }
+    
+    private void validatePromotionStatus(Promotion promotion, PromotionStatus expectedStatus, String errorMessage) {
+        if (promotion.getStatus() != expectedStatus) {
+            throw new RuntimeException(errorMessage);
         }
-
-        User currentUser = getCurrentUser();
+    }
+    
+    private void approvePromotion(Promotion promotion, User currentUser) {
         promotion.setStatus(PromotionStatus.ACTIVE);
         promotion.setIsActive(true);
         promotion.setApprovedBy(currentUser);
-
-        Promotion updatedPromotion = promotionRepository.save(promotion);
-        
-        // Thông báo cho khách hàng active
-        notifyActiveCustomers(promotionId);
-        
-        return convertToPromotionResponse(updatedPromotion);
     }
 
     @Override
     @Transactional
     public PromotionResponse deactivatePromotion(Long promotionId) throws IdInvalidException {
-        if (promotionId == null || promotionId <= 0) {
-            throw new IdInvalidException("Promotion identifier is invalid: " + promotionId);
-        }
-
-        Promotion promotion = promotionRepository.findById(promotionId)
-                .orElseThrow(() -> new RuntimeException("Promotion not found with identifier: " + promotionId));
-
+        validatePromotionId(promotionId);
+        Promotion promotion = findPromotionById(promotionId);
+        
+        deactivatePromotion(promotion);
+        Promotion updatedPromotion = promotionRepository.save(promotion);
+        
+        return promotionMapper.toPromotionResponse(updatedPromotion);
+    }
+    
+    private void deactivatePromotion(Promotion promotion) {
         promotion.setStatus(PromotionStatus.REJECTED);
         promotion.setIsActive(false);
-
-        Promotion updatedPromotion = promotionRepository.save(promotion);
-        return convertToPromotionResponse(updatedPromotion);
     }
 
     @Override
     @Transactional
     public PromotionResponse pausePromotion(Long promotionId) throws IdInvalidException {
-        if (promotionId == null || promotionId <= 0) {
-            throw new IdInvalidException("Promotion identifier is invalid: " + promotionId);
-        }
-
-        Promotion promotion = promotionRepository.findById(promotionId)
-                .orElseThrow(() -> new RuntimeException("Promotion not found with identifier: " + promotionId));
-
-        if (promotion.getStatus() != PromotionStatus.ACTIVE) {
-            throw new RuntimeException("Only ACTIVE promotions can be paused");
-        }
-
-        promotion.setStatus(PromotionStatus.PAUSED);
-
-        Promotion updatedPromotion = promotionRepository.save(promotion);
+        validatePromotionId(promotionId);
+        Promotion promotion = findPromotionById(promotionId);
+        validatePromotionStatus(promotion, PromotionStatus.ACTIVE, "Only ACTIVE promotions can be paused");
         
-        // Thông báo promotion bị tạm dừng
+        pausePromotion(promotion);
+        Promotion updatedPromotion = promotionRepository.save(promotion);
         notifyPromotionPaused(promotionId);
         
-        return convertToPromotionResponse(updatedPromotion);
+        return promotionMapper.toPromotionResponse(updatedPromotion);
+    }
+    
+    private void pausePromotion(Promotion promotion) {
+        promotion.setStatus(PromotionStatus.PAUSED);
     }
 
     @Override
     @Transactional
     public PromotionResponse resumePromotion(Long promotionId) throws IdInvalidException {
-        if (promotionId == null || promotionId <= 0) {
-            throw new IdInvalidException("Promotion identifier is invalid: " + promotionId);
-        }
-
-        Promotion promotion = promotionRepository.findById(promotionId)
-                .orElseThrow(() -> new RuntimeException("Promotion not found with identifier: " + promotionId));
-
-        if (promotion.getStatus() != PromotionStatus.PAUSED) {
-            throw new RuntimeException("Only PAUSED promotions can be resumed");
-        }
-
-        promotion.setStatus(PromotionStatus.ACTIVE);
-
-        Promotion updatedPromotion = promotionRepository.save(promotion);
+        validatePromotionId(promotionId);
+        Promotion promotion = findPromotionById(promotionId);
+        validatePromotionStatus(promotion, PromotionStatus.PAUSED, "Only PAUSED promotions can be resumed");
         
-        // Thông báo promotion được tiếp tục
+        resumePromotion(promotion);
+        Promotion updatedPromotion = promotionRepository.save(promotion);
         notifyPromotionResumed(promotionId);
         
-        return convertToPromotionResponse(updatedPromotion);
+        return promotionMapper.toPromotionResponse(updatedPromotion);
+    }
+    
+    private void resumePromotion(Promotion promotion) {
+        promotion.setStatus(PromotionStatus.ACTIVE);
     }
 
     @Override
@@ -162,7 +165,7 @@ public class PromotionServiceImpl implements PromotionService {
     public List<PromotionResponse> searchPromotions(String name, String code, PromotionStatus status, Boolean isActive) {
         List<Promotion> promotions = promotionRepository.searchPromotions(name, code, status, isActive);
         return promotions.stream()
-                .map(this::convertToPromotionResponse)
+                .map(promotionMapper::toPromotionResponse)
                 .collect(Collectors.toList());
     }
 
@@ -171,21 +174,16 @@ public class PromotionServiceImpl implements PromotionService {
     public List<PromotionResponse> getAllPromotions() {
         List<Promotion> promotions = promotionRepository.findAll();
         return promotions.stream()
-                .map(this::convertToPromotionResponse)
+                .map(promotionMapper::toPromotionResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional(readOnly = true)
     public PromotionResponse getPromotionById(Long promotionId) throws IdInvalidException {
-        if (promotionId == null || promotionId <= 0) {
-            throw new IdInvalidException("Promotion identifier is invalid: " + promotionId);
-        }
-
-        Promotion promotion = promotionRepository.findById(promotionId)
-                .orElseThrow(() -> new RuntimeException("Promotion not found with identifier: " + promotionId));
-
-        return convertToPromotionResponse(promotion);
+        validatePromotionId(promotionId);
+        Promotion promotion = findPromotionById(promotionId);
+        return promotionMapper.toPromotionResponse(promotion);
     }
 
     @Override
@@ -200,7 +198,10 @@ public class PromotionServiceImpl implements PromotionService {
             return false;
         }
 
-        // Kiểm tra promotion có active và trong thời gian hiệu lực không
+        return isPromotionValid(promotion);
+    }
+    
+    private boolean isPromotionValid(Promotion promotion) {
         LocalDate today = LocalDate.now();
         return promotion.getIsActive() 
                 && promotion.getStatus() == PromotionStatus.ACTIVE
@@ -212,64 +213,64 @@ public class PromotionServiceImpl implements PromotionService {
     @Override
     @Transactional
     public void notifyPromotionPaused(Long promotionId) throws IdInvalidException {
-        Promotion promotion = promotionRepository.findById(promotionId)
-                .orElseThrow(() -> new RuntimeException("Promotion not found with identifier: " + promotionId));
-
-        // Lấy tất cả user active
-        List<User> activeUsers = userRepository.findAll().stream()
-                .filter(User::isActive)
-                .collect(Collectors.toList());
-
+        Promotion promotion = findPromotionById(promotionId);
+        List<User> activeUsers = getActiveUsers();
+        
         String title = "Khuyến mãi tạm dừng";
-        String content = String.format("Khuyến mãi '%s' (Mã: %s) đã tạm dừng. Vui lòng theo dõi để biết thêm thông tin.",
+        String content = buildPausedNotificationContent(promotion);
+        
+        sendNotificationsToUsers(activeUsers, title, content);
+    }
+    
+    private String buildPausedNotificationContent(Promotion promotion) {
+        return String.format("Khuyến mãi '%s' (Mã: %s) đã tạm dừng. Vui lòng theo dõi để biết thêm thông tin.",
                 promotion.getName(), promotion.getCode());
-
-        // Gửi thông báo cho tất cả user active
-        for (User user : activeUsers) {
-            notificationService.createNotification(null, user, title, content);
-        }
     }
 
     @Override
     @Transactional
     public void notifyActiveCustomers(Long promotionId) throws IdInvalidException {
-        Promotion promotion = promotionRepository.findById(promotionId)
-                .orElseThrow(() -> new RuntimeException("Promotion not found with identifier: " + promotionId));
-
-        // Lấy tất cả user active
-        List<User> activeUsers = userRepository.findAll().stream()
-                .filter(User::isActive)
-                .collect(Collectors.toList());
-
+        Promotion promotion = findPromotionById(promotionId);
+        List<User> activeUsers = getActiveUsers();
+        
         String title = "Khuyến mãi mới";
-        String content = String.format("Khuyến mãi '%s' (Mã: %s) đã được kích hoạt! Giảm giá %.0f%%. Áp dụng từ %s đến %s.",
+        String content = buildActivatedNotificationContent(promotion);
+        
+        sendNotificationsToUsers(activeUsers, title, content);
+    }
+    
+    private String buildActivatedNotificationContent(Promotion promotion) {
+        return String.format("Khuyến mãi '%s' (Mã: %s) đã được kích hoạt! Giảm giá %.0f%%. Áp dụng từ %s đến %s.",
                 promotion.getName(), promotion.getCode(), promotion.getDiscountPercent(),
                 promotion.getStartDate(), promotion.getEndDate());
-
-        // Gửi thông báo cho tất cả user active
-        for (User user : activeUsers) {
-            notificationService.createNotification(null, user, title, content);
-        }
     }
 
     @Override
     @Transactional
     public void notifyPromotionResumed(Long promotionId) throws IdInvalidException {
-        Promotion promotion = promotionRepository.findById(promotionId)
-                .orElseThrow(() -> new RuntimeException("Promotion not found with identifier: " + promotionId));
-
-        // Lấy tất cả user active
-        List<User> activeUsers = userRepository.findAll().stream()
-                .filter(User::isActive)
-                .collect(Collectors.toList());
-
+        Promotion promotion = findPromotionById(promotionId);
+        List<User> activeUsers = getActiveUsers();
+        
         String title = "Khuyến mãi tiếp tục";
-        String content = String.format("Khuyến mãi '%s' (Mã: %s) đã được tiếp tục! Giảm giá %.0f%%. Áp dụng từ %s đến %s.",
+        String content = buildResumedNotificationContent(promotion);
+        
+        sendNotificationsToUsers(activeUsers, title, content);
+    }
+    
+    private String buildResumedNotificationContent(Promotion promotion) {
+        return String.format("Khuyến mãi '%s' (Mã: %s) đã được tiếp tục! Giảm giá %.0f%%. Áp dụng từ %s đến %s.",
                 promotion.getName(), promotion.getCode(), promotion.getDiscountPercent(),
                 promotion.getStartDate(), promotion.getEndDate());
-
-        // Gửi thông báo cho tất cả user active
-        for (User user : activeUsers) {
+    }
+    
+    private List<User> getActiveUsers() {
+        return userRepository.findAll().stream()
+                .filter(User::isActive)
+                .collect(Collectors.toList());
+    }
+    
+    private void sendNotificationsToUsers(List<User> users, String title, String content) {
+        for (User user : users) {
             notificationService.createNotification(null, user, title, content);
         }
     }
@@ -328,41 +329,4 @@ public class PromotionServiceImpl implements PromotionService {
         }
     }
 
-    private PromotionResponse convertToPromotionResponse(Promotion promotion) {
-        PromotionResponse response = new PromotionResponse();
-        response.setId(promotion.getId());
-        response.setName(promotion.getName());
-        response.setCode(promotion.getCode());
-        response.setDiscountPercent(promotion.getDiscountPercent());
-        response.setStartDate(promotion.getStartDate());
-        response.setEndDate(promotion.getEndDate());
-        response.setQuantity(promotion.getQuantity());
-        response.setIsActive(promotion.getIsActive());
-        response.setStatus(promotion.getStatus());
-        response.setPriceOrderActive(promotion.getPriceOrderActive());
-
-        if (promotion.getCreatedBy() != null) {
-            response.setCreatedById(promotion.getCreatedBy().getId());
-            response.setCreatedByName(getUserDisplayName(promotion.getCreatedBy()));
-        }
-
-        if (promotion.getApprovedBy() != null) {
-            response.setApprovedById(promotion.getApprovedBy().getId());
-            response.setApprovedByName(getUserDisplayName(promotion.getApprovedBy()));
-        }
-
-        return response;
-    }
-
-    private String getUserDisplayName(User user) {
-        if (user.getFirstName() != null && user.getLastName() != null) {
-            return user.getFirstName() + " " + user.getLastName();
-        } else if (user.getFirstName() != null) {
-            return user.getFirstName();
-        } else if (user.getLastName() != null) {
-            return user.getLastName();
-        } else {
-            return user.getEmail();
-        }
-    }
 }
