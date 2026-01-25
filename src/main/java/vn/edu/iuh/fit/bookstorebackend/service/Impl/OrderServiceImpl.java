@@ -73,22 +73,22 @@ public class OrderServiceImpl implements OrderService {
         if (allItems == null || allItems.isEmpty()) {
             throw new IllegalStateException("Cart is empty");
         }
-        
+
         if (cartItemIds == null || cartItemIds.isEmpty()) {
             return allItems;
         }
         
         List<CartItem> selectedItems = allItems.stream()
                 .filter(ci -> cartItemIds.contains(ci.getId()))
-                .collect(Collectors.toList());
+                    .collect(Collectors.toList());
         
-        if (selectedItems.isEmpty()) {
-            throw new IllegalStateException("Không có sản phẩm nào được chọn để đặt hàng");
-        }
+            if (selectedItems.isEmpty()) {
+                throw new IllegalStateException("Không có sản phẩm nào được chọn để đặt hàng");
+            }
         
         return selectedItems;
-    }
-    
+        }
+
     private Address getAndValidateDeliveryAddress(Long addressId, User currentUser) throws IdInvalidException {
         if (addressId == null) {
             return null;
@@ -96,18 +96,18 @@ public class OrderServiceImpl implements OrderService {
         
         if (addressId <= 0) {
             throw new IdInvalidException("Address identifier is invalid: " + addressId);
-        }
+            }
         
         Address deliveryAddress = addressRepository.findById(addressId)
                 .orElseThrow(() -> new RuntimeException("Address not found with id: " + addressId));
         
-        if (!Objects.equals(deliveryAddress.getUser().getId(), currentUser.getId())) {
-            throw new IllegalStateException("Address does not belong to current user");
-        }
+            if (!Objects.equals(deliveryAddress.getUser().getId(), currentUser.getId())) {
+                throw new IllegalStateException("Address does not belong to current user");
+            }
         
         return deliveryAddress;
-    }
-    
+        }
+
     private Promotion getAndValidatePromotion(String promotionCode) {
         if (promotionCode == null || promotionCode.trim().isEmpty()) {
             return null;
@@ -115,46 +115,46 @@ public class OrderServiceImpl implements OrderService {
         
         String code = promotionCode.trim();
         Promotion promotion = promotionRepository.findByCode(code)
-                .orElseThrow(() -> new RuntimeException("Promotion not found with code: " + code));
-        
+                    .orElseThrow(() -> new RuntimeException("Promotion not found with code: " + code));
+
         validatePromotion(promotion);
         return promotion;
     }
     
     private void validatePromotion(Promotion promotion) {
         LocalDate today = LocalDate.now();
-        if (!Boolean.TRUE.equals(promotion.getIsActive())
-                || promotion.getStatus() != PromotionStatus.ACTIVE
+            if (!Boolean.TRUE.equals(promotion.getIsActive())
+                    || promotion.getStatus() != PromotionStatus.ACTIVE
                 || today.isBefore(promotion.getStartDate())
                 || today.isAfter(promotion.getEndDate())) {
-            throw new IllegalStateException("Invalid or expired promotion code");
+                throw new IllegalStateException("Invalid or expired promotion code");
+            }
+
+            if (promotion.getQuantity() <= 0) {
+                throw new IllegalStateException("Promotion code has been fully used");
+            }
         }
-        
-        if (promotion.getQuantity() <= 0) {
-            throw new IllegalStateException("Promotion code has been fully used");
-        }
-    }
-    
+
     private Order createOrderFromRequest(User currentUser, CreateOrderRequest request, 
                                         Promotion promotion, Address deliveryAddress) {
         Order order = new Order();
         order.setUser(currentUser);
         order.setOrderDate(LocalDateTime.now());
         order.setStatus(determineInitialOrderStatus(request.getPaymentMethod()));
-        
+
         if (promotion != null) {
             order.setPromotion(promotion);
             applyPromotion(promotion);
         }
-        
+
         if (deliveryAddress != null) {
             order.setDeliveryAddress(deliveryAddress);
         }
-        
+
         if (request.getPaymentMethod() != null) {
             order.setPaymentMethod(request.getPaymentMethod().toUpperCase());
         }
-        
+
         return order;
     }
     
@@ -170,11 +170,11 @@ public class OrderServiceImpl implements OrderService {
     
     private List<OrderDetail> createOrderDetails(List<CartItem> selectedItems, Order order) {
         List<OrderDetail> orderDetails = new ArrayList<>();
-        
+
         for (CartItem cartItem : selectedItems) {
             Book book = cartItem.getBook();
             int quantity = cartItem.getQuantity();
-            
+
             validateBookForOrder(book, quantity);
             updateBookStock(book, quantity);
             
@@ -186,25 +186,25 @@ public class OrderServiceImpl implements OrderService {
     }
     
     private void validateBookForOrder(Book book, int quantity) {
-        if (book.getIsActive() == null || !book.getIsActive()) {
-            throw new RuntimeException("Book is not active: " + book.getId());
+            if (book.getIsActive() == null || !book.getIsActive()) {
+                throw new RuntimeException("Book is not active: " + book.getId());
+            }
+            if (book.getStockQuantity() < quantity) {
+                throw new IllegalStateException("Not enough stock for book: " + book.getTitle());
         }
-        if (book.getStockQuantity() < quantity) {
-            throw new IllegalStateException("Not enough stock for book: " + book.getTitle());
-        }
-    }
-    
+            }
+
     private void updateBookStock(Book book, int quantity) {
-        book.setStockQuantity(book.getStockQuantity() - quantity);
-        bookRepository.save(book);
+            book.setStockQuantity(book.getStockQuantity() - quantity);
+            bookRepository.save(book);
     }
-    
+
     private OrderDetail createOrderDetail(Order order, Book book, int quantity) {
-        OrderDetail detail = new OrderDetail();
-        detail.setOrder(order);
-        detail.setBook(book);
-        detail.setQuantity(quantity);
-        detail.setPriceAtPurchase(book.getPrice());
+            OrderDetail detail = new OrderDetail();
+            detail.setOrder(order);
+            detail.setBook(book);
+            detail.setQuantity(quantity);
+            detail.setPriceAtPurchase(book.getPrice());
         return detail;
     }
     
@@ -219,13 +219,13 @@ public class OrderServiceImpl implements OrderService {
         
         double discountAmount = subtotal * (promotion.getDiscountPercent() / 100.0);
         return subtotal - discountAmount;
-    }
-    
+        }
+
     private void removeSelectedItemsFromCart(List<CartItem> selectedItems, Cart cart) {
         cartItemRepository.deleteAll(selectedItems);
         recalculateCartTotal(cart);
     }
-    
+
     private void sendOrderCreatedNotification(Order order, User user) {
         String title = "Đơn hàng #" + order.getId() + " đã được tạo";
         String content = "Đặt hàng thành công, đơn hàng của bạn đang chờ xác nhận";
@@ -258,8 +258,8 @@ public class OrderServiceImpl implements OrderService {
         if (orderId == null || orderId <= 0) {
             throw new IdInvalidException("Order identifier is invalid: " + orderId);
         }
-    }
-    
+        }
+
     private Order findOrderById(Long orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId));
@@ -304,7 +304,7 @@ public class OrderServiceImpl implements OrderService {
         createStatusChangeNotification(updatedOrder, newStatus);
         
         return orderMapper.toOrderResponse(updatedOrder);
-    }
+        }
     
     private void validateNewStatus(OrderStatus newStatus) {
         if (newStatus == null) {
@@ -326,8 +326,8 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalStateException(
                     "Chuyển trạng thái không hợp lệ từ " + oldStatus + " sang " + newStatus);
         }
-    }
-    
+        }
+
     private void handleInventoryReturnIfNeeded(OrderStatus oldStatus, OrderStatus newStatus, Order order) {
         if ((newStatus == OrderStatus.CANCELLED && oldStatus != OrderStatus.CANCELLED)
                 || (newStatus == OrderStatus.RETURNED && oldStatus != OrderStatus.RETURNED)) {
@@ -350,7 +350,7 @@ public class OrderServiceImpl implements OrderService {
         Order savedOrder = orderRepository.save(order);
         
         return orderMapper.toOrderResponse(savedOrder);
-    }
+        }
     
     private String validateAndNormalizePaymentMethod(String paymentMethod) {
         if (paymentMethod == null || paymentMethod.isBlank()) {
@@ -366,26 +366,26 @@ public class OrderServiceImpl implements OrderService {
     private void validatePaymentMethodUpdatePermission(Order order, User currentUser) {
         boolean isAdminOrStaff = isAdminOrStaff(currentUser);
         boolean isOwner = Objects.equals(order.getUser().getId(), currentUser.getId());
-        
+
         if (!isAdminOrStaff && !isOwner) {
             throw new IllegalStateException("You don't have permission to update payment method for this order");
         }
-    }
-    
+        }
+
     private void validateOrderStatusForPaymentMethodChange(Order order) {
         if (order.getStatus() != OrderStatus.UNPAID && order.getStatus() != OrderStatus.PENDING) {
             throw new IllegalStateException(
                     "Không thể đổi phương thức với trạng thái hiện tại: " + order.getStatus());
         }
-    }
-    
+        }
+
     private void updateOrderPaymentMethod(Order order, String normalizedPaymentMethod) {
         order.setPaymentMethod(normalizedPaymentMethod);
-        
+
         if ("CASH".equals(normalizedPaymentMethod) && order.getStatus() == OrderStatus.UNPAID) {
             order.setStatus(OrderStatus.PENDING);
         }
-        
+
         if ("VNPAY".equals(normalizedPaymentMethod)) {
             order.setStatus(OrderStatus.UNPAID);
             order.setPaymentCode(null);
@@ -396,7 +396,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public OrderResponse cancelOrderByCustomer(Long orderId) throws IdInvalidException {
         validateOrderId(orderId);
-        
+
         User currentUser = getCurrentUser();
         Order order = findOrderById(orderId);
         validateOrderOwnership(order, currentUser);
@@ -413,15 +413,15 @@ public class OrderServiceImpl implements OrderService {
         if (!Objects.equals(order.getUser().getId(), currentUser.getId())) {
             throw new IllegalStateException("You don't have permission to cancel this order");
         }
-    }
-    
+        }
+
     private void validateOrderCanBeCancelled(Order order) {
         if (!(order.getStatus() == OrderStatus.PENDING || order.getStatus() == OrderStatus.UNPAID)) {
             throw new IllegalStateException(
                     "Chỉ có thể hủy đơn hàng khi trạng thái là Chờ xác nhận/Chưa thanh toán");
         }
-    }
-    
+        }
+
     private void cancelOrder(Order order) {
         order.setStatus(OrderStatus.CANCELLED);
         returnInventory(order);
@@ -431,7 +431,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional
     public OrderResponse confirmReceivedByCustomer(Long orderId) throws IdInvalidException {
         validateOrderId(orderId);
-        
+
         User currentUser = getCurrentUser();
         Order order = findOrderById(orderId);
         validateOrderOwnership(order, currentUser);
@@ -449,6 +449,48 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalStateException(
                     "Chỉ có thể xác nhận đã nhận hàng khi đơn hàng đang trong trạng thái Đang giao");
         }
+    }
+
+    @Override
+    @Transactional
+    public OrderResponse updatePaymentCode(Long orderId, String paymentCode) 
+            throws IdInvalidException {
+        validateOrderId(orderId);
+        
+        if (paymentCode == null || paymentCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("Payment code is required");
+        }
+        
+        Order order = findOrderById(orderId);
+        order.setPaymentCode(paymentCode.trim());
+        
+        if (order.getStatus() == OrderStatus.UNPAID) {
+            order.setStatus(OrderStatus.PENDING);
+        }
+        
+        Order savedOrder = orderRepository.save(order);
+        return orderMapper.toOrderResponse(savedOrder);
+    }
+
+    @Override
+    @Transactional
+    public void updatePaymentFromVnPayCallback(Long orderId, String transactionNo) 
+            throws IdInvalidException {
+        validateOrderId(orderId);
+        
+        Order order = findOrderById(orderId);
+        
+        order.setPaymentMethod("VNPAY");
+        
+        if (transactionNo != null && !transactionNo.trim().isEmpty()) {
+            order.setPaymentCode(transactionNo.trim());
+        }
+        
+        if (order.getStatus() == OrderStatus.UNPAID) {
+            order.setStatus(OrderStatus.PENDING);
+        }
+        
+        orderRepository.save(order);
     }
 
     @Override
@@ -513,7 +555,7 @@ public class OrderServiceImpl implements OrderService {
         cart.setTotalPrice(totalPrice);
         cartRepository.save(cart);
     }
-    
+
     private double calculateCartTotalPrice(List<CartItem> items) {
         if (items == null || items.isEmpty()) {
             return 0.0;
@@ -538,21 +580,21 @@ public class OrderServiceImpl implements OrderService {
         if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
             throw new RuntimeException("User is not authenticated. Please login first.");
         }
-    }
-    
+        }
+
     private String extractEmailFromAuth(Authentication auth) {
         String email = auth.getName();
         if (email == null || email.trim().isEmpty()) {
             throw new RuntimeException("User email is not found in authentication context.");
         }
         return email;
-    }
-    
+        }
+
     private User findUserByEmail(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
     }
-    
+
     private void validateUserIsActive(User user) {
         if (!user.isActive()) {
             throw new RuntimeException("User account is inactive. Please contact administrator.");
