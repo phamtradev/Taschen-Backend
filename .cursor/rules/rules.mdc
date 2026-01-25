@@ -139,3 +139,40 @@ When creating new features, follow this structure:
   - response: `XxxResponse`
 - exception:
   - throw `IdInvalidException` (preferred in this project) or `RuntimeException` with clear messages
+
+## 10) Clean Service Method Structure (MANDATORY)
+
+- Service public methods (e.g. `create`, `register`, `update`, `delete`) must be **short and orchestration-focused**.
+- A service method should:
+  - Read top-down like a business flow
+  - Avoid inline validation, mapping, or side-effect logic
+
+- Complex logic MUST be extracted into **private helper methods** inside the same `ServiceImpl` class.
+
+## 11) Required extraction rules:
+- Validation logic → `private validateXxx(...)`
+- Entity creation / mapping → `private createXxxFromRequest(...)` or Mapper
+- Ownership / existence checks → `private validateXxxExists(...)`
+- Side-effects (email, token, external calls) → `private handleXxx(...)`
+- Reusable sub-steps → `private hasXxx(...)`, `private getXxx(...)`
+
+## 12) Constraints:
+- Helper methods MUST be:
+  - `private`
+  - Located in the same `ServiceImpl`
+  - Named after business intent, not technical detail
+- Do NOT create new service/helper classes unless:
+  - The logic is reused across multiple services
+  - Or explicitly requested
+
+## 13) Anti-patterns (DO NOT DO):
+- Large service methods with:
+  - inline `if/else` chains
+  - inline stream mappings
+  - inline entity construction via multiple setters
+- Extracting logic into new classes without clear reuse
+- Over-fragmenting into one-line methods
+
+## Goal:
+- The main service method should be readable in < 30 seconds
+- A reviewer should understand the business flow without scrolling
