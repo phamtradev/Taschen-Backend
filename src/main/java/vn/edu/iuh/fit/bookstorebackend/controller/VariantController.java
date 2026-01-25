@@ -22,7 +22,8 @@ public class VariantController {
     }
 
     @PostMapping
-    public ResponseEntity<VariantResponse> createVariant(@RequestBody CreateVariantRequest request) throws IdInvalidException {
+    public ResponseEntity<VariantResponse> createVariant(
+            @RequestBody CreateVariantRequest request) throws IdInvalidException {
         VariantResponse variantResponse = variantService.createVariant(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(variantResponse);
     }
@@ -34,13 +35,15 @@ public class VariantController {
     }
 
     @GetMapping("/book/{bookId}")
-    public ResponseEntity<List<VariantResponse>> getVariantsByBookId(@PathVariable Long bookId) throws IdInvalidException {
+    public ResponseEntity<List<VariantResponse>> getVariantsByBookId(
+            @PathVariable Long bookId) throws IdInvalidException {
         List<VariantResponse> variants = variantService.getVariantsByBookId(bookId);
         return ResponseEntity.status(HttpStatus.OK).body(variants);
     }
 
     @GetMapping("/{variantId}")
-    public ResponseEntity<VariantResponse> getVariantById(@PathVariable Long variantId) throws IdInvalidException {
+    public ResponseEntity<VariantResponse> getVariantById(
+            @PathVariable Long variantId) throws IdInvalidException {
         VariantResponse variantResponse = variantService.getVariantById(variantId);
         return ResponseEntity.status(HttpStatus.OK).body(variantResponse);
     }
@@ -49,12 +52,14 @@ public class VariantController {
     public ResponseEntity<VariantResponse> updateVariant(
             @PathVariable Long variantId,
             @RequestBody UpdateVariantRequest request) throws IdInvalidException {
-        VariantResponse variantResponse = variantService.updateVariant(variantId, request);
+        VariantResponse variantResponse = variantService.updateVariant(
+                variantId, request);
         return ResponseEntity.status(HttpStatus.OK).body(variantResponse);
     }
 
     @DeleteMapping("/{variantId}")
-    public ResponseEntity<Void> deleteVariant(@PathVariable Long variantId) throws IdInvalidException {
+    public ResponseEntity<Void> deleteVariant(
+            @PathVariable Long variantId) throws IdInvalidException {
         variantService.deleteVariant(variantId);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }

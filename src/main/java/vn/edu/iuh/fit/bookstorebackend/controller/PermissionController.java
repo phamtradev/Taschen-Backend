@@ -26,7 +26,8 @@ public class PermissionController {
     private final PermissionRepository permissionRepository;
 
     @PostMapping
-    public ResponseEntity<PermissionResponse> createPermission(@RequestBody CreatePermissionRequest request) {
+    public ResponseEntity<PermissionResponse> createPermission(
+            @RequestBody CreatePermissionRequest request) {
         PermissionResponse resp = permissionService.createPermission(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(resp);
     }
@@ -37,12 +38,15 @@ public class PermissionController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<PermissionResponse> getPermissionById(@PathVariable Long id) {
+    public ResponseEntity<PermissionResponse> getPermissionById(
+            @PathVariable Long id) {
         return ResponseEntity.ok(permissionService.getPermissionById(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<PermissionResponse> updatePermission(@PathVariable Long id, @RequestBody CreatePermissionRequest request) {
+    public ResponseEntity<PermissionResponse> updatePermission(
+            @PathVariable Long id,
+            @RequestBody CreatePermissionRequest request) {
         return ResponseEntity.ok(permissionService.updatePermission(id, request));
     }
 
@@ -53,30 +57,34 @@ public class PermissionController {
     }
 
     @PostMapping("/assign")
-    public ResponseEntity<PermissionResponse> createAndAssignToRole(@RequestBody CreatePermissionForRoleRequest request) {
+    public ResponseEntity<PermissionResponse> createAndAssignToRole(
+            @RequestBody CreatePermissionForRoleRequest request) {
         Role role = roleRepository.findByCode(request.getRoleCode())
-                .orElseThrow(() -> new RuntimeException("Role not found: " + request.getRoleCode()));
+                .orElseThrow(() -> new RuntimeException(
+                        "Role not found: " + request.getRoleCode()));
 
-        Permission permission = new Permission(); //tao moi permission
+        Permission permission = new Permission();
         permission.setHttpMethod(request.getHttpMethod());
         permission.setPathPattern(request.getPathPattern());
-        permission.setActive(request.getActive() != null ? request.getActive() : true);
+        permission.setActive(
+                request.getActive() != null ? request.getActive() : true);
         Permission saved = permissionRepository.save(permission);
 
         role.getPermissions().add(saved);
         roleRepository.save(role);
 
-        PermissionResponse resp = new PermissionResponse(); //chuyen doi tu model sang dto
+        PermissionResponse resp = new PermissionResponse();
         resp.setId(saved.getId());
         resp.setRoleCode(role.getCode());
         resp.setHttpMethod(saved.getHttpMethod());
         resp.setPathPattern(saved.getPathPattern());
-        resp.setActive(saved.isActive()); //set active cua permission
+        resp.setActive(saved.isActive());
         return ResponseEntity.status(HttpStatus.CREATED).body(resp);
     }
-    
+
     @GetMapping("role/{code}")
-    public ResponseEntity<List<PermissionResponse>> getPermissionsByRoleCode(@PathVariable("code") String code) {
+    public ResponseEntity<List<PermissionResponse>> getPermissionsByRoleCode(
+            @PathVariable("code") String code) {
         Role role = roleRepository.findByCode(code).orElse(null);
         if (role == null) {
             return ResponseEntity.notFound().build();

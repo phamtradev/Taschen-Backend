@@ -19,20 +19,25 @@ public class CartItemController {
     }
 
     @GetMapping("/{cartItemId}")
-    public ResponseEntity<CartItemResponse> getItem(@PathVariable Long cartItemId) throws IdInvalidException {
+    public ResponseEntity<CartItemResponse> getItem(
+            @PathVariable Long cartItemId) throws IdInvalidException {
         CartItemResponse cartItemResponse = cartItemService.getItem(cartItemId);
         return ResponseEntity.status(HttpStatus.OK).body(cartItemResponse);
     }
 
     @PatchMapping("/{cartItemId}/increase")
-    public ResponseEntity<CartItemResponse> increaseQuantity(@PathVariable Long cartItemId) throws IdInvalidException {
-        CartItemResponse cartItemResponse = cartItemService.increaseQuantity(cartItemId);
+    public ResponseEntity<CartItemResponse> increaseQuantity(
+            @PathVariable Long cartItemId) throws IdInvalidException {
+        CartItemResponse cartItemResponse = cartItemService.increaseQuantity(
+                cartItemId);
         return ResponseEntity.status(HttpStatus.OK).body(cartItemResponse);
     }
 
     @PatchMapping("/{cartItemId}/decrease")
-    public ResponseEntity<CartItemResponse> decreaseQuantity(@PathVariable Long cartItemId) throws IdInvalidException {
-        CartItemResponse cartItemResponse = cartItemService.decreaseQuantity(cartItemId);
+    public ResponseEntity<CartItemResponse> decreaseQuantity(
+            @PathVariable Long cartItemId) throws IdInvalidException {
+        CartItemResponse cartItemResponse = cartItemService.decreaseQuantity(
+                cartItemId);
         return ResponseEntity.status(HttpStatus.OK).body(cartItemResponse);
     }
 
@@ -40,12 +45,14 @@ public class CartItemController {
     public ResponseEntity<CartItemResponse> updateQuantity(
             @PathVariable Long cartItemId,
             @RequestBody UpdateQuantityRequest request) throws IdInvalidException {
-        CartItemResponse cartItemResponse = cartItemService.updateQuantity(cartItemId, request.getQuantity());
+        CartItemResponse cartItemResponse = cartItemService.updateQuantity(
+                cartItemId, request.getQuantity());
         return ResponseEntity.status(HttpStatus.OK).body(cartItemResponse);
     }
 
     @DeleteMapping("/{cartItemId}")
-    public ResponseEntity<Void> removeItem(@PathVariable Long cartItemId) throws IdInvalidException {
+    public ResponseEntity<Void> removeItem(
+            @PathVariable Long cartItemId) throws IdInvalidException {
         cartItemService.removeItem(cartItemId);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
