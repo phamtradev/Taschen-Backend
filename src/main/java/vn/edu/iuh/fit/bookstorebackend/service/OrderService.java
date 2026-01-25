@@ -23,6 +23,10 @@ public interface OrderService {
 
     OrderResponse confirmReceivedByCustomer(Long orderId) throws IdInvalidException;
 
+    OrderResponse updatePaymentCode(Long orderId, String paymentCode) throws IdInvalidException;
+
+    void updatePaymentFromVnPayCallback(Long orderId, String transactionNo) throws IdInvalidException;
+
     List<OrderResponse> getAllOrders();
 }
 
