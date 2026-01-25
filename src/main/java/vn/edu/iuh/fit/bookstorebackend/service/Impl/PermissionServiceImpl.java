@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreatePermissionRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.PermissionResponse;
 import vn.edu.iuh.fit.bookstorebackend.model.Permission;
+import vn.edu.iuh.fit.bookstorebackend.mapper.PermissionMapper;
 import vn.edu.iuh.fit.bookstorebackend.repository.PermissionRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.RoleRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.PermissionService;
@@ -19,77 +20,101 @@ public class PermissionServiceImpl implements PermissionService {
 
     private final PermissionRepository permissionRepository;
     private final RoleRepository roleRepository;
+    private final PermissionMapper permissionMapper;
 
     @Override
     public PermissionResponse createPermission(CreatePermissionRequest request) {
-        Permission permission = new Permission();
-        permission.setHttpMethod(request.getHttpMethod());
-        permission.setPathPattern(request.getPathPattern());
+        Permission permission = createPermissionFromRequest(request);
+        Permission savedPermission = permissionRepository.save(permission);
+        return buildPermissionResponse(savedPermission);
+    }
+    
+    private Permission createPermissionFromRequest(CreatePermissionRequest request) {
+        Permission permission = permissionMapper.toPermission(request);
         permission.setActive(request.getActive() != null ? request.getActive() : true);
-        Permission saved = permissionRepository.save(permission);
-        return toResponse(saved);
+        return permission;
     }
 
     @Override
     public List<PermissionResponse> getAllPermissions() {
-        return permissionRepository.findAll().stream().map(this::toResponse).collect(Collectors.toList());
+        return permissionRepository.findAll().stream()
+                .map(this::buildPermissionResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
     public PermissionResponse getPermissionById(Long id) {
-        Permission p = permissionRepository.findById(id).orElseThrow(() -> new RuntimeException("Permission not found: " + id));
-        return toResponse(p);
+        Permission permission = findPermissionById(id);
+        return buildPermissionResponse(permission);
+    }
+    
+    private Permission findPermissionById(Long id) {
+        return permissionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Permission not found: " + id));
     }
 
     @Override
     public PermissionResponse updatePermission(Long id, CreatePermissionRequest request) {
-        Permission p = permissionRepository.findById(id).orElseThrow(() -> new RuntimeException("Permission not found: " + id));
-        if (request.getHttpMethod() != null) p.setHttpMethod(request.getHttpMethod());
-        if (request.getPathPattern() != null) p.setPathPattern(request.getPathPattern());
-        if (request.getActive() != null) p.setActive(request.getActive());
-        Permission updated = permissionRepository.save(p);
-        return toResponse(updated);
+        Permission permission = findPermissionById(id);
+        updatePermissionFields(permission, request);
+        Permission updatedPermission = permissionRepository.save(permission);
+        return buildPermissionResponse(updatedPermission);
+    }
+    
+    private void updatePermissionFields(Permission permission, CreatePermissionRequest request) {
+        if (request.getHttpMethod() != null) {
+            permission.setHttpMethod(request.getHttpMethod());
+        }
+        if (request.getPathPattern() != null) {
+            permission.setPathPattern(request.getPathPattern());
+        }
+        if (request.getActive() != null) {
+            permission.setActive(request.getActive());
+        }
     }
 
     @Override
     public void deletePermission(Long id) {
-        if (!permissionRepository.existsById(id)) throw new RuntimeException("Permission not found: " + id);
-
-        // xoa permission tu tat ca cac role truoc khi xoa
-        List<Role> roles = roleRepository.findByPermissionsId(id);
-        if (roles != null && !roles.isEmpty()) {
-            for (Role role : roles) {
-                boolean removed = role.getPermissions().removeIf(p -> p.getId().equals(id));
-                if (removed) {
-                    roleRepository.save(role);
-                }
-            }
-        }
-
+        validatePermissionExists(id);
+        removePermissionFromRoles(id);
         permissionRepository.deleteById(id);
     }
-
-    private PermissionResponse toResponse(Permission p) {
-        PermissionResponse r = new PermissionResponse();
-        r.setId(p.getId());
-        r.setHttpMethod(p.getHttpMethod());
-        r.setPathPattern(p.getPathPattern());
-        r.setActive(p.isActive());
-
-        // tim cac role co permission nay va set roleCode
-        List<Role> roles = roleRepository.findByPermissionsId(p.getId());
-        if (roles != null && !roles.isEmpty()) {
-            // neu permission thuoc nhieu role noi chung voi dau phay
-            String roleCodes = roles.stream()
-                    .map(Role::getCode)
-                    .collect(Collectors.joining(","));
-            r.setRoleCode(roleCodes);
-        } else {
-            // neu permission khong thuoc role nao, set roleCode thanh null
-            r.setRoleCode(null);
+    
+    private void validatePermissionExists(Long id) {
+        if (!permissionRepository.existsById(id)) {
+            throw new RuntimeException("Permission not found: " + id);
         }
+    }
+    
+    private void removePermissionFromRoles(Long permissionId) {
+        List<Role> roles = roleRepository.findByPermissionsId(permissionId);
+        if (roles == null || roles.isEmpty()) {
+            return;
+        }
+        
+        for (Role role : roles) {
+            boolean removed = role.getPermissions().removeIf(permission -> permission.getId().equals(permissionId));
+            if (removed) {
+                roleRepository.save(role);
+            }
+        }
+    }
 
-        return r;
+    private PermissionResponse buildPermissionResponse(Permission permission) {
+        PermissionResponse response = permissionMapper.toPermissionResponse(permission);
+        String roleCodes = getRoleCodesForPermission(permission.getId());
+        response.setRoleCode(roleCodes);
+        return response;
+    }
+    
+    private String getRoleCodesForPermission(Long permissionId) {
+        List<Role> roles = roleRepository.findByPermissionsId(permissionId);
+        if (roles == null || roles.isEmpty()) {
+            return null;
+        }
+        return roles.stream()
+                .map(Role::getCode)
+                .collect(Collectors.joining(","));
     }
 }
 

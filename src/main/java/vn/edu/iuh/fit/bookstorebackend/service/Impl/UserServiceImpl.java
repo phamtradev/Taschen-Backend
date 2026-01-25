@@ -5,12 +5,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateUserRequest;
-// removed SetUserRolesRequest - using role codes API instead
 import vn.edu.iuh.fit.bookstorebackend.dto.request.UpdateUserRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.SetUserRoleCodesRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.UserResponse;
 import vn.edu.iuh.fit.bookstorebackend.model.Role;
 import vn.edu.iuh.fit.bookstorebackend.model.User;
+import vn.edu.iuh.fit.bookstorebackend.mapper.UserMapper;
 import vn.edu.iuh.fit.bookstorebackend.repository.RefreshTokenRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.RoleRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.UserRepository;
@@ -20,8 +20,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import vn.edu.iuh.fit.bookstorebackend.dto.response.AddressResponse;
-
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -30,14 +28,26 @@ public class UserServiceImpl implements UserService {
     private final RoleRepository roleRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
 
     @Override
     public UserResponse createUser(CreateUserRequest request) {
-        // Check if email already exists
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already exists: " + request.getEmail());
+        validateEmailNotExists(request.getEmail());
+        
+        User user = createUserFromRequest(request);
+        setUserRoles(user, request.getRoleCodes());
+        
+        User savedUser = userRepository.save(user);
+        return userMapper.toUserResponse(savedUser);
+    }
+    
+    private void validateEmailNotExists(String email) {
+        if (userRepository.existsByEmail(email)) {
+            throw new RuntimeException("Email already exists: " + email);
         }
-
+    }
+    
+    private User createUserFromRequest(CreateUserRequest request) {
         User user = new User();
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
@@ -46,46 +56,77 @@ public class UserServiceImpl implements UserService {
         user.setPhoneNumber(request.getPhoneNumber());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setActive(request.getActive() != null ? request.getActive() : true);
-
-        // Set roles if provided
-        if (request.getRoleCodes() != null && !request.getRoleCodes().isEmpty()) {
-            Set<Role> roles = request.getRoleCodes().stream()
-                    .map(code -> roleRepository.findByCode(code)
-                            .orElseThrow(() -> new RuntimeException("Role not found with code: " + code)))
-                    .collect(Collectors.toSet());
-            user.setRoles(roles);
+        return user;
+    }
+    
+    private void setUserRoles(User user, Set<String> roleCodes) {
+        if (roleCodes == null || roleCodes.isEmpty()) {
+            return;
         }
-
-        User savedUser = userRepository.save(user);
-        return convertToUserResponse(savedUser);
+        
+        Set<Role> roles = roleCodes.stream()
+                .map(this::findRoleByCode)
+                .collect(Collectors.toSet());
+        user.setRoles(roles);
+    }
+    
+    private void setUserRolesFromList(User user, List<String> roleCodes) {
+        if (roleCodes == null || roleCodes.isEmpty()) {
+            return;
+        }
+        
+        Set<Role> roles = roleCodes.stream()
+                .map(this::findRoleByCode)
+                .collect(Collectors.toSet());
+        user.setRoles(roles);
+    }
+    
+    private Role findRoleByCode(String code) {
+        return roleRepository.findByCode(code)
+                .orElseThrow(() -> new RuntimeException("Role not found with code: " + code));
     }
 
     @Override
     public List<UserResponse> getAllUsers() {
         List<User> users = userRepository.findAll();
         return users.stream()
-                .map(this::convertToUserResponse)
+                .map(userMapper::toUserResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
     public UserResponse getUserById(Long id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
-        return convertToUserResponse(user);
+        User user = findUserById(id);
+        return userMapper.toUserResponse(user);
     }
 
     @Override
     public UserResponse getUserByEmail(String email) {
-        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found with email: " + email));
-        return convertToUserResponse(user);
+        User user = findUserByEmail(email);
+        return userMapper.toUserResponse(user);
+    }
+    
+    private User findUserById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+    }
+    
+    private User findUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
     }
 
     @Override
     public UserResponse updateUser(Long id, UpdateUserRequest request) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
-
+        User user = findUserById(id);
+        updateUserFields(user, request);
+        updateUserRoles(user, request.getRoleCodes());
+        
+        User updatedUser = userRepository.save(user);
+        return userMapper.toUserResponse(updatedUser);
+    }
+    
+    private void updateUserFields(User user, UpdateUserRequest request) {
         if (request.getFirstName() != null) {
             user.setFirstName(request.getFirstName());
         }
@@ -101,89 +142,34 @@ public class UserServiceImpl implements UserService {
         if (request.getActive() != null) {
             user.setActive(request.getActive());
         }
-
-        if (request.getRoleCodes() != null) {
-            Set<Role> roles = request.getRoleCodes().stream()
-                    .map(code -> roleRepository.findByCode(code)
-                            .orElseThrow(() -> new RuntimeException("Role not found with code: " + code)))
-                    .collect(Collectors.toSet());
-            user.setRoles(roles);
-        }
-
-        User updatedUser = userRepository.save(user);
-        return convertToUserResponse(updatedUser);
+    }
+    
+    private void updateUserRoles(User user, List<String> roleCodes) {
+        setUserRolesFromList(user, roleCodes);
     }
 
     @Override
     public UserResponse setActive(Long id, boolean active) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
-
+        User user = findUserById(id);
         user.setActive(active);
         User updatedUser = userRepository.save(user);
-        return convertToUserResponse(updatedUser);
+        return userMapper.toUserResponse(updatedUser);
     }
 
     @Override
     public UserResponse setRolesByCodes(Long userId, SetUserRoleCodesRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-
-        Set<Role> roles = request.getRoleCodes().stream()
-                .map(code -> roleRepository.findByCode(code)
-                        .orElseThrow(() -> new RuntimeException("Role not found with code: " + code)))
-                .collect(Collectors.toSet());
-
-        user.setRoles(roles);
+        User user = findUserById(userId);
+        setUserRoles(user, request.getRoleCodes());
+        
         User updatedUser = userRepository.save(user);
-        return convertToUserResponse(updatedUser);
+        return userMapper.toUserResponse(updatedUser);
     }
 
     @Override
     @Transactional
     public void deleteUser(Long id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
-
-        // Xóa tất cả refresh tokens của user trước khi xóa user
+        User user = findUserById(id);
         refreshTokenRepository.deleteByUser(user);
-
         userRepository.delete(user);
-    }
-
-    private UserResponse convertToUserResponse(User user) {
-        UserResponse response = new UserResponse();
-        response.setId(user.getId());
-        response.setEmail(user.getEmail());
-        response.setFirstName(user.getFirstName());
-        response.setLastName(user.getLastName());
-        response.setGender(user.getGender());
-        response.setPhoneNumber(user.getPhoneNumber());
-        response.setActive(user.isActive());
-
-        if (user.getRoles() != null) {
-            response.setRoles(user.getRoles().stream()
-                    .map(Role::getCode)
-                    .collect(Collectors.toList()));
-        }
-
-        if (user.getAddresses() != null) {
-            List<AddressResponse> addrResp = user.getAddresses().stream().map(a -> {
-                AddressResponse ar = new AddressResponse();
-                ar.setId(a.getId());
-                ar.setAddressType(a.getAddressType());
-                ar.setStreet(a.getStreet());
-                ar.setDistrict(a.getDistrict());
-                ar.setWard(a.getWard());
-                ar.setCity(a.getCity());
-                ar.setRecipientName(a.getRecipientName());
-                ar.setPhoneNumber(a.getPhoneNumber());
-                ar.setIsDefault(a.getIsDefault());
-                return ar;
-            }).collect(Collectors.toList());
-            response.setAddresses(addrResp);
-        }
-
-        return response;
     }
 }
