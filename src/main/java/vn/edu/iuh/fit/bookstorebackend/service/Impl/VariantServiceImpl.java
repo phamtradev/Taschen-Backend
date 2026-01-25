@@ -9,6 +9,7 @@ import vn.edu.iuh.fit.bookstorebackend.dto.response.VariantResponse;
 import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
 import vn.edu.iuh.fit.bookstorebackend.model.Book;
 import vn.edu.iuh.fit.bookstorebackend.model.Variant;
+import vn.edu.iuh.fit.bookstorebackend.mapper.VariantMapper;
 import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.VariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.VariantService;
@@ -22,114 +23,124 @@ public class VariantServiceImpl implements VariantService {
 
     private final VariantRepository variantRepository;
     private final BookRepository bookRepository;
+    private final VariantMapper variantMapper;
 
     @Override
     @Transactional
     public VariantResponse createVariant(CreateVariantRequest request) throws IdInvalidException {
+        validateRequest(request);
+        validateBookId(request.getBookId());
+        validateFormat(request.getFormat());
+        
+        Book book = findBookById(request.getBookId());
+        Variant variant = createVariantFromRequest(request, book);
+        
+        Variant savedVariant = variantRepository.save(variant);
+        return variantMapper.toVariantResponse(savedVariant);
+    }
+    
+    private void validateRequest(CreateVariantRequest request) throws IdInvalidException {
         if (request == null) {
             throw new IdInvalidException("CreateVariantRequest cannot be null");
         }
-
-        if (request.getBookId() == null || request.getBookId() <= 0) {
-            throw new IdInvalidException("Book identifier is invalid: " + request.getBookId());
+    }
+    
+    private void validateBookId(Long bookId) throws IdInvalidException {
+        if (bookId == null || bookId <= 0) {
+            throw new IdInvalidException("Book identifier is invalid: " + bookId);
         }
-
-        if (request.getFormat() == null || request.getFormat().trim().isEmpty()) {
+    }
+    
+    private void validateFormat(String format) throws IdInvalidException {
+        if (format == null || format.trim().isEmpty()) {
             throw new IdInvalidException("Format cannot be null or empty");
         }
-
-        Book book = bookRepository.findById(request.getBookId())
-                .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + request.getBookId()));
-
+    }
+    
+    private Book findBookById(Long bookId) {
+        return bookRepository.findById(bookId)
+                .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
+    }
+    
+    private Variant createVariantFromRequest(CreateVariantRequest request, Book book) {
         Variant variant = new Variant();
         variant.setFormat(request.getFormat());
         variant.setBook(book);
-
-        Variant savedVariant = variantRepository.save(variant);
-        return convertToVariantResponse(savedVariant);
+        return variant;
     }
 
     @Override
     public VariantResponse getVariantById(Long variantId) throws IdInvalidException {
-        if (variantId == null || variantId <= 0) {
-            throw new IdInvalidException("Variant identifier is invalid: " + variantId);
-        }
-
-        Variant variant = variantRepository.findById(variantId)
-                .orElseThrow(() -> new RuntimeException("Variant not found with identifier: " + variantId));
-        return convertToVariantResponse(variant);
+        validateVariantId(variantId);
+        Variant variant = findVariantById(variantId);
+        return variantMapper.toVariantResponse(variant);
     }
 
     @Override
     public List<VariantResponse> getAllVariants() {
         List<Variant> variants = variantRepository.findAll();
         return variants.stream()
-                .map(this::convertToVariantResponse)
+                .map(variantMapper::toVariantResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<VariantResponse> getVariantsByBookId(Long bookId) throws IdInvalidException {
-        if (bookId == null || bookId <= 0) {
-            throw new IdInvalidException("Book identifier is invalid: " + bookId);
-        }
-
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
-
+        validateBookId(bookId);
+        Book book = findBookById(bookId);
+        
         List<Variant> variants = variantRepository.findByBook(book);
         return variants.stream()
-                .map(this::convertToVariantResponse)
+                .map(variantMapper::toVariantResponse)
                 .collect(Collectors.toList());
+    }
+    
+    private void validateVariantId(Long variantId) throws IdInvalidException {
+        if (variantId == null || variantId <= 0) {
+            throw new IdInvalidException("Variant identifier is invalid: " + variantId);
+        }
+    }
+    
+    private Variant findVariantById(Long variantId) {
+        return variantRepository.findById(variantId)
+                .orElseThrow(() -> new RuntimeException("Variant not found with identifier: " + variantId));
     }
 
     @Override
     @Transactional
     public VariantResponse updateVariant(Long variantId, UpdateVariantRequest request) throws IdInvalidException {
-        if (variantId == null || variantId <= 0) {
-            throw new IdInvalidException("Variant identifier is invalid: " + variantId);
-        }
-
+        validateVariantId(variantId);
+        validateRequest(request);
+        
+        Variant variant = findVariantById(variantId);
+        updateVariantFields(variant, request);
+        
+        Variant updatedVariant = variantRepository.save(variant);
+        return variantMapper.toVariantResponse(updatedVariant);
+    }
+    
+    private void validateRequest(UpdateVariantRequest request) throws IdInvalidException {
         if (request == null) {
             throw new IdInvalidException("UpdateVariantRequest cannot be null");
         }
-
-        Variant variant = variantRepository.findById(variantId)
-                .orElseThrow(() -> new RuntimeException("Variant not found with identifier: " + variantId));
-
+    }
+    
+    private void updateVariantFields(Variant variant, UpdateVariantRequest request) {
         if (request.getFormat() != null && !request.getFormat().trim().isEmpty()) {
             variant.setFormat(request.getFormat());
         }
-
+        
         if (request.getBookId() != null && request.getBookId() > 0) {
-            Book book = bookRepository.findById(request.getBookId())
-                    .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + request.getBookId()));
+            Book book = findBookById(request.getBookId());
             variant.setBook(book);
         }
-
-        Variant updatedVariant = variantRepository.save(variant);
-        return convertToVariantResponse(updatedVariant);
     }
 
     @Override
     @Transactional
     public void deleteVariant(Long variantId) throws IdInvalidException {
-        if (variantId == null || variantId <= 0) {
-            throw new IdInvalidException("Variant identifier is invalid: " + variantId);
-        }
-
-        Variant variant = variantRepository.findById(variantId)
-                .orElseThrow(() -> new RuntimeException("Variant not found with identifier: " + variantId));
-
+        validateVariantId(variantId);
+        Variant variant = findVariantById(variantId);
         variantRepository.delete(variant);
-    }
-
-    private VariantResponse convertToVariantResponse(Variant variant) {
-        VariantResponse variantResponse = new VariantResponse();
-        variantResponse.setId(variant.getId());
-        variantResponse.setFormat(variant.getFormat());
-        variantResponse.setBookId(variant.getBook().getId());
-        variantResponse.setBookTitle(variant.getBook().getTitle());
-        return variantResponse;
     }
 }
