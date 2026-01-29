@@ -27,6 +27,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Create cursor rules (dev only)
+        run: |
+          rm -rf .cursor/rules
+          mkdir -p .cursor
+          echo "${{ secrets.CURSOR_RULES }}" > .cursor/rules
+          
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
