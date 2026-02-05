@@ -25,6 +25,12 @@ jobs:
             -e CLOUDINARY_CLOUD_NAME='${{ secrets.CLOUDINARY_CLOUD_NAME }}' \
             -e CLOUDINARY_API_KEY='${{ secrets.CLOUDINARY_API_KEY }}' \
             -e CLOUDINARY_API_SECRET='${{ secrets.CLOUDINARY_API_SECRET }}' \
+            -e MAIL_HOST='${{ secrets.MAIL_HOST }}' \
+            -e MAIL_PORT='${{ secrets.MAIL_PORT }}' \
+            -e MAIL_USERNAME='${{ secrets.MAIL_USERNAME }}' \
+            -e MAIL_PASSWORD='${{ secrets.MAIL_PASSWORD }}' \
+            -e MAIL_FROM='${{ secrets.MAIL_FROM }}' \
+            -e MAIL_FROM_NAME='${{ secrets.MAIL_FROM_NAME }}' \
             --restart unless-stopped \
             bookstore-backend:prod
 
