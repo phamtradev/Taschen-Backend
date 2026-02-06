@@ -46,11 +46,11 @@ public class Promotion {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_user_id", nullable = false)
-    private User createdBy;
+    private User createdBy; //staff
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "approved_by_user_id")
-    private User approvedBy;
+    private User approvedBy; //staff
 
     @OneToMany(mappedBy = "promotion", fetch = FetchType.LAZY)
     private List<Order> orders;
