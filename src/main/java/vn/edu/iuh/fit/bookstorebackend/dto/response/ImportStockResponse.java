@@ -1,0 +1,20 @@
+package vn.edu.iuh.fit.bookstorebackend.dto.response;
+
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import lombok.Data;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Data
+@JsonPropertyOrder({ "id", "importDate", "supplierId", "supplierName", "createdById", "createdByName", "details" })
+public class ImportStockResponse {
+
+    private Long id;
+    private LocalDateTime importDate;
+    private Long supplierId;
+    private String supplierName;
+    private Long createdById;
+    private String createdByName;
+    private List<ImportStockDetailResponse> details;
+}

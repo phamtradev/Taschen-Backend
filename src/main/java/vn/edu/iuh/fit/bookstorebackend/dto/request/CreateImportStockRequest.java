@@ -1,0 +1,29 @@
+package vn.edu.iuh.fit.bookstorebackend.dto.request;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class CreateImportStockRequest {
+
+    private Long supplierId;
+    private Long createdById;
+    private List<ImportStockDetailRequest> details;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ImportStockDetailRequest {
+        private Long bookId;
+        private int quantity;
+        private double importPrice;
+    }
+}
