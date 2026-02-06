@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateSupplierRequest;
+import vn.edu.iuh.fit.bookstorebackend.dto.request.UpdateSupplierRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.SupplierResponse;
 import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
 import vn.edu.iuh.fit.bookstorebackend.mapper.SupplierMapper;
@@ -47,6 +48,48 @@ public class SupplierServiceImpl implements SupplierService {
         }
         if (request.getName() == null || request.getName().trim().isEmpty()) {
             throw new IdInvalidException("Supplier name cannot be null or empty");
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SupplierResponse getSupplierById(Long supplierId) throws IdInvalidException {
+        validateSupplierId(supplierId);
+        Supplier supplier = findSupplierById(supplierId);
+        return supplierMapper.toSupplierResponse(supplier);
+    }
+
+    @Override
+    @Transactional
+    public SupplierResponse updateSupplier(Long supplierId, UpdateSupplierRequest request) throws IdInvalidException {
+        validateSupplierId(supplierId);
+        validateUpdateSupplierRequest(request);
+
+        Supplier supplier = findSupplierById(supplierId);
+        updateSupplierFields(supplier, request);
+
+        Supplier updatedSupplier = supplierRepository.save(supplier);
+        return supplierMapper.toSupplierResponse(updatedSupplier);
+    }
+
+    private void validateUpdateSupplierRequest(UpdateSupplierRequest request) throws IdInvalidException {
+        if (request == null) {
+            throw new IdInvalidException("UpdateSupplierRequest cannot be null");
+        }
+    }
+
+    private void updateSupplierFields(Supplier supplier, UpdateSupplierRequest request) {
+        if (request.getName() != null && !request.getName().trim().isEmpty()) {
+            supplier.setName(request.getName().trim());
+        }
+        if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
+            supplier.setEmail(request.getEmail().trim());
+        }
+        if (request.getPhone() != null && !request.getPhone().trim().isEmpty()) {
+            supplier.setPhone(request.getPhone().trim());
+        }
+        if (request.getAddress() != null && !request.getAddress().trim().isEmpty()) {
+            supplier.setAddress(request.getAddress().trim());
         }
     }
 
