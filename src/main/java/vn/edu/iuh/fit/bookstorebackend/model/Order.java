@@ -3,6 +3,7 @@ package vn.edu.iuh.fit.bookstorebackend.model;
 import jakarta.persistence.*;
 import lombok.Data;
 import vn.edu.iuh.fit.bookstorebackend.common.OrderStatus;
+import vn.edu.iuh.fit.bookstorebackend.common.PaymentMethod;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,8 +30,9 @@ public class Order {
     @Column(name = "payment_code", length = 100)
     private String paymentCode;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "payment_method", length = 50)
-    private String paymentMethod;
+    private PaymentMethod paymentMethod;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

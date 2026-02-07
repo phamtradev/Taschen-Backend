@@ -1,6 +1,7 @@
 package vn.edu.iuh.fit.bookstorebackend.dto.request;
 
 import lombok.Data;
+import vn.edu.iuh.fit.bookstorebackend.common.PaymentMethod;
 
 import java.util.List;
 
@@ -14,6 +15,6 @@ public class CreateOrderRequest {
 
     private String promotionCode;
 
-    private String paymentMethod;
+    private PaymentMethod paymentMethod;
 }
 

@@ -7,6 +7,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.bookstorebackend.common.OrderStatus;
+import vn.edu.iuh.fit.bookstorebackend.common.PaymentMethod;
 import vn.edu.iuh.fit.bookstorebackend.common.PromotionStatus;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateOrderRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.OrderResponse;
@@ -152,15 +153,17 @@ public class OrderServiceImpl implements OrderService {
         }
 
         if (request.getPaymentMethod() != null) {
-            order.setPaymentMethod(request.getPaymentMethod().toUpperCase());
+            order.setPaymentMethod(request.getPaymentMethod());
         }
 
         return order;
     }
     
-    private OrderStatus determineInitialOrderStatus(String paymentMethod) {
-        boolean isVnPay = paymentMethod != null && "VNPAY".equalsIgnoreCase(paymentMethod);
-        return isVnPay ? OrderStatus.UNPAID : OrderStatus.PENDING;
+    private OrderStatus determineInitialOrderStatus(PaymentMethod paymentMethod) {
+        if (paymentMethod == null) {
+            return OrderStatus.PENDING;
+        }
+        return paymentMethod == PaymentMethod.VNPAY ? OrderStatus.UNPAID : OrderStatus.PENDING;
     }
     
     private void applyPromotion(Promotion promotion) {
@@ -337,30 +340,25 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public OrderResponse updatePaymentMethod(Long orderId, String newPaymentMethod) throws IdInvalidException {
+    public OrderResponse updatePaymentMethod(Long orderId, PaymentMethod newPaymentMethod) throws IdInvalidException {
         validateOrderId(orderId);
-        String normalizedPaymentMethod = validateAndNormalizePaymentMethod(newPaymentMethod);
+        validatePaymentMethod(newPaymentMethod);
         
         User currentUser = getCurrentUser();
         Order order = findOrderById(orderId);
         validatePaymentMethodUpdatePermission(order, currentUser);
         validateOrderStatusForPaymentMethodChange(order);
         
-        updateOrderPaymentMethod(order, normalizedPaymentMethod);
+        updateOrderPaymentMethod(order, newPaymentMethod);
         Order savedOrder = orderRepository.save(order);
         
         return orderMapper.toOrderResponse(savedOrder);
-        }
+    }
     
-    private String validateAndNormalizePaymentMethod(String paymentMethod) {
-        if (paymentMethod == null || paymentMethod.isBlank()) {
+    private void validatePaymentMethod(PaymentMethod paymentMethod) {
+        if (paymentMethod == null) {
             throw new IllegalArgumentException("Payment method is required");
         }
-        String normalized = paymentMethod.trim().toUpperCase();
-        if (!"CASH".equals(normalized) && !"VNPAY".equals(normalized)) {
-            throw new IllegalArgumentException("Unsupported payment method: " + paymentMethod);
-        }
-        return normalized;
     }
     
     private void validatePaymentMethodUpdatePermission(Order order, User currentUser) {
@@ -379,14 +377,14 @@ public class OrderServiceImpl implements OrderService {
         }
         }
 
-    private void updateOrderPaymentMethod(Order order, String normalizedPaymentMethod) {
-        order.setPaymentMethod(normalizedPaymentMethod);
+    private void updateOrderPaymentMethod(Order order, PaymentMethod paymentMethod) {
+        order.setPaymentMethod(paymentMethod);
 
-        if ("CASH".equals(normalizedPaymentMethod) && order.getStatus() == OrderStatus.UNPAID) {
+        if (paymentMethod == PaymentMethod.COD && order.getStatus() == OrderStatus.UNPAID) {
             order.setStatus(OrderStatus.PENDING);
         }
 
-        if ("VNPAY".equals(normalizedPaymentMethod)) {
+        if (paymentMethod == PaymentMethod.VNPAY) {
             order.setStatus(OrderStatus.UNPAID);
             order.setPaymentCode(null);
         }
@@ -480,7 +478,7 @@ public class OrderServiceImpl implements OrderService {
         
         Order order = findOrderById(orderId);
         
-        order.setPaymentMethod("VNPAY");
+        order.setPaymentMethod(PaymentMethod.VNPAY);
         
         if (transactionNo != null && !transactionNo.trim().isEmpty()) {
             order.setPaymentCode(transactionNo.trim());
@@ -491,6 +489,49 @@ public class OrderServiceImpl implements OrderService {
         }
         
         orderRepository.save(order);
+    }
+
+    @Override
+    @Transactional
+    public OrderResponse payByCOD(Long orderId) throws IdInvalidException {
+        validateOrderId(orderId);
+        
+        User currentUser = getCurrentUser();
+        Order order = findOrderById(orderId);
+        validatePaymentPermission(order, currentUser);
+        validateOrderStatusForCODPayment(order);
+        
+        processCODPayment(order);
+        Order savedOrder = orderRepository.save(order);
+        
+        return orderMapper.toOrderResponse(savedOrder);
+    }
+
+    private void validatePaymentPermission(Order order, User currentUser) {
+        boolean isAdminOrStaff = isAdminOrStaff(currentUser);
+        boolean isOwner = Objects.equals(order.getUser().getId(), currentUser.getId());
+
+        if (!isAdminOrStaff && !isOwner) {
+            throw new IllegalStateException("You don't have permission to pay for this order");
+        }
+    }
+
+    private void validateOrderStatusForCODPayment(Order order) {
+        if (order.getStatus() != OrderStatus.UNPAID && order.getStatus() != OrderStatus.PENDING) {
+            throw new IllegalStateException(
+                    "Order can only be paid by COD when status is UNPAID or PENDING. Current status: " + order.getStatus());
+        }
+    }
+
+    private void processCODPayment(Order order) {
+        order.setPaymentMethod(PaymentMethod.COD);
+        
+        if (order.getStatus() == OrderStatus.UNPAID) {
+            order.setStatus(OrderStatus.PENDING);
+        }
+        
+        String paymentCode = "COD-" + order.getId() + "-" + System.currentTimeMillis();
+        order.setPaymentCode(paymentCode);
     }
 
     @Override

@@ -72,6 +72,13 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.OK).body(orderResponse);
     }
 
+    @PutMapping("/{orderId}/pay-cod")
+    public ResponseEntity<OrderResponse> payByCOD(
+            @PathVariable Long orderId) throws IdInvalidException {
+        OrderResponse orderResponse = orderService.payByCOD(orderId);
+        return ResponseEntity.status(HttpStatus.OK).body(orderResponse);
+    }
+
     @GetMapping
     public ResponseEntity<List<OrderResponse>> getAllOrders() {
         List<OrderResponse> orders = orderService.getAllOrders();
