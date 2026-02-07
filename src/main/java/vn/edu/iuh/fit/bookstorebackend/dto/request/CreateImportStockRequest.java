@@ -15,6 +15,7 @@ public class CreateImportStockRequest {
 
     private Long supplierId;
     private Long createdById;
+    private Long purchaseOrderId; // importStock phải link với PurchaseOrder đã APPROVED
     private List<ImportStockDetailRequest> details;
 
     @Data
