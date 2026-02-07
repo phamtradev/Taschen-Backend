@@ -1,7 +1,7 @@
 package vn.edu.iuh.fit.bookstorebackend.common;
 
 public enum StockRequestStatus {
-    PEDING,
+    PENDING,
     APPROVED,
     REJECTED
 }
