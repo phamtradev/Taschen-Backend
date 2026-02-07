@@ -23,6 +23,7 @@ public class ImportStockController {
     @PostMapping
     public ResponseEntity<ImportStockResponse> createImportStock(
             @RequestBody CreateImportStockRequest request) throws IdInvalidException {
+        // Role: ADMIN hoặc WAREHOUSE_STAFF - Tạo phiếu nhập kho từ PurchaseOrder đã APPROVED
         ImportStockResponse importStockResponse = importStockService.createImportStock(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(importStockResponse);
     }
