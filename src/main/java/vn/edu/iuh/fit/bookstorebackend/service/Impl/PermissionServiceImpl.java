@@ -37,9 +37,8 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     public List<PermissionResponse> getAllPermissions() {
-        return permissionRepository.findAll().stream()
-                .map(this::buildPermissionResponse)
-                .collect(Collectors.toList());
+        List<Permission> permissions = permissionRepository.findAll();
+        return mapToPermissionResponseList(permissions);
     }
 
     @Override
@@ -115,6 +114,12 @@ public class PermissionServiceImpl implements PermissionService {
         return roles.stream()
                 .map(Role::getCode)
                 .collect(Collectors.joining(","));
+    }
+
+    private List<PermissionResponse> mapToPermissionResponseList(List<Permission> permissions) {
+        return permissions.stream()
+                .map(this::buildPermissionResponse)
+                .collect(Collectors.toList());
     }
 }
 

@@ -32,9 +32,7 @@ public class NotificationServiceImpl implements NotificationService {
     public List<NotificationResponse> getMyNotifications() throws IdInvalidException {
         User currentUser = getCurrentUser();
         List<Notification> notifications = notificationRepository.findByReceiverOrderByCreatedAtDesc(currentUser);
-        return notifications.stream()
-                .map(notificationMapper::toNotificationResponse)
-                .collect(Collectors.toList());
+        return mapToNotificationResponseList(notifications);
     }
 
     @Override
@@ -145,5 +143,11 @@ public class NotificationServiceImpl implements NotificationService {
         if (!user.isActive()) {
             throw new RuntimeException("User account is inactive. Please contact administrator.");
         }
+    }
+
+    private List<NotificationResponse> mapToNotificationResponseList(List<Notification> notifications) {
+        return notifications.stream()
+                .map(notificationMapper::toNotificationResponse)
+                .collect(Collectors.toList());
     }
 }

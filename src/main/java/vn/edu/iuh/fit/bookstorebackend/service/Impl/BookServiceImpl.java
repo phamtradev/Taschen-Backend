@@ -113,9 +113,7 @@ public class BookServiceImpl implements BookService {
     @Override
     public List<BookResponse> getAllBooks() {
         List<Book> books = bookRepository.findAll();
-        return books.stream()
-                .map(bookMapper::toBookResponse)
-                .collect(Collectors.toList());
+        return mapToBookResponseList(books);
     }
     
     private void validateBookId(Long bookId) throws IdInvalidException {
@@ -236,9 +234,7 @@ public class BookServiceImpl implements BookService {
         Sort sort = Sort.by(direction, field);
         List<Book> books = bookRepository.findAll(sort);
         
-        return books.stream()
-                .map(bookMapper::toBookResponse)
-                .collect(Collectors.toList());
+        return mapToBookResponseList(books);
     }
     
     private String getSortField(String sortByField) {
@@ -262,9 +258,7 @@ public class BookServiceImpl implements BookService {
         validateCategoryExists(categoryId);
         
         List<Book> books = bookRepository.findByCategoryIdWithCategories(categoryId);
-        return books.stream()
-                .map(bookMapper::toBookResponse)
-                .collect(Collectors.toList());
+        return mapToBookResponseList(books);
     }
     
     private void validateCategoryId(Long categoryId) throws IdInvalidException {
@@ -277,5 +271,11 @@ public class BookServiceImpl implements BookService {
         categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new RuntimeException(
                         "Category not found with identifier: " + categoryId));
+    }
+
+    private List<BookResponse> mapToBookResponseList(List<Book> books) {
+        return books.stream()
+                .map(bookMapper::toBookResponse)
+                .collect(Collectors.toList());
     }
 }

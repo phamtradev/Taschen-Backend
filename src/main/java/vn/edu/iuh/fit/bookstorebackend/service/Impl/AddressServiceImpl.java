@@ -67,9 +67,7 @@ public class AddressServiceImpl implements AddressService {
     public List<AddressResponse> getAddressesByUserId(Long userId) throws IdInvalidException {
         validateUserExists(userId);
         List<Address> addresses = addressRepository.findByUserId(userId);
-        return addresses.stream()
-                .map(addressMapper::toAddressResponse)
-                .collect(Collectors.toList());
+        return mapToAddressResponseList(addresses);
     }
 
     @Override
@@ -187,6 +185,12 @@ public class AddressServiceImpl implements AddressService {
         if (!addressRepository.existsById(id)) {
             throw new IdInvalidException("Address not found: " + id);
         }
+    }
+
+    private List<AddressResponse> mapToAddressResponseList(List<Address> addresses) {
+        return addresses.stream()
+                .map(addressMapper::toAddressResponse)
+                .collect(Collectors.toList());
     }
 }   
 

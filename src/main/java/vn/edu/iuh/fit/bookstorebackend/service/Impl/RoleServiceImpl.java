@@ -72,6 +72,12 @@ public class RoleServiceImpl implements RoleService {
             throw new RuntimeException("Role not found: " + id);
         }
     }
+
+    private List<RoleResponse> mapToRoleResponseList(List<Role> roles) {
+        return roles.stream()
+                .map(roleMapper::toRoleResponse)
+                .collect(Collectors.toList());
+    }
 }
 
 
