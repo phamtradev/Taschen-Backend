@@ -1,5 +1,6 @@
 package vn.edu.iuh.fit.bookstorebackend.service.Impl;
 
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -7,14 +8,17 @@ import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateImportStockRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.ImportStockResponse;
 import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
 import vn.edu.iuh.fit.bookstorebackend.mapper.ImportStockMapper;
+import vn.edu.iuh.fit.bookstorebackend.common.PurchaseOrderStatus;
 import vn.edu.iuh.fit.bookstorebackend.model.Book;
 import vn.edu.iuh.fit.bookstorebackend.model.ImportStock;
 import vn.edu.iuh.fit.bookstorebackend.model.ImportStockDetail;
+import vn.edu.iuh.fit.bookstorebackend.model.PurchaseOrder;
 import vn.edu.iuh.fit.bookstorebackend.model.Supplier;
 import vn.edu.iuh.fit.bookstorebackend.model.User;
 import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.ImportStockDetailRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.ImportStockRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.PurchaseOrderRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.SupplierRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.UserRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.ImportStockService;
@@ -32,22 +36,37 @@ public class ImportStockServiceImpl implements ImportStockService {
     private final SupplierRepository supplierRepository;
     private final UserRepository userRepository;
     private final BookRepository bookRepository;
+    private final PurchaseOrderRepository purchaseOrderRepository;
     private final ImportStockMapper importStockMapper;
+    private final EntityManager entityManager;
 
     @Override
     @Transactional
     public ImportStockResponse createImportStock(CreateImportStockRequest request) throws IdInvalidException {
+        // Role: ADMIN hoặc WAREHOUSE_STAFF - Tạo phiếu nhập kho từ PurchaseOrder đã APPROVED
         validateCreateImportStockRequest(request);
 
         Supplier supplier = findSupplierById(request.getSupplierId());
         User createdBy = findUserById(request.getCreatedById());
+        
+        // Validate role: chỉ ADMIN hoặc WAREHOUSE_STAFF mới được tạo ImportStock
+        validateImporterRole(createdBy);
+        
+        // Validate PurchaseOrder: phải tồn tại và status = APPROVED
+        PurchaseOrder purchaseOrder = findPurchaseOrderById(request.getPurchaseOrderId());
+        validatePurchaseOrderForImport(purchaseOrder);
 
-        ImportStock importStock = createImportStockFromRequest(request, supplier, createdBy);
+        ImportStock importStock = createImportStockFromRequest(request, supplier, createdBy, purchaseOrder);
         ImportStock savedImportStock = importStockRepository.save(importStock);
 
         createImportStockDetails(savedImportStock, request.getDetails());
 
-        return importStockMapper.toImportStockResponse(savedImportStock);
+        entityManager.flush();
+        entityManager.clear();
+
+        ImportStock importStockWithDetails = findImportStockById(savedImportStock.getId());
+
+        return importStockMapper.toImportStockResponse(importStockWithDetails);
     }
 
     private void validateCreateImportStockRequest(CreateImportStockRequest request) throws IdInvalidException {
@@ -59,6 +78,9 @@ public class ImportStockServiceImpl implements ImportStockService {
         }
         if (request.getCreatedById() == null || request.getCreatedById() <= 0) {
             throw new IdInvalidException("User identifier is invalid");
+        }
+        if (request.getPurchaseOrderId() == null || request.getPurchaseOrderId() <= 0) {
+            throw new IdInvalidException("Purchase order identifier is invalid");
         }
         if (request.getDetails() == null || request.getDetails().isEmpty()) {
             throw new IdInvalidException("Import stock details cannot be null or empty");
@@ -86,12 +108,45 @@ public class ImportStockServiceImpl implements ImportStockService {
                 .orElseThrow(() -> new RuntimeException("User not found with identifier: " + userId));
     }
 
-    private ImportStock createImportStockFromRequest(CreateImportStockRequest request, Supplier supplier, User createdBy) {
+    private ImportStock createImportStockFromRequest(CreateImportStockRequest request, Supplier supplier, User createdBy, PurchaseOrder purchaseOrder) {
         ImportStock importStock = new ImportStock();
         importStock.setImportDate(LocalDateTime.now());
         importStock.setSupplier(supplier);
         importStock.setCreatedBy(createdBy);
+        importStock.setPurchaseOrder(purchaseOrder);
         return importStock;
+    }
+    
+    private PurchaseOrder findPurchaseOrderById(Long purchaseOrderId) {
+        return purchaseOrderRepository.findById(purchaseOrderId)
+                .orElseThrow(() -> new RuntimeException("Purchase order not found with identifier: " + purchaseOrderId));
+    }
+    
+    private ImportStock findImportStockById(Long importStockId) {
+        return importStockRepository.findById(importStockId)
+                .orElseThrow(() -> new RuntimeException("Import stock not found with identifier: " + importStockId));
+    }
+    
+    private void validatePurchaseOrderForImport(PurchaseOrder purchaseOrder) {
+        // Cho phép nhập hàng khi status = APPROVED hoặc ORDERED (nhập từng phần, có thể thanh toán trước)
+        if (purchaseOrder.getStatus() != PurchaseOrderStatus.APPROVED 
+                && purchaseOrder.getStatus() != PurchaseOrderStatus.ORDERED) {
+            throw new RuntimeException("Purchase order must be APPROVED or ORDERED to create import stock. Current status: " + purchaseOrder.getStatus());
+        }
+    }
+    
+    private void validateImporterRole(User user) {
+        if (user.getRoles() == null || user.getRoles().isEmpty()) {
+            throw new RuntimeException("User does not have any roles. Required roles: ADMIN or WAREHOUSE_STAFF");
+        }
+
+        boolean hasPermission = user.getRoles().stream()
+                .anyMatch(role -> "ADMIN".equals(role.getCode()) 
+                        || "WAREHOUSE_STAFF".equals(role.getCode()));
+
+        if (!hasPermission) {
+            throw new RuntimeException("User does not have permission to create import stock. Required roles: ADMIN or WAREHOUSE_STAFF");
+        }
     }
 
     private void createImportStockDetails(ImportStock importStock, List<CreateImportStockRequest.ImportStockDetailRequest> detailRequests) {

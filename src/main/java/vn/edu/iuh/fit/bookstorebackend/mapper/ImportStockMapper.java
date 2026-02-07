@@ -16,6 +16,7 @@ public interface ImportStockMapper {
     @Mapping(target = "supplierName", expression = "java(importStock.getSupplier().getName())")
     @Mapping(target = "createdById", expression = "java(importStock.getCreatedBy().getId())")
     @Mapping(target = "createdByName", expression = "java(importStock.getCreatedBy().getFirstName() + \" \" + importStock.getCreatedBy().getLastName())")
+    @Mapping(target = "purchaseOrderId", expression = "java(importStock.getPurchaseOrder() != null ? importStock.getPurchaseOrder().getId() : null)")
     @Mapping(target = "details", source = "importStockDetails")
     ImportStockResponse toImportStockResponse(ImportStock importStock);
 

@@ -4,7 +4,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.ApprovePurchaseOrderRequest;
+import vn.edu.iuh.fit.bookstorebackend.dto.request.CancelPurchaseOrderRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreatePurchaseOrderRequest;
+import vn.edu.iuh.fit.bookstorebackend.dto.request.PayPurchaseOrderRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.PurchaseOrderResponse;
 import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
 import vn.edu.iuh.fit.bookstorebackend.service.PurchaseOrderService;
@@ -24,6 +26,7 @@ public class PurchaseOrderController {
     @PostMapping
     public ResponseEntity<PurchaseOrderResponse> createPurchaseOrder(
             @RequestBody CreatePurchaseOrderRequest request) throws IdInvalidException {
+        // Role: ADMIN, WAREHOUSE_STAFF, hoặc SELLER - Tạo đơn đặt hàng từ nhà cung cấp
         PurchaseOrderResponse purchaseOrderResponse = purchaseOrderService.createPurchaseOrder(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(purchaseOrderResponse);
     }
@@ -38,6 +41,7 @@ public class PurchaseOrderController {
     public ResponseEntity<PurchaseOrderResponse> approvePurchaseOrder(
             @PathVariable Long purchaseOrderId,
             @RequestBody ApprovePurchaseOrderRequest request) throws IdInvalidException {
+        // Role: ADMIN hoặc WAREHOUSE_STAFF - Duyệt đơn để có thể nhập hàng
         PurchaseOrderResponse purchaseOrderResponse = purchaseOrderService.approvePurchaseOrder(
                 purchaseOrderId, request.getApprovedById());
         return ResponseEntity.status(HttpStatus.OK).body(purchaseOrderResponse);
@@ -47,8 +51,29 @@ public class PurchaseOrderController {
     public ResponseEntity<PurchaseOrderResponse> rejectPurchaseOrder(
             @PathVariable Long purchaseOrderId,
             @RequestBody ApprovePurchaseOrderRequest request) throws IdInvalidException {
+        // Role: ADMIN hoặc WAREHOUSE_STAFF - Từ chối đơn, không cho nhập hàng
         PurchaseOrderResponse purchaseOrderResponse = purchaseOrderService.rejectPurchaseOrder(
                 purchaseOrderId, request.getApprovedById());
+        return ResponseEntity.status(HttpStatus.OK).body(purchaseOrderResponse);
+    }
+
+    @PutMapping("/{purchaseOrderId}/cancel")
+    public ResponseEntity<PurchaseOrderResponse> cancelPurchaseOrder(
+            @PathVariable Long purchaseOrderId,
+            @RequestBody CancelPurchaseOrderRequest request) throws IdInvalidException {
+        // Role: ADMIN hoặc WAREHOUSE_STAFF - Hủy đơn đã APPROVED do có vấn đề khi nhập hàng
+        PurchaseOrderResponse purchaseOrderResponse = purchaseOrderService.cancelPurchaseOrder(
+                purchaseOrderId, request.getCancelledById(), request.getCancelReason());
+        return ResponseEntity.status(HttpStatus.OK).body(purchaseOrderResponse);
+    }
+
+    @PostMapping("/{purchaseOrderId}/pay")
+    public ResponseEntity<PurchaseOrderResponse> payPurchaseOrder(
+            @PathVariable Long purchaseOrderId,
+            @RequestBody PayPurchaseOrderRequest request) throws IdInvalidException {
+        // Role: ADMIN - Thanh toán đơn đã APPROVED
+        PurchaseOrderResponse purchaseOrderResponse = purchaseOrderService.payPurchaseOrder(
+                purchaseOrderId, request.getPaidById());
         return ResponseEntity.status(HttpStatus.OK).body(purchaseOrderResponse);
     }
 }

@@ -16,5 +16,6 @@ public class ImportStockResponse {
     private String supplierName;
     private Long createdById;
     private String createdByName;
+    private Long purchaseOrderId; // PurchaseOrder mà ImportStock này thuộc về
     private List<ImportStockDetailResponse> details;
 }

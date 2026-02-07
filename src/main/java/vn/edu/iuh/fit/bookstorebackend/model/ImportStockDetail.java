@@ -9,7 +9,7 @@ import lombok.Data;
 public class ImportStockDetail {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "quantity", nullable = false)
