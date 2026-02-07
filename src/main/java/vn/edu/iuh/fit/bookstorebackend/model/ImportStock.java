@@ -12,7 +12,7 @@ import lombok.Data;
 public class ImportStock {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "import_date", nullable = false)
@@ -25,6 +25,10 @@ public class ImportStock {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supplier_id", nullable = false)
     private Supplier supplier;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "purchase_order_id", nullable = true)
+    private PurchaseOrder purchaseOrder; // Một ImportStock thuộc về 1 PurchaseOrder (có thể nhập nhiều lần từ 1 PO)
 
     @OneToMany(mappedBy = "importStock", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<ImportStockDetail> importStockDetails;
