@@ -25,6 +25,9 @@ public class PurchaseOrder {
     @Column(name = "note", length = 1000)
     private String note;
 
+    @Column(name = "cancel_reason", length = 1000)
+    private String cancelReason; // lý do hủy đơn (bắt buộc khi hủy)
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
     private PurchaseOrderStatus status = PurchaseOrderStatus.DRAFT;

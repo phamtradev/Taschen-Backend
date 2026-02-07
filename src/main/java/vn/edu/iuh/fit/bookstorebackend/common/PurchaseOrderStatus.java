@@ -1,5 +1,9 @@
 package vn.edu.iuh.fit.bookstorebackend.common;
 
 public enum PurchaseOrderStatus {
-    DRAFT, APPROVED, REJECTED, ORDERED
+    DRAFT,
+    APPROVED,
+    REJECTED,
+    ORDERED,
+    CANCELLED // đã hủy sau khi approve do có vấn đề khi nhập hàng (importStock)
 }
