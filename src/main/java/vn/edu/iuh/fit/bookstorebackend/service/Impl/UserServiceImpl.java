@@ -89,9 +89,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UserResponse> getAllUsers() {
         List<User> users = userRepository.findAll();
-        return users.stream()
-                .map(userMapper::toUserResponse)
-                .collect(Collectors.toList());
+        return mapToUserResponseList(users);
     }
 
     @Override
@@ -171,5 +169,11 @@ public class UserServiceImpl implements UserService {
         User user = findUserById(id);
         refreshTokenRepository.deleteByUser(user);
         userRepository.delete(user);
+    }
+
+    private List<UserResponse> mapToUserResponseList(List<User> users) {
+        return users.stream()
+                .map(userMapper::toUserResponse)
+                .collect(Collectors.toList());
     }
 }

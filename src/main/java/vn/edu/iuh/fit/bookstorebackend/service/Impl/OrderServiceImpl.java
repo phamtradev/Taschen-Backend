@@ -240,9 +240,7 @@ public class OrderServiceImpl implements OrderService {
     public List<OrderResponse> getMyOrders() {
         User currentUser = getCurrentUser();
         List<Order> orders = orderRepository.findByUserId(currentUser.getId());
-        return orders.stream()
-                .map(orderMapper::toOrderResponse)
-                .collect(Collectors.toList());
+        return mapToOrderResponseList(orders);
     }
 
     @Override
@@ -538,9 +536,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(readOnly = true)
     public List<OrderResponse> getAllOrders() {
         List<Order> orders = orderRepository.findAll();
-        return orders.stream()
-                .map(orderMapper::toOrderResponse)
-                .collect(Collectors.toList());
+        return mapToOrderResponseList(orders);
     }
 
     private boolean isValidTransition(OrderStatus oldStatus, OrderStatus newStatus) {
@@ -640,6 +636,12 @@ public class OrderServiceImpl implements OrderService {
         if (!user.isActive()) {
             throw new RuntimeException("User account is inactive. Please contact administrator.");
         }
+    }
+
+    private List<OrderResponse> mapToOrderResponseList(List<Order> orders) {
+        return orders.stream()
+                .map(orderMapper::toOrderResponse)
+                .collect(Collectors.toList());
     }
 }
 

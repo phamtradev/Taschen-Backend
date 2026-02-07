@@ -164,18 +164,14 @@ public class PromotionServiceImpl implements PromotionService {
     @Transactional(readOnly = true)
     public List<PromotionResponse> searchPromotions(String name, String code, PromotionStatus status, Boolean isActive) {
         List<Promotion> promotions = promotionRepository.searchPromotions(name, code, status, isActive);
-        return promotions.stream()
-                .map(promotionMapper::toPromotionResponse)
-                .collect(Collectors.toList());
+        return mapToPromotionResponseList(promotions);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<PromotionResponse> getAllPromotions() {
         List<Promotion> promotions = promotionRepository.findAll();
-        return promotions.stream()
-                .map(promotionMapper::toPromotionResponse)
-                .collect(Collectors.toList());
+        return mapToPromotionResponseList(promotions);
     }
 
     @Override
@@ -329,4 +325,9 @@ public class PromotionServiceImpl implements PromotionService {
         }
     }
 
+    private List<PromotionResponse> mapToPromotionResponseList(List<Promotion> promotions) {
+        return promotions.stream()
+                .map(promotionMapper::toPromotionResponse)
+                .collect(Collectors.toList());
+    }
 }

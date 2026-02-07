@@ -127,9 +127,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     @Transactional(readOnly = true)
     public List<PurchaseOrderResponse> getAllPurchaseOrders() {
         List<PurchaseOrder> purchaseOrders = purchaseOrderRepository.findAll();
-        return purchaseOrders.stream()
-                .map(purchaseOrderMapper::toPurchaseOrderResponse)
-                .collect(Collectors.toList());
+        return mapToPurchaseOrderResponseList(purchaseOrders);
     }
 
     @Override
@@ -319,5 +317,11 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         // TODO: Trừ tiền từ tài khoản nếu có hệ thống tài khoản
         // Hiện tại chỉ cập nhật status, chưa trừ tiền thực tế
         // totalAmount đã được tính để có thể sử dụng cho logic trừ tiền sau này
+    }
+
+    private List<PurchaseOrderResponse> mapToPurchaseOrderResponseList(List<PurchaseOrder> purchaseOrders) {
+        return purchaseOrders.stream()
+                .map(purchaseOrderMapper::toPurchaseOrderResponse)
+                .collect(Collectors.toList());
     }
 }

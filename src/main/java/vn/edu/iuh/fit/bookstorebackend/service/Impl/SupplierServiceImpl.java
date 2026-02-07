@@ -26,9 +26,7 @@ public class SupplierServiceImpl implements SupplierService {
     @Transactional(readOnly = true)
     public List<SupplierResponse> getAllSuppliers() {
         List<Supplier> suppliers = supplierRepository.findAll();
-        return suppliers.stream()
-                .map(supplierMapper::toSupplierResponse)
-                .collect(Collectors.toList());
+        return mapToSupplierResponseList(suppliers);
     }
 
     @Override
@@ -110,6 +108,12 @@ public class SupplierServiceImpl implements SupplierService {
     private Supplier findSupplierById(Long supplierId) {
         return supplierRepository.findById(supplierId)
                 .orElseThrow(() -> new RuntimeException("Supplier not found with identifier: " + supplierId));
+    }
+
+    private List<SupplierResponse> mapToSupplierResponseList(List<Supplier> suppliers) {
+        return suppliers.stream()
+                .map(supplierMapper::toSupplierResponse)
+                .collect(Collectors.toList());
     }
 }
 

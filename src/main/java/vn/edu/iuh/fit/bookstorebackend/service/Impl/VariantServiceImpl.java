@@ -79,9 +79,7 @@ public class VariantServiceImpl implements VariantService {
     @Override
     public List<VariantResponse> getAllVariants() {
         List<Variant> variants = variantRepository.findAll();
-        return variants.stream()
-                .map(variantMapper::toVariantResponse)
-                .collect(Collectors.toList());
+        return mapToVariantResponseList(variants);
     }
 
     @Override
@@ -90,9 +88,7 @@ public class VariantServiceImpl implements VariantService {
         Book book = findBookById(bookId);
         
         List<Variant> variants = variantRepository.findByBook(book);
-        return variants.stream()
-                .map(variantMapper::toVariantResponse)
-                .collect(Collectors.toList());
+        return mapToVariantResponseList(variants);
     }
     
     private void validateVariantId(Long variantId) throws IdInvalidException {
@@ -142,5 +138,11 @@ public class VariantServiceImpl implements VariantService {
         validateVariantId(variantId);
         Variant variant = findVariantById(variantId);
         variantRepository.delete(variant);
+    }
+
+    private List<VariantResponse> mapToVariantResponseList(List<Variant> variants) {
+        return variants.stream()
+                .map(variantMapper::toVariantResponse)
+                .collect(Collectors.toList());
     }
 }

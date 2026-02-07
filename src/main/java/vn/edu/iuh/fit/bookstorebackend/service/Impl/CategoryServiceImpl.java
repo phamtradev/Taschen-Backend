@@ -84,9 +84,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public List<CategoryResponse> getAllCategories() {
         List<Category> categories = categoryRepository.findAll();
-        return categories.stream()
-                .map(categoryMapper::toCategoryResponse)
-                .collect(Collectors.toList());
+        return mapToCategoryResponseList(categories);
     }
     
     private void validateCategoryId(Long categoryId) throws IdInvalidException {
@@ -148,5 +146,11 @@ public class CategoryServiceImpl implements CategoryService {
         validateCategoryId(categoryId);
         Category category = findCategoryById(categoryId);
         categoryRepository.delete(category);
+    }
+
+    private List<CategoryResponse> mapToCategoryResponseList(List<Category> categories) {
+        return categories.stream()
+                .map(categoryMapper::toCategoryResponse)
+                .collect(Collectors.toList());
     }
 }

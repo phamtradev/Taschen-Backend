@@ -179,9 +179,7 @@ public class ImportStockServiceImpl implements ImportStockService {
     @Transactional(readOnly = true)
     public List<ImportStockResponse> getAllImportStocks() {
         List<ImportStock> importStocks = importStockRepository.findAll();
-        return importStocks.stream()
-                .map(importStockMapper::toImportStockResponse)
-                .collect(Collectors.toList());
+        return mapToImportStockResponseList(importStocks);
     }
 
     @Override
@@ -191,9 +189,7 @@ public class ImportStockServiceImpl implements ImportStockService {
         validateBookExists(bookId);
 
         List<ImportStock> importStocks = importStockDetailRepository.findImportStocksByBookId(bookId);
-        return importStocks.stream()
-                .map(importStockMapper::toImportStockResponse)
-                .collect(Collectors.toList());
+        return mapToImportStockResponseList(importStocks);
     }
 
     private void validateBookId(Long bookId) throws IdInvalidException {
@@ -206,5 +202,11 @@ public class ImportStockServiceImpl implements ImportStockService {
         if (!bookRepository.existsById(bookId)) {
             throw new RuntimeException("Book not found with identifier: " + bookId);
         }
+    }
+
+    private List<ImportStockResponse> mapToImportStockResponseList(List<ImportStock> importStocks) {
+        return importStocks.stream()
+                .map(importStockMapper::toImportStockResponse)
+                .collect(Collectors.toList());
     }
 }
