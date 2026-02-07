@@ -3,6 +3,7 @@ package vn.edu.iuh.fit.bookstorebackend.dto.response;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 import vn.edu.iuh.fit.bookstorebackend.common.OrderStatus;
+import vn.edu.iuh.fit.bookstorebackend.common.PaymentMethod;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,7 +32,7 @@ public class OrderResponse {
     private LocalDateTime orderDate;
     private Double totalAmount;
     private OrderStatus status;
-    private String paymentMethod;
+    private PaymentMethod paymentMethod;
     private String paymentCode;
 
     private Long promotionId;
