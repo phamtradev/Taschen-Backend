@@ -8,13 +8,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
-@JsonPropertyOrder({ "id", "createdAt", "approvedAt", "note", "status", "supplierId", "supplierName", "createdById", "createdByName", "approvedById", "approvedByName", "items" })
+@JsonPropertyOrder({ "id", "createdAt", "approvedAt", "note", "cancelReason", "status", "supplierId", "supplierName", "createdById", "createdByName", "approvedById", "approvedByName", "items" })
 public class PurchaseOrderResponse {
 
     private Long id;
     private LocalDateTime createdAt;
     private LocalDateTime approvedAt;
     private String note;
+    private String cancelReason;
     private PurchaseOrderStatus status;
     private Long supplierId;
     private String supplierName;
