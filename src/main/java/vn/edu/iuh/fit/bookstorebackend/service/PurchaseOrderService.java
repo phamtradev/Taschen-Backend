@@ -15,4 +15,8 @@ public interface PurchaseOrderService {
     PurchaseOrderResponse approvePurchaseOrder(Long purchaseOrderId, Long approvedById) throws IdInvalidException;
 
     PurchaseOrderResponse rejectPurchaseOrder(Long purchaseOrderId, Long approvedById) throws IdInvalidException;
+
+    PurchaseOrderResponse cancelPurchaseOrder(Long purchaseOrderId, Long cancelledById, String cancelReason) throws IdInvalidException;
+
+    PurchaseOrderResponse payPurchaseOrder(Long purchaseOrderId, Long paidById) throws IdInvalidException;
 }
