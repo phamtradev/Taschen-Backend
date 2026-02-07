@@ -1,5 +1,6 @@
 package vn.edu.iuh.fit.bookstorebackend.service.Impl;
 
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,10 +35,12 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final UserRepository userRepository;
     private final BookRepository bookRepository;
     private final PurchaseOrderMapper purchaseOrderMapper;
+    private final EntityManager entityManager;
 
     @Override
     @Transactional
     public PurchaseOrderResponse createPurchaseOrder(CreatePurchaseOrderRequest request) throws IdInvalidException {
+        // Role: ADMIN, WAREHOUSE_STAFF, hoặc SELLER - Tạo đơn đặt hàng từ nhà cung cấp
         validateCreatePurchaseOrderRequest(request);
 
         Supplier supplier = findSupplierById(request.getSupplierId());
@@ -47,8 +50,13 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
 
         createPurchaseOrderItems(savedPurchaseOrder, request.getItems());
+        
+        entityManager.flush();
+        entityManager.clear();
 
-        return purchaseOrderMapper.toPurchaseOrderResponse(savedPurchaseOrder);
+        PurchaseOrder purchaseOrderWithItems = findPurchaseOrderById(savedPurchaseOrder.getId());
+
+        return purchaseOrderMapper.toPurchaseOrderResponse(purchaseOrderWithItems);
     }
 
     private void validateCreatePurchaseOrderRequest(CreatePurchaseOrderRequest request) throws IdInvalidException {
@@ -127,6 +135,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     @Override
     @Transactional
     public PurchaseOrderResponse approvePurchaseOrder(Long purchaseOrderId, Long approvedById) throws IdInvalidException {
+        // Role: ADMIN hoặc WAREHOUSE_STAFF - Duyệt đơn để có thể nhập hàng
         validatePurchaseOrderId(purchaseOrderId);
         validateApprovedById(approvedById);
 
@@ -134,6 +143,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         validatePurchaseOrderStatusForApproval(purchaseOrder);
 
         User approvedBy = findUserById(approvedById);
+        validateApproverRole(approvedBy);
         approvePurchaseOrder(purchaseOrder, approvedBy);
 
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
@@ -149,6 +159,20 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private void validateApprovedById(Long approvedById) throws IdInvalidException {
         if (approvedById == null || approvedById <= 0) {
             throw new IdInvalidException("Approved by user identifier is invalid: " + approvedById);
+        }
+    }
+
+    private void validateApproverRole(User approvedBy) {
+        if (approvedBy.getRoles() == null || approvedBy.getRoles().isEmpty()) {
+            throw new RuntimeException("User does not have any roles. Required roles: ADMIN or WAREHOUSE_STAFF");
+        }
+
+        boolean hasPermission = approvedBy.getRoles().stream()
+                .anyMatch(role -> "ADMIN".equals(role.getCode()) 
+                        || "WAREHOUSE_STAFF".equals(role.getCode()));
+
+        if (!hasPermission) {
+            throw new RuntimeException("User does not have permission to approve/reject purchase orders. Required roles: ADMIN or WAREHOUSE_STAFF");
         }
     }
 
@@ -172,6 +196,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     @Override
     @Transactional
     public PurchaseOrderResponse rejectPurchaseOrder(Long purchaseOrderId, Long approvedById) throws IdInvalidException {
+        // Role: ADMIN hoặc WAREHOUSE_STAFF - Từ chối đơn, không cho nhập hàng
         validatePurchaseOrderId(purchaseOrderId);
         validateApprovedById(approvedById);
 
@@ -179,6 +204,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         validatePurchaseOrderStatusForRejection(purchaseOrder);
 
         User approvedBy = findUserById(approvedById);
+        validateApproverRole(approvedBy);
         rejectPurchaseOrder(purchaseOrder, approvedBy);
 
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
@@ -195,5 +221,103 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         purchaseOrder.setStatus(PurchaseOrderStatus.REJECTED);
         purchaseOrder.setApprovedAt(LocalDateTime.now());
         purchaseOrder.setApprovedBy(approvedBy);
+    }
+
+    @Override
+    @Transactional
+    public PurchaseOrderResponse cancelPurchaseOrder(Long purchaseOrderId, Long cancelledById, String cancelReason) throws IdInvalidException {
+        // Role: ADMIN hoặc WAREHOUSE_STAFF - Hủy đơn đã APPROVED do có vấn đề khi nhập hàng
+        validatePurchaseOrderId(purchaseOrderId);
+        validateApprovedById(cancelledById);
+        validateCancelReason(cancelReason); // Validate lý do hủy bắt buộc
+
+        PurchaseOrder purchaseOrder = findPurchaseOrderById(purchaseOrderId);
+        validatePurchaseOrderStatusForCancellation(purchaseOrder);
+
+        User cancelledBy = findUserById(cancelledById);
+        validateApproverRole(cancelledBy);
+        cancelPurchaseOrder(purchaseOrder, cancelledBy, cancelReason);
+
+        PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
+        return purchaseOrderMapper.toPurchaseOrderResponse(savedPurchaseOrder);
+    }
+
+    private void validatePurchaseOrderStatusForCancellation(PurchaseOrder purchaseOrder) {
+        if (purchaseOrder.getStatus() != PurchaseOrderStatus.APPROVED) {
+            throw new RuntimeException("Purchase order can only be cancelled when status is APPROVED. Current status: " + purchaseOrder.getStatus());
+        }
+    }
+
+    private void validateCancelReason(String cancelReason) throws IdInvalidException {
+        if (cancelReason == null || cancelReason.trim().isEmpty()) {
+            throw new IdInvalidException("Cancel reason is required and cannot be empty");
+        }
+    }
+
+    private void cancelPurchaseOrder(PurchaseOrder purchaseOrder, User cancelledBy, String cancelReason) {
+        purchaseOrder.setStatus(PurchaseOrderStatus.CANCELLED);
+        purchaseOrder.setApprovedAt(LocalDateTime.now());
+        purchaseOrder.setApprovedBy(cancelledBy);
+        purchaseOrder.setCancelReason(cancelReason.trim()); // Lưu lý do hủy
+    }
+
+    @Override
+    @Transactional
+    public PurchaseOrderResponse payPurchaseOrder(Long purchaseOrderId, Long paidById) throws IdInvalidException {
+        // Role: ADMIN - Thanh toán đơn đã APPROVED
+        validatePurchaseOrderId(purchaseOrderId);
+        validateApprovedById(paidById);
+
+        PurchaseOrder purchaseOrder = findPurchaseOrderById(purchaseOrderId);
+        validatePurchaseOrderStatusForPayment(purchaseOrder);
+
+        User paidBy = findUserById(paidById);
+        validateAdminRole(paidBy);
+
+        // Tính tổng tiền từ PurchaseOrderItems
+        double totalAmount = calculateTotalAmount(purchaseOrder);
+        
+        // Thanh toán: Set status = ORDERED
+        payPurchaseOrder(purchaseOrder, paidBy, totalAmount);
+
+        PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
+        return purchaseOrderMapper.toPurchaseOrderResponse(savedPurchaseOrder);
+    }
+
+    private void validatePurchaseOrderStatusForPayment(PurchaseOrder purchaseOrder) {
+        if (purchaseOrder.getStatus() != PurchaseOrderStatus.APPROVED) {
+            throw new RuntimeException("Purchase order can only be paid when status is APPROVED. Current status: " + purchaseOrder.getStatus());
+        }
+    }
+
+    private void validateAdminRole(User user) {
+        if (user.getRoles() == null || user.getRoles().isEmpty()) {
+            throw new RuntimeException("User does not have any roles. Required role: ADMIN");
+        }
+
+        boolean hasPermission = user.getRoles().stream()
+                .anyMatch(role -> "ADMIN".equals(role.getCode()));
+
+        if (!hasPermission) {
+            throw new RuntimeException("User does not have permission to pay purchase order. Required role: ADMIN");
+        }
+    }
+
+    private double calculateTotalAmount(PurchaseOrder purchaseOrder) {
+        if (purchaseOrder.getPurchaseOrderItems() == null || purchaseOrder.getPurchaseOrderItems().isEmpty()) {
+            throw new RuntimeException("Purchase order has no items to calculate total amount");
+        }
+
+        return purchaseOrder.getPurchaseOrderItems().stream()
+                .mapToDouble(item -> item.getQuantity() * item.getImportPrice())
+                .sum();
+    }
+
+    private void payPurchaseOrder(PurchaseOrder purchaseOrder, User paidBy, double totalAmount) {
+        purchaseOrder.setStatus(PurchaseOrderStatus.ORDERED);
+        // Không thay đổi approvedAt/approvedBy vì đây là thông tin của lần approve trước đó
+        // TODO: Trừ tiền từ tài khoản nếu có hệ thống tài khoản
+        // Hiện tại chỉ cập nhật status, chưa trừ tiền thực tế
+        // totalAmount đã được tính để có thể sử dụng cho logic trừ tiền sau này
     }
 }
