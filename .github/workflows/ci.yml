@@ -28,11 +28,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Create cursor rules (dev only)
+        if: github.event.pull_request.head.repo.fork == false || github.event_name == 'push'
         run: |
           rm -rf .cursor/rules
           mkdir -p .cursor
           echo "${{ secrets.CURSOR_RULES }}" > .cursor/rules
-          
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
@@ -51,30 +52,3 @@ jobs:
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
         run: mvn -q clean test
 
-      - name: Send telegram message on success
-        if: success()
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_TO }}
-          token: ${{ secrets.TELEGRAM_TOKEN }}
-          message: |
-            CI Build Successfully
-            Actor: ${{ github.actor }}
-            Repo: ${{ github.repository }}
-            Ref: ${{ github.ref_name }}
-            Commit: ${{ github.sha }}
-            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-      - name: Send telegram message on failure
-        if: failure()
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_TO }}
-          token: ${{ secrets.TELEGRAM_TOKEN }}
-          message: |
-            Không ổn rồi sếp ơi :(( build nhánh dev thất bại rồi ! fix bug đi sếp
-            Actor: ${{ github.actor }}
-            Repo: ${{ github.repository }}
-            Ref: ${{ github.ref_name }}
-            Commit: ${{ github.sha }}
-            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

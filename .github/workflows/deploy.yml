@@ -6,13 +6,14 @@ on:
 
 jobs:
   deploy:
-    runs-on: [ self-hosted ]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: [ self-hosted, prod ]
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: docker build -t bookstore-backend:prod .
+        run: docker build --pull -t bookstore-backend:prod .
 
       - name: Restart container
         run: |
@@ -37,30 +38,3 @@ jobs:
       - name: Show container status
         run: docker ps --filter "name=bookstore-prod"
 
-      - name: Send telegram message on success
-        if: success()
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_TO }}
-          token: ${{ secrets.TELEGRAM_TOKEN }}
-          message: |
-            Thưa sếp ! đã deploy lên môi trường AWS thành công rùi !!!
-            Actor: ${{ github.actor }}
-            Repo: ${{ github.repository }}
-            Ref: ${{ github.ref_name }}
-            Commit: ${{ github.sha }}
-            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-
-      - name: Send telegram message on failure
-        if: failure()
-        uses: appleboy/telegram-action@master
-        with:
-          to: ${{ secrets.TELEGRAM_TO }}
-          token: ${{ secrets.TELEGRAM_TOKEN }}
-          message: |
-            Không ổn rồi sếp ơi :(( deploy lên AWS thất bại rồi ! fix bug đi sếp
-            Actor: ${{ github.actor }}
-            Repo: ${{ github.repository }}
-            Ref: ${{ github.ref_name }}
-            Commit: ${{ github.sha }}
-            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
