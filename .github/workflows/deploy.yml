@@ -10,7 +10,7 @@ jobs:
       github.event_name == 'push' && 
       github.ref == 'refs/heads/main' &&
       github.event.repository.fork == false
-      runs-on: [ self-hosted, Linux, X64 ]
+    runs-on: [ self-hosted, Linux, X64 ]
 
     steps:
       - uses: actions/checkout@v4
