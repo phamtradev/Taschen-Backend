@@ -46,6 +46,45 @@ public class StockRequestServiceImpl implements StockRequestService {
         return stockRequestMapper.toStockRequestResponse(savedStockRequest);
     }
 
+    private void validateCreateStockRequestRequest(CreateStockRequestRequest request) throws IdInvalidException {
+        if (request == null) {
+            throw new IdInvalidException("Request cannot be null");
+        }
+        if (request.getBookId() == null || request.getBookId() <= 0) {
+            throw new IdInvalidException("Book id is invalid");
+        }
+        if (request.getCreatedById() == null || request.getCreatedById() <= 0) {
+            throw new IdInvalidException("User id is invalid");
+        }
+        if (request.getQuantity() <= 0) {
+            throw new IdInvalidException("Quantity must be greater than 0");
+        }
+    }
+
+    private void validateSellerRole(User createdBy) {
+        if (createdBy.getRoles() == null || createdBy.getRoles().isEmpty()) {
+            throw new RuntimeException("User does not have any roles. Required role: SELLER");
+        }
+
+        boolean hasPermission = createdBy.getRoles().stream()
+                .anyMatch(role -> "SELLER".equals(role.getCode()));
+
+        if (!hasPermission) {
+            throw new RuntimeException("User does not have permission to create stock requests. Required role: SELLER");
+        }
+    }
+
+    private StockRequest createStockRequestFromRequest(CreateStockRequestRequest request, Book book, User createdBy) {
+        StockRequest stockRequest = new StockRequest();
+        stockRequest.setBook(book);
+        stockRequest.setQuantity(request.getQuantity());
+        stockRequest.setReason(request.getReason());
+        stockRequest.setStatus(StockRequestStatus.PENDING);
+        stockRequest.setCreatedAt(LocalDateTime.now());
+        stockRequest.setCreatedBy(createdBy);
+        return stockRequest;
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<StockRequestResponse> getMyStockRequest(Long userId) {
@@ -55,11 +94,23 @@ public class StockRequestServiceImpl implements StockRequestService {
         return mapToStockRequestResponseList(stockRequests);
     }
 
+    private void validateUserId(Long userId) {
+        if (userId == null || userId <= 0) {
+            throw new RuntimeException("User id is invalid");
+        }
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<StockRequestResponse> getAllStockRequest() {
         List<StockRequest> stockRequests = stockRequestRepository.findAllByOrderByCreatedAtDesc();
         return mapToStockRequestResponseList(stockRequests);
+    }
+
+    private List<StockRequestResponse> mapToStockRequestResponseList(List<StockRequest> stockRequests) {
+        return stockRequests.stream()
+                .map(stockRequestMapper::toStockRequestResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -80,6 +131,28 @@ public class StockRequestServiceImpl implements StockRequestService {
         return stockRequestMapper.toStockRequestResponse(savedStockRequest);
     }
 
+    private void validateApproveStockRequestRequest(ApproveStockRequestRequest request) throws IdInvalidException {
+        if (request == null) {
+            throw new IdInvalidException("Request cannot be null");
+        }
+        if (request.getProcessedById() == null || request.getProcessedById() <= 0) {
+            throw new IdInvalidException("User id is invalid");
+        }
+    }
+
+    private void validateStockRequestStatusForApproval(StockRequest stockRequest) {
+        if (stockRequest.getStatus() != StockRequestStatus.PENDING) {
+            throw new RuntimeException("Stock request can only be approved when status is PENDING. Current status: " + stockRequest.getStatus());
+        }
+    }
+
+    private void approveStockRequest(StockRequest stockRequest, User processedBy, String responseMessage) {
+        stockRequest.setStatus(StockRequestStatus.APPROVED);
+        stockRequest.setProcessedAt(LocalDateTime.now());
+        stockRequest.setProcessedBy(processedBy);
+        stockRequest.setResponseMessage(responseMessage);
+    }
+
     @Override
     @Transactional
     public StockRequestResponse rejectStockRequest(Long stockRequestId, RejectStockRequestRequest request) throws IdInvalidException {
@@ -98,42 +171,6 @@ public class StockRequestServiceImpl implements StockRequestService {
         return stockRequestMapper.toStockRequestResponse(savedStockRequest);
     }
 
-    private void validateCreateStockRequestRequest(CreateStockRequestRequest request) throws IdInvalidException {
-        if (request == null) {
-            throw new IdInvalidException("Request cannot be null");
-        }
-        if (request.getBookId() == null || request.getBookId() <= 0) {
-            throw new IdInvalidException("Book id is invalid");
-        }
-        if (request.getCreatedById() == null || request.getCreatedById() <= 0) {
-            throw new IdInvalidException("User id is invalid");
-        }
-        if (request.getQuantity() <= 0) {
-            throw new IdInvalidException("Quantity must be greater than 0");
-        }
-    }
-
-    private void validateStockRequestId(Long stockRequestId) throws IdInvalidException {
-        if (stockRequestId == null || stockRequestId <= 0) {
-            throw new IdInvalidException("Stock request id is invalid");
-        }
-    }
-
-    private void validateUserId(Long userId) {
-        if (userId == null || userId <= 0) {
-            throw new RuntimeException("User id is invalid");
-        }
-    }
-
-    private void validateApproveStockRequestRequest(ApproveStockRequestRequest request) throws IdInvalidException {
-        if (request == null) {
-            throw new IdInvalidException("Request cannot be null");
-        }
-        if (request.getProcessedById() == null || request.getProcessedById() <= 0) {
-            throw new IdInvalidException("User id is invalid");
-        }
-    }
-
     private void validateRejectStockRequestRequest(RejectStockRequestRequest request) throws IdInvalidException {
         if (request == null) {
             throw new IdInvalidException("Request cannot be null");
@@ -143,28 +180,23 @@ public class StockRequestServiceImpl implements StockRequestService {
         }
     }
 
-    private void validateStockRequestStatusForApproval(StockRequest stockRequest) {
-        if (stockRequest.getStatus() != StockRequestStatus.PENDING) {
-            throw new RuntimeException("Stock request can only be approved when status is PENDING. Current status: " + stockRequest.getStatus());
-        }
-    }
-
     private void validateStockRequestStatusForRejection(StockRequest stockRequest) {
         if (stockRequest.getStatus() != StockRequestStatus.PENDING) {
             throw new RuntimeException("Stock request can only be rejected when status is PENDING. Current status: " + stockRequest.getStatus());
         }
     }
 
-    private void validateSellerRole(User createdBy) {
-        if (createdBy.getRoles() == null || createdBy.getRoles().isEmpty()) {
-            throw new RuntimeException("User does not have any roles. Required role: SELLER");
-        }
+    private void rejectStockRequest(StockRequest stockRequest, User processedBy, String responseMessage) {
+        stockRequest.setStatus(StockRequestStatus.REJECTED);
+        stockRequest.setProcessedAt(LocalDateTime.now());
+        stockRequest.setProcessedBy(processedBy);
+        stockRequest.setResponseMessage(responseMessage);
+    }
 
-        boolean hasPermission = createdBy.getRoles().stream()
-                .anyMatch(role -> "SELLER".equals(role.getCode()));
 
-        if (!hasPermission) {
-            throw new RuntimeException("User does not have permission to create stock requests. Required role: SELLER");
+    private void validateStockRequestId(Long stockRequestId) throws IdInvalidException {
+        if (stockRequestId == null || stockRequestId <= 0) {
+            throw new IdInvalidException("Stock request id is invalid");
         }
     }
 
@@ -182,31 +214,7 @@ public class StockRequestServiceImpl implements StockRequestService {
         }
     }
 
-    private StockRequest createStockRequestFromRequest(CreateStockRequestRequest request, Book book, User createdBy) {
-        StockRequest stockRequest = new StockRequest();
-        stockRequest.setBook(book);
-        stockRequest.setQuantity(request.getQuantity());
-        stockRequest.setReason(request.getReason());
-        stockRequest.setStatus(StockRequestStatus.PENDING);
-        stockRequest.setCreatedAt(LocalDateTime.now());
-        stockRequest.setCreatedBy(createdBy);
-        return stockRequest;
-    }
-
-    private void approveStockRequest(StockRequest stockRequest, User processedBy, String responseMessage) {
-        stockRequest.setStatus(StockRequestStatus.APPROVED);
-        stockRequest.setProcessedAt(LocalDateTime.now());
-        stockRequest.setProcessedBy(processedBy);
-        stockRequest.setResponseMessage(responseMessage);
-    }
-
-    private void rejectStockRequest(StockRequest stockRequest, User processedBy, String responseMessage) {
-        stockRequest.setStatus(StockRequestStatus.REJECTED);
-        stockRequest.setProcessedAt(LocalDateTime.now());
-        stockRequest.setProcessedBy(processedBy);
-        stockRequest.setResponseMessage(responseMessage);
-    }
-
+    // Find helpers
     private Book findBookById(Long bookId) {
         return bookRepository.findById(bookId)
                 .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
@@ -220,11 +228,5 @@ public class StockRequestServiceImpl implements StockRequestService {
     private StockRequest findStockRequestById(Long stockRequestId) {
         return stockRequestRepository.findById(stockRequestId)
                 .orElseThrow(() -> new RuntimeException("Stock request not found"));
-    }
-
-    private List<StockRequestResponse> mapToStockRequestResponseList(List<StockRequest> stockRequests) {
-        return stockRequests.stream()
-                .map(stockRequestMapper::toStockRequestResponse)
-                .collect(Collectors.toList());
     }
 }

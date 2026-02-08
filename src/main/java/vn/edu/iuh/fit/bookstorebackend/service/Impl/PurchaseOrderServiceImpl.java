@@ -90,11 +90,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 .orElseThrow(() -> new RuntimeException("Supplier not found with identifier: " + supplierId));
     }
 
-    private User findUserById(Long userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with identifier: " + userId));
-    }
-
     private PurchaseOrder createPurchaseOrderFromRequest(CreatePurchaseOrderRequest request, Supplier supplier, User createdBy) {
         PurchaseOrder purchaseOrder = new PurchaseOrder();
         purchaseOrder.setSupplier(supplier);
@@ -118,16 +113,17 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         }
     }
 
-    private Book findBookById(Long bookId) {
-        return bookRepository.findById(bookId)
-                .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
-    }
-
     @Override
     @Transactional(readOnly = true)
     public List<PurchaseOrderResponse> getAllPurchaseOrders() {
         List<PurchaseOrder> purchaseOrders = purchaseOrderRepository.findAll();
         return mapToPurchaseOrderResponseList(purchaseOrders);
+    }
+
+    private List<PurchaseOrderResponse> mapToPurchaseOrderResponseList(List<PurchaseOrder> purchaseOrders) {
+        return purchaseOrders.stream()
+                .map(purchaseOrderMapper::toPurchaseOrderResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -146,37 +142,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
         return purchaseOrderMapper.toPurchaseOrderResponse(savedPurchaseOrder);
-    }
-
-    private void validatePurchaseOrderId(Long purchaseOrderId) throws IdInvalidException {
-        if (purchaseOrderId == null || purchaseOrderId <= 0) {
-            throw new IdInvalidException("Purchase order identifier is invalid: " + purchaseOrderId);
-        }
-    }
-
-    private void validateApprovedById(Long approvedById) throws IdInvalidException {
-        if (approvedById == null || approvedById <= 0) {
-            throw new IdInvalidException("Approved by user identifier is invalid: " + approvedById);
-        }
-    }
-
-    private void validateApproverRole(User approvedBy) {
-        if (approvedBy.getRoles() == null || approvedBy.getRoles().isEmpty()) {
-            throw new RuntimeException("User does not have any roles. Required roles: ADMIN or WAREHOUSE_STAFF");
-        }
-
-        boolean hasPermission = approvedBy.getRoles().stream()
-                .anyMatch(role -> "ADMIN".equals(role.getCode()) 
-                        || "WAREHOUSE_STAFF".equals(role.getCode()));
-
-        if (!hasPermission) {
-            throw new RuntimeException("User does not have permission to approve/reject purchase orders. Required roles: ADMIN or WAREHOUSE_STAFF");
-        }
-    }
-
-    private PurchaseOrder findPurchaseOrderById(Long purchaseOrderId) {
-        return purchaseOrderRepository.findById(purchaseOrderId)
-                .orElseThrow(() -> new RuntimeException("Purchase order not found with identifier: " + purchaseOrderId));
     }
 
     private void validatePurchaseOrderStatusForApproval(PurchaseOrder purchaseOrder) {
@@ -227,7 +192,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         // Role: ADMIN hoặc WAREHOUSE_STAFF - Hủy đơn đã APPROVED do có vấn đề khi nhập hàng
         validatePurchaseOrderId(purchaseOrderId);
         validateApprovedById(cancelledById);
-        validateCancelReason(cancelReason); // Validate lý do hủy bắt buộc
+        validateCancelReason(cancelReason);
 
         PurchaseOrder purchaseOrder = findPurchaseOrderById(purchaseOrderId);
         validatePurchaseOrderStatusForCancellation(purchaseOrder);
@@ -256,7 +221,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         purchaseOrder.setStatus(PurchaseOrderStatus.CANCELLED);
         purchaseOrder.setApprovedAt(LocalDateTime.now());
         purchaseOrder.setApprovedBy(cancelledBy);
-        purchaseOrder.setCancelReason(cancelReason.trim()); // Lưu lý do hủy
+        purchaseOrder.setCancelReason(cancelReason.trim());
     }
 
     @Override
@@ -272,10 +237,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         User paidBy = findUserById(paidById);
         validateAdminRole(paidBy);
 
-        // Tính tổng tiền từ PurchaseOrderItems
         double totalAmount = calculateTotalAmount(purchaseOrder);
-        
-        // Thanh toán: Set status = ORDERED
         payPurchaseOrder(purchaseOrder, paidBy, totalAmount);
 
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
@@ -319,9 +281,45 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         // totalAmount đã được tính để có thể sử dụng cho logic trừ tiền sau này
     }
 
-    private List<PurchaseOrderResponse> mapToPurchaseOrderResponseList(List<PurchaseOrder> purchaseOrders) {
-        return purchaseOrders.stream()
-                .map(purchaseOrderMapper::toPurchaseOrderResponse)
-                .collect(Collectors.toList());
+
+    private void validatePurchaseOrderId(Long purchaseOrderId) throws IdInvalidException {
+        if (purchaseOrderId == null || purchaseOrderId <= 0) {
+            throw new IdInvalidException("Purchase order identifier is invalid: " + purchaseOrderId);
+        }
+    }
+
+    private void validateApprovedById(Long approvedById) throws IdInvalidException {
+        if (approvedById == null || approvedById <= 0) {
+            throw new IdInvalidException("Approved by user identifier is invalid: " + approvedById);
+        }
+    }
+
+    private void validateApproverRole(User approvedBy) {
+        if (approvedBy.getRoles() == null || approvedBy.getRoles().isEmpty()) {
+            throw new RuntimeException("User does not have any roles. Required roles: ADMIN or WAREHOUSE_STAFF");
+        }
+
+        boolean hasPermission = approvedBy.getRoles().stream()
+                .anyMatch(role -> "ADMIN".equals(role.getCode()) 
+                        || "WAREHOUSE_STAFF".equals(role.getCode()));
+
+        if (!hasPermission) {
+            throw new RuntimeException("User does not have permission to approve/reject purchase orders. Required roles: ADMIN or WAREHOUSE_STAFF");
+        }
+    }
+
+    private PurchaseOrder findPurchaseOrderById(Long purchaseOrderId) {
+        return purchaseOrderRepository.findById(purchaseOrderId)
+                .orElseThrow(() -> new RuntimeException("Purchase order not found with identifier: " + purchaseOrderId));
+    }
+
+    private User findUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with identifier: " + userId));
+    }
+
+    private Book findBookById(Long bookId) {
+        return bookRepository.findById(bookId)
+                .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
     }
 }
