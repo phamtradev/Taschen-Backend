@@ -48,11 +48,8 @@ public class ImportStockServiceImpl implements ImportStockService {
 
         Supplier supplier = findSupplierById(request.getSupplierId());
         User createdBy = findUserById(request.getCreatedById());
-        
-        // Validate role: chỉ ADMIN hoặc WAREHOUSE_STAFF mới được tạo ImportStock
         validateImporterRole(createdBy);
         
-        // Validate PurchaseOrder: phải tồn tại và status = APPROVED
         PurchaseOrder purchaseOrder = findPurchaseOrderById(request.getPurchaseOrderId());
         validatePurchaseOrderForImport(purchaseOrder);
 
@@ -103,38 +100,6 @@ public class ImportStockServiceImpl implements ImportStockService {
                 .orElseThrow(() -> new RuntimeException("Supplier not found with identifier: " + supplierId));
     }
 
-    private User findUserById(Long userId) {
-        return userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with identifier: " + userId));
-    }
-
-    private ImportStock createImportStockFromRequest(CreateImportStockRequest request, Supplier supplier, User createdBy, PurchaseOrder purchaseOrder) {
-        ImportStock importStock = new ImportStock();
-        importStock.setImportDate(LocalDateTime.now());
-        importStock.setSupplier(supplier);
-        importStock.setCreatedBy(createdBy);
-        importStock.setPurchaseOrder(purchaseOrder);
-        return importStock;
-    }
-    
-    private PurchaseOrder findPurchaseOrderById(Long purchaseOrderId) {
-        return purchaseOrderRepository.findById(purchaseOrderId)
-                .orElseThrow(() -> new RuntimeException("Purchase order not found with identifier: " + purchaseOrderId));
-    }
-    
-    private ImportStock findImportStockById(Long importStockId) {
-        return importStockRepository.findById(importStockId)
-                .orElseThrow(() -> new RuntimeException("Import stock not found with identifier: " + importStockId));
-    }
-    
-    private void validatePurchaseOrderForImport(PurchaseOrder purchaseOrder) {
-        // Cho phép nhập hàng khi status = APPROVED hoặc ORDERED (nhập từng phần, có thể thanh toán trước)
-        if (purchaseOrder.getStatus() != PurchaseOrderStatus.APPROVED 
-                && purchaseOrder.getStatus() != PurchaseOrderStatus.ORDERED) {
-            throw new RuntimeException("Purchase order must be APPROVED or ORDERED to create import stock. Current status: " + purchaseOrder.getStatus());
-        }
-    }
-    
     private void validateImporterRole(User user) {
         if (user.getRoles() == null || user.getRoles().isEmpty()) {
             throw new RuntimeException("User does not have any roles. Required roles: ADMIN or WAREHOUSE_STAFF");
@@ -147,6 +112,22 @@ public class ImportStockServiceImpl implements ImportStockService {
         if (!hasPermission) {
             throw new RuntimeException("User does not have permission to create import stock. Required roles: ADMIN or WAREHOUSE_STAFF");
         }
+    }
+
+    private void validatePurchaseOrderForImport(PurchaseOrder purchaseOrder) {
+        if (purchaseOrder.getStatus() != PurchaseOrderStatus.APPROVED 
+                && purchaseOrder.getStatus() != PurchaseOrderStatus.ORDERED) {
+            throw new RuntimeException("Purchase order must be APPROVED or ORDERED to create import stock. Current status: " + purchaseOrder.getStatus());
+        }
+    }
+
+    private ImportStock createImportStockFromRequest(CreateImportStockRequest request, Supplier supplier, User createdBy, PurchaseOrder purchaseOrder) {
+        ImportStock importStock = new ImportStock();
+        importStock.setImportDate(LocalDateTime.now());
+        importStock.setSupplier(supplier);
+        importStock.setCreatedBy(createdBy);
+        importStock.setPurchaseOrder(purchaseOrder);
+        return importStock;
     }
 
     private void createImportStockDetails(ImportStock importStock, List<CreateImportStockRequest.ImportStockDetailRequest> detailRequests) {
@@ -165,11 +146,6 @@ public class ImportStockServiceImpl implements ImportStockService {
         }
     }
 
-    private Book findBookById(Long bookId) {
-        return bookRepository.findById(bookId)
-                .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
-    }
-
     private void updateBookStockQuantity(Book book, int quantity) {
         book.setStockQuantity(book.getStockQuantity() + quantity);
         bookRepository.save(book);
@@ -180,6 +156,12 @@ public class ImportStockServiceImpl implements ImportStockService {
     public List<ImportStockResponse> getAllImportStocks() {
         List<ImportStock> importStocks = importStockRepository.findAll();
         return mapToImportStockResponseList(importStocks);
+    }
+
+    private List<ImportStockResponse> mapToImportStockResponseList(List<ImportStock> importStocks) {
+        return importStocks.stream()
+                .map(importStockMapper::toImportStockResponse)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -204,9 +186,24 @@ public class ImportStockServiceImpl implements ImportStockService {
         }
     }
 
-    private List<ImportStockResponse> mapToImportStockResponseList(List<ImportStock> importStocks) {
-        return importStocks.stream()
-                .map(importStockMapper::toImportStockResponse)
-                .collect(Collectors.toList());
+
+    private ImportStock findImportStockById(Long importStockId) {
+        return importStockRepository.findById(importStockId)
+                .orElseThrow(() -> new RuntimeException("Import stock not found with identifier: " + importStockId));
+    }
+
+    private PurchaseOrder findPurchaseOrderById(Long purchaseOrderId) {
+        return purchaseOrderRepository.findById(purchaseOrderId)
+                .orElseThrow(() -> new RuntimeException("Purchase order not found with identifier: " + purchaseOrderId));
+    }
+
+    private User findUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with identifier: " + userId));
+    }
+
+    private Book findBookById(Long bookId) {
+        return bookRepository.findById(bookId)
+                .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
     }
 }
