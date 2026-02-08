@@ -29,7 +29,7 @@ public class ReturnRequest {
     private LocalDateTime createdAt;
 
     @Column(name = "processed_at")
-    private LocalDateTime processedAt = LocalDateTime.now();
+    private LocalDateTime processedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)
