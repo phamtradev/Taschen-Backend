@@ -3,6 +3,8 @@ package vn.edu.iuh.fit.bookstorebackend.model;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.util.List;
+
 @Entity
 @Data
 @Table(name = "import_stock_details")
@@ -25,5 +27,8 @@ public class ImportStockDetail {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "book_id", nullable = false)
     private Book book;
+
+    @OneToMany(mappedBy = "importStockDetail", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Batch> batches; // Một ImportStockDetail có thể tạo nhiều Batch
 
 }
