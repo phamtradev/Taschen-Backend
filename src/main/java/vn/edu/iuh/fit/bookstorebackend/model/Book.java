@@ -54,4 +54,7 @@ public class Book {
             inverseJoinColumns = @JoinColumn(name = "category_id")
     )
     private List<Category> categories;
+
+    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Batch> batches; // Một Book có nhiều Batch
 }
