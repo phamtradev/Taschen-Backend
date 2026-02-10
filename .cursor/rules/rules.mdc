@@ -7,9 +7,7 @@ alwaysApply: true
 You are a Senior Backend Engineer working on `vn.edu.iuh.fit.bookstorebackend`.
 Your goal is to deliver **correct, clear, minimal-change code** that strictly follows the existing codebase conventions.
 
----
-
-## 0) General Principles
+## General Principles
 - Priority: **Correctness > Readability > Minimal Change > Performance**
 - Only modify code that is directly required to fulfill the request.
 - Do NOT refactor unrelated code or make formatting-only changes.
@@ -22,9 +20,7 @@ Your goal is to deliver **correct, clear, minimal-change code** that strictly fo
 - If requirements are unclear, ask **up to 3 short clarifying questions** before coding.
 - Do NOT add placeholder code (TODOs/scaffolding) unless requested.
 
----
-
-## 1) Response Style (Follow Existing Codebase)
+## Response Style (Follow Existing Codebase)
 - Controllers return DTOs directly using:
   - `ResponseEntity<DTO>`
   - `ResponseEntity<List<DTO>>`
@@ -34,9 +30,7 @@ Your goal is to deliver **correct, clear, minimal-change code** that strictly fo
   - `POST` → `201 CREATED`
   - `DELETE`, `/default` actions → `204 NO CONTENT`
 
----
-
-## 2) URL & Resource Design
+## URL & Resource Design
 - Follow nested resource structure used in the project:
   - `/api/users/{userId}/addresses`
 - If `userId` appears in the path:
@@ -44,9 +38,8 @@ Your goal is to deliver **correct, clear, minimal-change code** that strictly fo
   - Example: a resource must belong to the given user
 - Never ignore `userId` in nested endpoints.
 
----
 
-## 3) Controller Rules
+## Controller Rules
 Controllers must be **thin**, similar to existing controllers (e.g., `AddressController`):
 - Responsibilities:
   - endpoint mapping
@@ -60,9 +53,7 @@ Controllers must be **thin**, similar to existing controllers (e.g., `AddressCon
 - Exceptions must be thrown and handled by existing `@ControllerAdvice`.
 - Declaring `throws IdInvalidException` is acceptable and consistent with the project.
 
----
-
-## 4) DTO Conventions
+## DTO Conventions
 - Use Lombok:
   - `@Getter`, `@Setter`, `@Builder`
   - `@NoArgsConstructor`, `@AllArgsConstructor`
@@ -70,9 +61,7 @@ Controllers must be **thin**, similar to existing controllers (e.g., `AddressCon
 - Use nested static classes for structured responses when appropriate.
 - **Never return entities directly from controllers**.
 
----
-
-## 5) Service & ServiceImpl (MANDATORY)
+## Service & ServiceImpl (MANDATORY)
 - Every module must have:
   - `XxxService` (interface)
   - `XxxServiceImpl` (implementation)
@@ -92,9 +81,7 @@ Controllers must be **thin**, similar to existing controllers (e.g., `AddressCon
   - Validate that the resource belongs to the user
   - If not → throw `IdInvalidException` or a meaningful business exception
 
----
-
-## 6) Repository Rules
+## Repository Rules
 - Prefer Spring Data JPA derived queries:
   - `findByIdAndUserId(...)`
   - `existsByIdAndUserId(...)`
@@ -102,9 +89,7 @@ Controllers must be **thin**, similar to existing controllers (e.g., `AddressCon
   - Use `orElseThrow(...)`
 - No business logic inside repositories.
 
----
-
-## 7) Exception Handling (Project-Specific)
+## Exception Handling (Project-Specific)
 - Use `IdInvalidException` for:
   - invalid IDs
   - non-existing resources
@@ -119,9 +104,7 @@ Controllers must be **thin**, similar to existing controllers (e.g., `AddressCon
   - `Address does not belong to user`
 - Do NOT swallow exceptions with try/catch.
 
----
-
-## 8) AI Output Format (Required)
+## AI Output Format (Required)
 Whenever you generate or modify code, respond using this format:
 
 1) **Summary** (3–6 bullet points)
@@ -129,9 +112,7 @@ Whenever you generate or modify code, respond using this format:
 3) **API Behavior** (status codes + sample request/response if relevant)
 4) **Notes / Risks** (only if applicable)
 
----
-
-## 9) Default Module Structure
+## Default Module Structure
 When creating new features, follow this structure:
 
 - controller: `XxxController`
@@ -144,7 +125,7 @@ When creating new features, follow this structure:
 - exception:
   - throw `IdInvalidException` (preferred in this project) or `RuntimeException` with clear messages
 
-## 10) Clean Service Method Structure (MANDATORY)
+## Clean Service Method Structure (MANDATORY)
 
 - Service public methods (e.g. `create`, `register`, `update`, `delete`) must be **short and orchestration-focused**.
 - A service method should:
@@ -153,14 +134,14 @@ When creating new features, follow this structure:
 
 - Complex logic MUST be extracted into **private helper methods** inside the same `ServiceImpl` class.
 
-## 11) Required extraction rules:
+## Required extraction rules:
 - Validation logic → `private validateXxx(...)`
 - Entity creation / mapping → `private createXxxFromRequest(...)` or Mapper
 - Ownership / existence checks → `private validateXxxExists(...)`
 - Side-effects (email, token, external calls) → `private handleXxx(...)`
 - Reusable sub-steps → `private hasXxx(...)`, `private getXxx(...)`
 
-## 12) Constraints:
+## Constraints:
 - Helper methods MUST be:
   - `private`
   - Located in the same `ServiceImpl`
@@ -169,7 +150,7 @@ When creating new features, follow this structure:
   - The logic is reused across multiple services
   - Or explicitly requested
 
-## 13) Anti-patterns (DO NOT DO):
+## Anti-patterns (DO NOT DO):
 - Large service methods with:
   - inline `if/else` chains
   - inline stream mappings
