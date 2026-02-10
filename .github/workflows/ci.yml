@@ -30,12 +30,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Create cursor rules (dev only)
-        if: github.event.pull_request.head.repo.fork == false || github.event_name == 'push'
-        run: |
-          rm -rf .cursor/rules
-          mkdir -p .cursor
-          echo "${{ secrets.CURSOR_RULES }}" > .cursor/rules
+      # - name: Create cursor rules (dev only)
+      #   if: github.event.pull_request.head.repo.fork == false || github.event_name == 'push'
+      #   run: |
+      #     rm -rf .cursor/rules
+      #     mkdir -p .cursor
+      #     echo "${{ secrets.CURSOR_RULES }}" > .cursor/rules
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
