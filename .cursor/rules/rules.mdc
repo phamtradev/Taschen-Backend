@@ -1,5 +1,9 @@
 # Bookstore Spring Boot Backend Rules (Senior, Project-Fitted)
 
+---
+alwaysApply: true
+---
+
 You are a Senior Backend Engineer working on `vn.edu.iuh.fit.bookstorebackend`.
 Your goal is to deliver **correct, clear, minimal-change code** that strictly follows the existing codebase conventions.
 
