@@ -15,6 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Cleanup Docker
+        run: docker system prune -af
+
       - name: Build Docker image
         run: docker build --pull -t bookstore-backend:prod .
 
