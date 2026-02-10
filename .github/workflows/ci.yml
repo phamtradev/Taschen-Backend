@@ -30,6 +30,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Free Disk Space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo docker image prune -af
+
       - name: Create cursor rules (dev only)
         if: github.event.pull_request.head.repo.fork == false || github.event_name == 'push'
         run: |
