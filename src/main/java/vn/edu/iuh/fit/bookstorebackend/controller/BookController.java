@@ -1,11 +1,15 @@
 package vn.edu.iuh.fit.bookstorebackend.controller;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateBookRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.UpdateBookRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.BookResponse;
+import vn.edu.iuh.fit.bookstorebackend.dto.response.PageResponse;
 import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
 import vn.edu.iuh.fit.bookstorebackend.service.BookService;
 
@@ -29,17 +33,22 @@ public class BookController {
     }
 
     @GetMapping
-    public ResponseEntity<List<BookResponse>> getAllBooks(
-            @RequestParam(required = false) String sortByField,
-            @RequestParam(required = false) String sortDirection) {
-        List<BookResponse> books;
-        if (sortByField != null || sortDirection != null) {
-            books = bookService.getAllBooksSorted(
-                    sortByField != null ? sortByField : "id",
-                    sortDirection != null ? sortDirection : "asc");
-        } else {
-            books = bookService.getAllBooks();
-        }
+    public ResponseEntity<PageResponse<BookResponse>> getAllBooks(
+            @RequestParam(required = false, defaultValue = "1") int page,
+            @RequestParam(required = false, defaultValue = "10") int size,
+            @RequestParam(required = false, defaultValue = "id") String sortBy,
+            @RequestParam(required = false, defaultValue = "asc") String sortDir) {
+        
+        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by(direction, sortBy));
+        
+        PageResponse<BookResponse> bookPage = bookService.getAllBooks(pageable);
+        return ResponseEntity.status(HttpStatus.OK).body(bookPage);
+    }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<BookResponse>> getAllBooksWithoutPagination() {
+        List<BookResponse> books = bookService.getAllBooks();
         return ResponseEntity.status(HttpStatus.OK).body(books);
     }
 
