@@ -1,12 +1,15 @@
 package vn.edu.iuh.fit.bookstorebackend.service.Impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateBookRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.UpdateBookRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.BookResponse;
+import vn.edu.iuh.fit.bookstorebackend.dto.response.PageResponse;
 import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
 import vn.edu.iuh.fit.bookstorebackend.model.Book;
 import vn.edu.iuh.fit.bookstorebackend.model.Category;
@@ -16,6 +19,8 @@ import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.CategoryRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.VariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.BookService;
+
+import vn.edu.iuh.fit.bookstorebackend.util.PaginationUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -114,6 +119,14 @@ public class BookServiceImpl implements BookService {
     public List<BookResponse> getAllBooks() {
         List<Book> books = bookRepository.findAll();
         return mapToBookResponseList(books);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<BookResponse> getAllBooks(Pageable pageable) {
+        Page<Book> page = bookRepository.findAll(pageable);
+        Page<BookResponse> mappedPage = page.map(bookMapper::toBookResponse);
+        return PaginationUtil.toPageResponse(mappedPage);
     }
     
     private void validateBookId(Long bookId) throws IdInvalidException {
