@@ -18,6 +18,7 @@ import vn.edu.iuh.fit.bookstorebackend.mapper.BookMapper;
 import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.CategoryRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.VariantRepository;
+import vn.edu.iuh.fit.bookstorebackend.service.BookEmbeddingService;
 import vn.edu.iuh.fit.bookstorebackend.service.BookService;
 
 import vn.edu.iuh.fit.bookstorebackend.util.PaginationUtil;
@@ -35,6 +36,7 @@ public class BookServiceImpl implements BookService {
     private final CategoryRepository categoryRepository;
     private final VariantRepository variantRepository;
     private final BookMapper bookMapper;
+    private final BookEmbeddingService bookEmbeddingService;
 
     @Override
     @Transactional
@@ -47,6 +49,8 @@ public class BookServiceImpl implements BookService {
         
         Book savedBook = bookRepository.save(book);
         createBookVariants(savedBook, request.getVariantFormats());
+        
+        bookEmbeddingService.generateEmbedding(savedBook.getId());
         
         return bookMapper.toBookResponse(savedBook);
     }
@@ -61,7 +65,7 @@ public class BookServiceImpl implements BookService {
         if (title != null && bookRepository.existsByTitle(title)) {
             throw new RuntimeException("Book with title already exists: " + title);
         }
-    }
+    } 
     
     private Book createBookFromRequest(CreateBookRequest request) {
         Book book = bookMapper.toBook(request);
@@ -153,6 +157,8 @@ public class BookServiceImpl implements BookService {
         Book updatedBook = bookRepository.save(book);
         updateBookVariants(updatedBook, request.getVariantFormats());
         
+        bookEmbeddingService.regenerateEmbedding(bookId);
+        
         return bookMapper.toBookResponse(updatedBook);
     }
     
@@ -236,6 +242,9 @@ public class BookServiceImpl implements BookService {
     public void deleteBook(Long bookId) throws IdInvalidException {
         validateBookId(bookId);
         Book book = findBookById(bookId);
+        
+        bookEmbeddingService.deleteEmbedding(bookId);
+        
         bookRepository.delete(book);
     }
 

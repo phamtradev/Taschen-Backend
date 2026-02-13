@@ -11,6 +11,7 @@ import vn.edu.iuh.fit.bookstorebackend.dto.request.UpdateBookRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.BookResponse;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.PageResponse;
 import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
+import vn.edu.iuh.fit.bookstorebackend.service.BookEmbeddingService;
 import vn.edu.iuh.fit.bookstorebackend.service.BookService;
 
 import java.util.List;
@@ -20,9 +21,11 @@ import java.util.List;
 public class BookController {
 
     private final BookService bookService;
+    private final BookEmbeddingService bookEmbeddingService;
 
-    public BookController(BookService bookService) {
+    public BookController(BookService bookService, BookEmbeddingService bookEmbeddingService) {
         this.bookService = bookService;
+        this.bookEmbeddingService = bookEmbeddingService;
     }
 
     @PostMapping
@@ -88,5 +91,13 @@ public class BookController {
             @PathVariable Long bookId) throws IdInvalidException {
         bookService.deleteBook(bookId);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    @GetMapping("/{bookId}/similar")
+    public ResponseEntity<List<BookResponse>> findSimilarBooks(
+            @PathVariable Long bookId,
+            @RequestParam(required = false, defaultValue = "10") int limit) throws IdInvalidException {
+        List<BookResponse> similarBooks = bookEmbeddingService.findSimilarBooks(bookId, limit);
+        return ResponseEntity.status(HttpStatus.OK).body(similarBooks);
     }
 }
