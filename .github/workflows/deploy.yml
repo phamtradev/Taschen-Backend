@@ -29,6 +29,7 @@ jobs:
             -e SPRING_PROFILES_ACTIVE=prod \
             -e DB_PASSWORD_PROD='${{ secrets.DB_PASSWORD_PROD }}' \
             -e APP_JWT_SECRET='${{ secrets.APP_JWT_SECRET }}' \
+            -e AI_API_KEY='${{ secrets.AI_API_KEY }}' \
             -e CLOUDINARY_CLOUD_NAME='${{ secrets.CLOUDINARY_CLOUD_NAME }}' \
             -e CLOUDINARY_API_KEY='${{ secrets.CLOUDINARY_API_KEY }}' \
             -e CLOUDINARY_API_SECRET='${{ secrets.CLOUDINARY_API_SECRET }}' \
