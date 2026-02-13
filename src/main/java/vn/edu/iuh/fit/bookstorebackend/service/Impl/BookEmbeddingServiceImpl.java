@@ -2,8 +2,12 @@ package vn.edu.iuh.fit.bookstorebackend.service.Impl;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.BookResponse;
 import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
 import vn.edu.iuh.fit.bookstorebackend.mapper.BookMapper;
@@ -29,9 +33,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class BookEmbeddingServiceImpl implements BookEmbeddingService {
 
+    // Record để chứa kết quả embedding + model name
+    private record EmbeddingResult(List<Double> vector, String model) {}
+
     private final BookEmbeddingRepository embeddingRepository;
     private final BookRepository bookRepository;
     private final BookMapper bookMapper;
+
+    @Value("${ai.api.key}")
+    private String aiApiKey;
 
     /** Số chiều của vector (100 chiều) */
     private static final int VECTOR_DIMENSION = 100;
@@ -43,9 +53,9 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
                 .orElseThrow(() -> new IdInvalidException("Book not found"));
 
         String textToEmbed = buildTextToEmbed(book);
-        List<Double> vector = generateSimpleVector(textToEmbed);
+        EmbeddingResult result = generateSimpleVector(textToEmbed);
 
-        saveOrUpdateEmbedding(bookId, vector, textToEmbed);
+        saveOrUpdateEmbedding(bookId, result.vector(), result.model(), textToEmbed);
     }
 
     /**
@@ -125,9 +135,63 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
     }
 
     /**
-     * Tạo vector đơn giản từ text bằng word frequency + hash.
+     * Tạo vector từ text bằng Gemini API.
+     * Nếu API fail thì dùng thuật toán local fallback.
      */
-    private List<Double> generateSimpleVector(String text) {
+    private EmbeddingResult generateSimpleVector(String text) {
+        try {
+            RestTemplate restTemplate = new RestTemplate();
+            
+            // Gemini embedding API - dùng v1beta với header X-goog-api-key
+            String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent";
+            
+            String requestBody = String.format("""
+                {
+                  "content": {
+                    "parts": [{"text": "%s"}]
+                  }
+                }
+                """, text.replace("\"", "\\\"").replace("\n", " "));
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("X-goog-api-key", aiApiKey); // Dùng header X-goog-api-key
+            
+            HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
+            
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                url, 
+                HttpMethod.POST, 
+                entity, 
+                new ParameterizedTypeReference<Map<String, Object>>() {}
+            );
+            
+            Map<String, Object> body = response.getBody();
+            if (body != null && body.containsKey("embedding")) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> embedding = (Map<String, Object>) body.get("embedding");
+                @SuppressWarnings("unchecked")
+                List<Double> values = (List<Double>) embedding.get("values");
+                if (values != null && !values.isEmpty()) {
+                    log.info("Successfully generated embedding via Gemini API, dimension: {}", values.size());
+                    return new EmbeddingResult(values, "gemini-embedding-001");
+                }
+            }
+            
+            log.warn("Gemini API returned empty embedding, using fallback");
+            return new EmbeddingResult(generateFallbackVector(text), "fallback-local");
+            
+        } catch (Exception e) {
+            log.error("Error calling Gemini API: {}, using fallback algorithm", e.getMessage());
+            return new EmbeddingResult(generateFallbackVector(text), "fallback-local");
+        }
+    }
+
+    /**
+     * Fallback: Tạo vector đơn giản từ text bằng word frequency + hash.
+     * Dùng khi Gemini API fail.
+     */
+    private List<Double> generateFallbackVector(String text) {
         // Đếm tần suất từ
         String[] words = text.split("\\s+");
         Map<String, Integer> wordFreq = new HashMap<>();
@@ -152,10 +216,6 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
 
         return normalizeVector(vector);
     }
-
-    /**
-     * Chuẩn hóa vector về đơn vị (độ dài = 1).
-     */
     private List<Double> normalizeVector(List<Double> vector) {
         double magnitude = Math.sqrt(vector.stream()
                 .mapToDouble(d -> d * d)
@@ -200,14 +260,14 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
     /**
      * Lưu hoặc cập nhật embedding vào database.
      */
-    private void saveOrUpdateEmbedding(Long bookId, List<Double> vector, String textUsed) {
+    private void saveOrUpdateEmbedding(Long bookId, List<Double> vector, String model, String textUsed) {
         Optional<BookEmbedding> existing = embeddingRepository.findByBookId(bookId);
 
         BookEmbedding embedding = existing.orElseGet(BookEmbedding::new);
         
         embedding.setBookId(bookId);
         embedding.setVector(vectorToJson(vector));
-        embedding.setModel("simple-frequency");
+        embedding.setModel(model);
         embedding.setDimension(VECTOR_DIMENSION);
         embedding.setTextUsed(textUsed);
 
