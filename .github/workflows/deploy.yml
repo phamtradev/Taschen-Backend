@@ -28,6 +28,8 @@ jobs:
             -p 8080:8080 \
             -e SPRING_PROFILES_ACTIVE=prod \
             -e DB_PASSWORD_PROD='${{ secrets.DB_PASSWORD_PROD }}' \
+            -e DB_URL_PROD='${{ secrets.DB_URL_PROD }}' \
+            -e DB_USERNAME_PROD='${{ secrets.DB_USERNAME_PROD }}' \
             -e APP_JWT_SECRET='${{ secrets.APP_JWT_SECRET }}' \
             -e AI_API_KEY='${{ secrets.AI_API_KEY }}' \
             -e CLOUDINARY_CLOUD_NAME='${{ secrets.CLOUDINARY_CLOUD_NAME }}' \
