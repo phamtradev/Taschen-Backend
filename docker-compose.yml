@@ -3,8 +3,8 @@ services:
     image: mysql:8.0
     container_name: bookstore-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: 123456
-      MYSQL_DATABASE: bookstoreecommerce
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-123456}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-bookstoreecommerce}
     ports:
       - "3306:3306"
     volumes:
@@ -18,9 +18,9 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/bookstoreecommerce?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: 123456
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-bookstoreecommerce}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-root}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-123456}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       # RAM optimization for t3.micro (512MB limit)
       JAVA_OPTS: "-Xmx256m -Xms128m -XX:+UseG1GC"
