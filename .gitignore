@@ -32,3 +32,7 @@ build/
 ### VS Code ###
 .vscode/
 .cursor/
+
+### Environment Variables ###
+.env
+*.env
