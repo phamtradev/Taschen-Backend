@@ -27,7 +27,10 @@ jobs:
           docker run -d --name bookstore-prod \
             -p 8080:8080 \
             -e SPRING_PROFILES_ACTIVE=prod \
+            -e JAVA_OPTS="-Xmx256m -Xms128m -XX:+UseG1GC" \
             -e DB_PASSWORD_PROD='${{ secrets.DB_PASSWORD_PROD }}' \
+            -e DB_URL_PROD='${{ secrets.DB_URL_PROD }}' \
+            -e DB_USERNAME_PROD='${{ secrets.DB_USERNAME_PROD }}' \
             -e APP_JWT_SECRET='${{ secrets.APP_JWT_SECRET }}' \
             -e AI_API_KEY='${{ secrets.AI_API_KEY }}' \
             -e CLOUDINARY_CLOUD_NAME='${{ secrets.CLOUDINARY_CLOUD_NAME }}' \
@@ -39,6 +42,7 @@ jobs:
             -e MAIL_PASSWORD='${{ secrets.MAIL_PASSWORD }}' \
             -e MAIL_FROM='${{ secrets.MAIL_FROM }}' \
             -e MAIL_FROM_NAME='${{ secrets.MAIL_FROM_NAME }}' \
+            --memory=512m \
             --restart unless-stopped \
             bookstore-backend:prod
 
