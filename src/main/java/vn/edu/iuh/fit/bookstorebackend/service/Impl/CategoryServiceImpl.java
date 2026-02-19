@@ -145,6 +145,12 @@ public class CategoryServiceImpl implements CategoryService {
     public void deleteCategory(Long categoryId) throws IdInvalidException {
         validateCategoryId(categoryId);
         Category category = findCategoryById(categoryId);
+        
+        if (category.getBooks() != null && !category.getBooks().isEmpty()) {
+            throw new IdInvalidException("Cannot delete category because it has " 
+                + category.getBooks().size() + " associated book(s)");
+        }
+        
         categoryRepository.delete(category);
     }
 
