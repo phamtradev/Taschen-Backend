@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 
 /**
  * Service xử lý embedding (biểu diễn vector) cho sách.
- * 
+ * <p>
  * Luồng hoạt động:
  * 1. Tạo embedding khi sách được tạo/cập nhật
  * 2. Tìm sách tương tự bằng cosine similarity
@@ -34,7 +34,8 @@ import java.util.stream.Collectors;
 public class BookEmbeddingServiceImpl implements BookEmbeddingService {
 
     // Record để chứa kết quả embedding + model name
-    private record EmbeddingResult(List<Double> vector, String model) {}
+    private record EmbeddingResult(List<Double> vector, String model) {
+    }
 
     private final BookEmbeddingRepository embeddingRepository;
     private final BookRepository bookRepository;
@@ -43,7 +44,9 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
     @Value("${ai.api.key}")
     private String aiApiKey;
 
-    /** Số chiều của vector (100 chiều) */
+    /**
+     * Số chiều của vector (100 chiều)
+     */
     private static final int VECTOR_DIMENSION = 100;
 
     @Override
@@ -117,7 +120,7 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
      */
     private String buildTextToEmbed(Book book) {
         StringBuilder sb = new StringBuilder();
-        
+
         if (book.getTitle() != null) {
             sb.append(book.getTitle()).append(" ");
         }
@@ -141,31 +144,32 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
     private EmbeddingResult generateSimpleVector(String text) {
         try {
             RestTemplate restTemplate = new RestTemplate();
-            
+
             // Gemini embedding API - dùng v1beta với header X-goog-api-key
             String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent";
-            
+
             String requestBody = String.format("""
-                {
-                  "content": {
-                    "parts": [{"text": "%s"}]
-                  }
-                }
-                """, text.replace("\"", "\\\"").replace("\n", " "));
-            
+                    {
+                      "content": {
+                        "parts": [{"text": "%s"}]
+                      }
+                    }
+                    """, text.replace("\"", "\\\"").replace("\n", " "));
+
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.set("X-goog-api-key", aiApiKey); // Dùng header X-goog-api-key
-            
+
             HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
-            
+
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
-                url, 
-                HttpMethod.POST, 
-                entity, 
-                new ParameterizedTypeReference<Map<String, Object>>() {}
+                    url,
+                    HttpMethod.POST,
+                    entity,
+                    new ParameterizedTypeReference<Map<String, Object>>() {
+                    }
             );
-            
+
             Map<String, Object> body = response.getBody();
             if (body != null && body.containsKey("embedding")) {
                 @SuppressWarnings("unchecked")
@@ -177,10 +181,10 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
                     return new EmbeddingResult(values, "gemini-embedding-001");
                 }
             }
-            
+
             log.warn("Gemini API returned empty embedding, using fallback");
             return new EmbeddingResult(generateFallbackVector(text), "fallback-local");
-            
+
         } catch (Exception e) {
             log.error("Error calling Gemini API: {}, using fallback algorithm", e.getMessage());
             return new EmbeddingResult(generateFallbackVector(text), "fallback-local");
@@ -216,15 +220,16 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
 
         return normalizeVector(vector);
     }
+
     private List<Double> normalizeVector(List<Double> vector) {
         double magnitude = Math.sqrt(vector.stream()
                 .mapToDouble(d -> d * d)
                 .sum());
-        
+
         if (magnitude == 0) {
             return vector;
         }
-        
+
         return vector.stream()
                 .map(d -> d / magnitude)
                 .collect(Collectors.toList());
@@ -249,7 +254,7 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
         }
 
         double denominator = Math.sqrt(norm1) * Math.sqrt(norm2);
-        
+
         if (denominator == 0) {
             return 0.0;
         }
@@ -264,7 +269,7 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
         Optional<BookEmbedding> existing = embeddingRepository.findByBookId(bookId);
 
         BookEmbedding embedding = existing.orElseGet(BookEmbedding::new);
-        
+
         embedding.setBookId(bookId);
         embedding.setVector(vectorToJson(vector));
         embedding.setModel(model);
