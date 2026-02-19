@@ -22,7 +22,6 @@ public class GlobalException {
         }
         
         res.setError(errorMessage);
-        
         String userMessage = "Validation Error";
         if (exception instanceof BadCredentialsException
                 || exception instanceof CredentialsExpiredException
