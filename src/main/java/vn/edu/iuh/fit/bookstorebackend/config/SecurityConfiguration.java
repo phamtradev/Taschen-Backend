@@ -16,6 +16,19 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfiguration {
 
+    private static final String[] PUBLIC_ENDPOINTS = {
+            "/api/auth/**",
+            "/api/promotions/validate/**",
+            "/actuator/health/**",
+            "/actuator/info"
+    };
+
+    private static final String[] PUBLIC_GET_ENDPOINTS = {
+            "/api/books/**",
+            "/api/categories/**",
+            "/api/suppliers/**"
+    };
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -29,11 +42,8 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(
                         authz -> authz
                                 // Public endpoints
-                                .requestMatchers("/api/auth/**").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/api/books/**").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
-                                .requestMatchers(HttpMethod.GET, "/api/suppliers/**").permitAll()
-                                .requestMatchers("/api/promotions/validate/**").permitAll()
+                                .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                                .requestMatchers(HttpMethod.GET, PUBLIC_GET_ENDPOINTS).permitAll()
                                 // All other endpoints require authentication
                                 .anyRequest().authenticated()
                 )
