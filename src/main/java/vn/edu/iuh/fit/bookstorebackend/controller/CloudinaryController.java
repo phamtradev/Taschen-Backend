@@ -9,6 +9,7 @@ import vn.edu.iuh.fit.bookstorebackend.service.CloudinaryService;
 import java.io.IOException;
 import java.util.Map;
 
+@CrossOrigin(origins = "http://localhost:3000")
 @RestController
 @RequestMapping("/api/cloudinary")
 @RequiredArgsConstructor
