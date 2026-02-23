@@ -2,6 +2,7 @@ package vn.edu.iuh.fit.bookstorebackend.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -27,9 +28,14 @@ public class SecurityConfiguration {
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(
                         authz -> authz
-//                .requestMatchers("/api/auth/**").permitAll()
-//                                .anyRequest().authenticated()
-                                .anyRequest().permitAll()
+                                // Public endpoints
+                                .requestMatchers("/api/auth/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/books/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
+                                .requestMatchers(HttpMethod.GET, "/api/suppliers/**").permitAll()
+                                .requestMatchers("/api/promotions/validate/**").permitAll()
+                                // All other endpoints require authentication
+                                .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .sessionManagement(session -> session
