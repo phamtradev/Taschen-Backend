@@ -35,6 +35,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
+        
+        // Skip CORS preflight (OPTIONS) requests
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+        
         String header = request.getHeader("Authorization");
         logger.debug("Incoming request {} {} from {}", request.getMethod(), request.getRequestURI(), request.getRemoteAddr());
         logger.debug("Authorization header present: {}", header != null);
