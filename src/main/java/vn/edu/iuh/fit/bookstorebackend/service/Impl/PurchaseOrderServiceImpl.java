@@ -14,11 +14,13 @@ import vn.edu.iuh.fit.bookstorebackend.model.PurchaseOrder;
 import vn.edu.iuh.fit.bookstorebackend.model.PurchaseOrderItem;
 import vn.edu.iuh.fit.bookstorebackend.model.Supplier;
 import vn.edu.iuh.fit.bookstorebackend.model.User;
+import vn.edu.iuh.fit.bookstorebackend.model.Variant;
 import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.PurchaseOrderItemRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.PurchaseOrderRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.SupplierRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.UserRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.VariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.PurchaseOrderService;
 
 import java.time.LocalDateTime;
@@ -34,6 +36,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final SupplierRepository supplierRepository;
     private final UserRepository userRepository;
     private final BookRepository bookRepository;
+    private final VariantRepository variantRepository;
     private final PurchaseOrderMapper purchaseOrderMapper;
     private final EntityManager entityManager;
 
@@ -76,6 +79,9 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             if (item.getBookId() == null || item.getBookId() <= 0) {
                 throw new IdInvalidException("Book identifier is invalid");
             }
+            if (item.getVariantId() == null || item.getVariantId() <= 0) {
+                throw new IdInvalidException("Variant identifier is invalid");
+            }
             if (item.getQuantity() <= 0) {
                 throw new IdInvalidException("Quantity must be greater than 0");
             }
@@ -102,10 +108,12 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private void createPurchaseOrderItems(PurchaseOrder purchaseOrder, List<CreatePurchaseOrderRequest.PurchaseOrderItemRequest> itemRequests) {
         for (CreatePurchaseOrderRequest.PurchaseOrderItemRequest itemRequest : itemRequests) {
             Book book = findBookById(itemRequest.getBookId());
+            Variant variant = findVariantById(itemRequest.getVariantId());
 
             PurchaseOrderItem item = new PurchaseOrderItem();
             item.setPurchaseOrder(purchaseOrder);
             item.setBook(book);
+            item.setVariant(variant);
             item.setQuantity(itemRequest.getQuantity());
             item.setImportPrice(itemRequest.getImportPrice());
 
@@ -342,5 +350,10 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private Book findBookById(Long bookId) {
         return bookRepository.findById(bookId)
                 .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
+    }
+
+    private Variant findVariantById(Long variantId) {
+        return variantRepository.findById(variantId)
+                .orElseThrow(() -> new RuntimeException("Variant not found with identifier: " + variantId));
     }
 }

@@ -15,12 +15,14 @@ import vn.edu.iuh.fit.bookstorebackend.model.ImportStockDetail;
 import vn.edu.iuh.fit.bookstorebackend.model.PurchaseOrder;
 import vn.edu.iuh.fit.bookstorebackend.model.Supplier;
 import vn.edu.iuh.fit.bookstorebackend.model.User;
+import vn.edu.iuh.fit.bookstorebackend.model.Variant;
 import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.ImportStockDetailRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.ImportStockRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.PurchaseOrderRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.SupplierRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.UserRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.VariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.ImportStockService;
 
 import java.time.LocalDateTime;
@@ -36,6 +38,7 @@ public class ImportStockServiceImpl implements ImportStockService {
     private final SupplierRepository supplierRepository;
     private final UserRepository userRepository;
     private final BookRepository bookRepository;
+    private final VariantRepository variantRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final ImportStockMapper importStockMapper;
     private final EntityManager entityManager;
@@ -86,6 +89,9 @@ public class ImportStockServiceImpl implements ImportStockService {
             if (detail.getBookId() == null || detail.getBookId() <= 0) {
                 throw new IdInvalidException("Book identifier is invalid");
             }
+            if (detail.getVariantId() == null || detail.getVariantId() <= 0) {
+                throw new IdInvalidException("Variant identifier is invalid");
+            }
             if (detail.getQuantity() <= 0) {
                 throw new IdInvalidException("Quantity must be greater than 0");
             }
@@ -133,10 +139,12 @@ public class ImportStockServiceImpl implements ImportStockService {
     private void createImportStockDetails(ImportStock importStock, List<CreateImportStockRequest.ImportStockDetailRequest> detailRequests) {
         for (CreateImportStockRequest.ImportStockDetailRequest detailRequest : detailRequests) {
             Book book = findBookById(detailRequest.getBookId());
+            Variant variant = findVariantById(detailRequest.getVariantId());
 
             ImportStockDetail detail = new ImportStockDetail();
             detail.setImportStock(importStock);
             detail.setBook(book);
+            detail.setVariant(variant);
             detail.setQuantity(detailRequest.getQuantity());
             detail.setImportPrice(detailRequest.getImportPrice());
 
@@ -205,5 +213,10 @@ public class ImportStockServiceImpl implements ImportStockService {
     private Book findBookById(Long bookId) {
         return bookRepository.findById(bookId)
                 .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
+    }
+
+    private Variant findVariantById(Long variantId) {
+        return variantRepository.findById(variantId)
+                .orElseThrow(() -> new RuntimeException("Variant not found with identifier: " + variantId));
     }
 }
