@@ -1,7 +1,7 @@
 package vn.edu.iuh.fit.bookstorebackend.common;
 
 public enum PurchaseOrderStatus {
-    DRAFT,
+    PENDING,
     APPROVED,
     REJECTED,
     ORDERED,
