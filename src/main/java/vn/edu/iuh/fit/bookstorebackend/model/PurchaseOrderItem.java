@@ -23,6 +23,10 @@ public class PurchaseOrderItem {
     private Book book;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "variant_id", nullable = false)
+    private Variant variant;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "purchase_order_id", nullable = false)
     private PurchaseOrder purchaseOrder;
 }
