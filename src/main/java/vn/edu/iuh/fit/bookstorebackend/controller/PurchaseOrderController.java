@@ -42,6 +42,13 @@ public class PurchaseOrderController {
         return ResponseEntity.ok(purchaseOrderService.getPurchaseOrderById(id));
     }
 
+    //for testing
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletePurchaseOrder(@PathVariable Long id) throws IdInvalidException {
+        purchaseOrderService.deletePurchaseOrder(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @PutMapping("/{purchaseOrderId}/approve")
     public ResponseEntity<PurchaseOrderResponse> approvePurchaseOrder(
             @PathVariable Long purchaseOrderId,

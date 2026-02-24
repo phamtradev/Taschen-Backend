@@ -127,6 +127,20 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         return purchaseOrderMapper.toPurchaseOrderResponse(purchaseOrder);
     }
 
+    @Override
+    @Transactional
+    public void deletePurchaseOrder(Long id) throws IdInvalidException {
+        PurchaseOrder purchaseOrder = findPurchaseOrderById(id);
+        validatePurchaseOrderCanBeDeleted(purchaseOrder);
+        purchaseOrderRepository.delete(purchaseOrder);
+    }
+
+    private void validatePurchaseOrderCanBeDeleted(PurchaseOrder purchaseOrder) throws IdInvalidException {
+        if (purchaseOrder.getStatus() != PurchaseOrderStatus.PENDING) {
+            throw new IdInvalidException("Only PENDING purchase orders can be deleted");
+        }
+    }
+
     private PurchaseOrder findPurchaseOrderById(Long id) throws IdInvalidException {
         return purchaseOrderRepository.findById(id)
                 .orElseThrow(() -> new IdInvalidException("Purchase order not found: " + id));
