@@ -14,6 +14,8 @@ public interface PurchaseOrderService {
 
     PurchaseOrderResponse getPurchaseOrderById(Long id) throws IdInvalidException;
 
+    void deletePurchaseOrder(Long id) throws IdInvalidException;
+
     PurchaseOrderResponse approvePurchaseOrder(Long purchaseOrderId, Long approvedById) throws IdInvalidException;
 
     PurchaseOrderResponse rejectPurchaseOrder(Long purchaseOrderId, Long approvedById) throws IdInvalidException;
