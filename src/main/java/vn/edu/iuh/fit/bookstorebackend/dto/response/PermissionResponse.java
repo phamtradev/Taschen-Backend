@@ -5,9 +5,10 @@ import lombok.Data;
 import vn.edu.iuh.fit.bookstorebackend.common.HttpMethod;
 
 @Data
-@JsonPropertyOrder({ "id", "roleCode", "httpMethod", "pathPattern", "active" })
+@JsonPropertyOrder({ "id", "code", "roleCode", "httpMethod", "pathPattern", "active" })
 public class PermissionResponse {
     private Long id;
+    private String code;
     private String roleCode;
     private HttpMethod httpMethod;
     private String pathPattern;
