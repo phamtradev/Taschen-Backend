@@ -7,6 +7,7 @@ import vn.edu.iuh.fit.bookstorebackend.common.HttpMethod;
 @Getter
 @Setter
 public class CreatePermissionForRoleRequest {
+    private String code;  // VD: "USER_GET_ALL", "BOOK_CREATE"
     private String roleCode;
     private HttpMethod httpMethod;
     private String pathPattern;

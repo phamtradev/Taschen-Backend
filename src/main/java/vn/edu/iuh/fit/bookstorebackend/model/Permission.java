@@ -6,12 +6,15 @@ import vn.edu.iuh.fit.bookstorebackend.common.HttpMethod;
 
 @Entity
 @Data
-@Table(name = "perrmissions")
+@Table(name = "permissions")
 public class Permission {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "code", nullable = false, unique = true, length = 100)
+    private String code;  // VD: "USER_GET_ALL", "BOOK_CREATE"
 
     @Enumerated(EnumType.STRING)
     @Column(name = "http_method", nullable = false, length = 10)

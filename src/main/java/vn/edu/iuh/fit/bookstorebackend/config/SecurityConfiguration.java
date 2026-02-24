@@ -16,6 +16,14 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfiguration {
 
+    private final JwtAuthenticationFilter jwtAuthFilter;
+    private final PermissionFilter permissionFilter;
+
+    public SecurityConfiguration(JwtAuthenticationFilter jwtAuthFilter, PermissionFilter permissionFilter) {
+        this.jwtAuthFilter = jwtAuthFilter;
+        this.permissionFilter = permissionFilter;
+    }
+
     private static final String[] PUBLIC_ENDPOINTS = {
             "/api/auth/**",
             "/api/promotions/validate/**",
@@ -35,7 +43,7 @@ public class SecurityConfiguration {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthFilter) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
@@ -43,12 +51,13 @@ public class SecurityConfiguration {
                         authz -> authz
                                 .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                                 .requestMatchers(HttpMethod.GET, PUBLIC_GET_ENDPOINTS).permitAll()
-                                .anyRequest().permitAll()
+                                .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(permissionFilter, JwtAuthenticationFilter.class)
                 .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                );
+        );
 
         return http.build();
     }

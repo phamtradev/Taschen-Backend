@@ -37,6 +37,11 @@ public class PurchaseOrderController {
         return ResponseEntity.status(HttpStatus.OK).body(purchaseOrders);
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<PurchaseOrderResponse> getPurchaseOrderById(@PathVariable Long id) throws IdInvalidException {
+        return ResponseEntity.ok(purchaseOrderService.getPurchaseOrderById(id));
+    }
+
     @PutMapping("/{purchaseOrderId}/approve")
     public ResponseEntity<PurchaseOrderResponse> approvePurchaseOrder(
             @PathVariable Long purchaseOrderId,

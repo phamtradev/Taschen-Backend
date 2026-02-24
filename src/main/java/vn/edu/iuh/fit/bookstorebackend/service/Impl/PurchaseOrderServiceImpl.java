@@ -95,7 +95,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         purchaseOrder.setSupplier(supplier);
         purchaseOrder.setCreatedBy(createdBy);
         purchaseOrder.setNote(request.getNote());
-        purchaseOrder.setStatus(PurchaseOrderStatus.DRAFT);
+        purchaseOrder.setStatus(PurchaseOrderStatus.PENDING);
         return purchaseOrder;
     }
 
@@ -118,6 +118,18 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     public List<PurchaseOrderResponse> getAllPurchaseOrders() {
         List<PurchaseOrder> purchaseOrders = purchaseOrderRepository.findAll();
         return mapToPurchaseOrderResponseList(purchaseOrders);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PurchaseOrderResponse getPurchaseOrderById(Long id) throws IdInvalidException {
+        PurchaseOrder purchaseOrder = findPurchaseOrderById(id);
+        return purchaseOrderMapper.toPurchaseOrderResponse(purchaseOrder);
+    }
+
+    private PurchaseOrder findPurchaseOrderById(Long id) throws IdInvalidException {
+        return purchaseOrderRepository.findById(id)
+                .orElseThrow(() -> new IdInvalidException("Purchase order not found: " + id));
     }
 
     private List<PurchaseOrderResponse> mapToPurchaseOrderResponseList(List<PurchaseOrder> purchaseOrders) {
@@ -145,8 +157,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     }
 
     private void validatePurchaseOrderStatusForApproval(PurchaseOrder purchaseOrder) {
-        if (purchaseOrder.getStatus() != PurchaseOrderStatus.DRAFT) {
-            throw new RuntimeException("Purchase order can only be approved when status is DRAFT. Current status: " + purchaseOrder.getStatus());
+        if (purchaseOrder.getStatus() != PurchaseOrderStatus.PENDING) {
+            throw new RuntimeException("Purchase order can only be approved when status is PENDING. Current status: " + purchaseOrder.getStatus());
         }
     }
 
@@ -175,8 +187,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     }
 
     private void validatePurchaseOrderStatusForRejection(PurchaseOrder purchaseOrder) {
-        if (purchaseOrder.getStatus() != PurchaseOrderStatus.DRAFT) {
-            throw new RuntimeException("Purchase order can only be rejected when status is DRAFT. Current status: " + purchaseOrder.getStatus());
+        if (purchaseOrder.getStatus() != PurchaseOrderStatus.PENDING) {
+            throw new RuntimeException("Purchase order can only be rejected when status is PENDING. Current status: " + purchaseOrder.getStatus());
         }
     }
 
@@ -306,11 +318,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         if (!hasPermission) {
             throw new RuntimeException("User does not have permission to approve/reject purchase orders. Required roles: ADMIN or WAREHOUSE_STAFF");
         }
-    }
-
-    private PurchaseOrder findPurchaseOrderById(Long purchaseOrderId) {
-        return purchaseOrderRepository.findById(purchaseOrderId)
-                .orElseThrow(() -> new RuntimeException("Purchase order not found with identifier: " + purchaseOrderId));
     }
 
     private User findUserById(Long userId) {

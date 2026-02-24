@@ -11,6 +11,7 @@ public interface PermissionMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "active", ignore = true)
+    @Mapping(target = "code", source = "request.code")
     Permission toPermission(CreatePermissionRequest request);
 
     @Mapping(target = "roleCode", ignore = true)

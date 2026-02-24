@@ -30,7 +30,7 @@ public class PurchaseOrder {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
-    private PurchaseOrderStatus status = PurchaseOrderStatus.DRAFT;
+    private PurchaseOrderStatus status = PurchaseOrderStatus.PENDING;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "supplier_id", nullable = false)
