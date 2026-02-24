@@ -24,6 +24,7 @@ public class CreatePurchaseOrderRequest {
     @AllArgsConstructor
     public static class PurchaseOrderItemRequest {
         private Long bookId;
+        private Long variantId;
         private int quantity;
         private double importPrice;
     }
