@@ -24,6 +24,7 @@ public class CreateImportStockRequest {
     @AllArgsConstructor
     public static class ImportStockDetailRequest {
         private Long bookId;
+        private Long variantId;
         private int quantity;
         private double importPrice;
     }

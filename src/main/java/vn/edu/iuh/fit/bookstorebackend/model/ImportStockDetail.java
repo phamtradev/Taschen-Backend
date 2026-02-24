@@ -28,6 +28,10 @@ public class ImportStockDetail {
     @JoinColumn(name = "book_id", nullable = false)
     private Book book;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "variant_id", nullable = false)
+    private Variant variant;
+
     @OneToMany(mappedBy = "importStockDetail", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Batch> batches; // Một ImportStockDetail có thể tạo nhiều Batch
 

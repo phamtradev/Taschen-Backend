@@ -46,6 +46,10 @@ public class Batch {
     private Book book;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "variant_id", nullable = false)
+    private Variant variant;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "import_stock_detail_id", nullable = true)
     private ImportStockDetail importStockDetail; // Link với ImportStockDetail để tracking
 
