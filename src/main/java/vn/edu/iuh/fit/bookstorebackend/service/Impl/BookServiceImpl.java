@@ -113,11 +113,20 @@ public class BookServiceImpl implements BookService {
     
     private void setBookVariants(Book book, List<Long> variantIds) throws IdInvalidException {
         if (variantIds == null || variantIds.isEmpty()) {
-            book.setBookVariants(new ArrayList<>());
+            if (book.getBookVariants() != null) {
+                book.getBookVariants().clear();
+            }
             return;
         }
 
-        List<BookVariant> bookVariants = new ArrayList<>();
+        // Clear existing variants before adding new ones (required for orphanRemoval = true)
+        if (book.getBookVariants() != null) {
+            book.getBookVariants().clear();
+        } else {
+            book.setBookVariants(new ArrayList<>());
+        }
+
+        List<BookVariant> bookVariants = book.getBookVariants();
         for (Long variantId : variantIds) {
             Variant variant = variantRepository.findById(variantId)
                     .orElseThrow(() -> new IdInvalidException("Variant not found with id: " + variantId));
@@ -129,7 +138,6 @@ public class BookServiceImpl implements BookService {
             bookVariant.setStockQuantity(book.getStockQuantity());
             bookVariants.add(bookVariant);
         }
-        book.setBookVariants(bookVariants);
     }
     
     @Override
