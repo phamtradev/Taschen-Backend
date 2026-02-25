@@ -7,12 +7,10 @@ import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateVariantRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.UpdateVariantRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.VariantResponse;
 import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
-import vn.edu.iuh.fit.bookstorebackend.model.Book;
+import vn.edu.iuh.fit.bookstorebackend.model.BookVariant;
 import vn.edu.iuh.fit.bookstorebackend.model.Variant;
-import vn.edu.iuh.fit.bookstorebackend.model.VariantFormat;
 import vn.edu.iuh.fit.bookstorebackend.mapper.VariantMapper;
-import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
-import vn.edu.iuh.fit.bookstorebackend.repository.VariantFormatRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.BookVariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.VariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.VariantService;
 
@@ -24,20 +22,15 @@ import java.util.stream.Collectors;
 public class VariantServiceImpl implements VariantService {
 
     private final VariantRepository variantRepository;
-    private final BookRepository bookRepository;
-    private final VariantFormatRepository variantFormatRepository;
+    private final BookVariantRepository bookVariantRepository;
     private final VariantMapper variantMapper;
 
     @Override
     @Transactional
     public VariantResponse createVariant(CreateVariantRequest request) throws IdInvalidException {
         validateRequest(request);
-        validateBookId(request.getBookId());
-        validateVariantFormatId(request.getVariantFormatId());
         
-        Book book = findBookById(request.getBookId());
-        VariantFormat variantFormat = findVariantFormatById(request.getVariantFormatId());
-        Variant variant = createVariantFromRequest(request, book, variantFormat);
+        Variant variant = createVariantFromRequest(request);
         
         Variant savedVariant = variantRepository.save(variant);
         return variantMapper.toVariantResponse(savedVariant);
@@ -47,34 +40,15 @@ public class VariantServiceImpl implements VariantService {
         if (request == null) {
             throw new IdInvalidException("CreateVariantRequest cannot be null");
         }
-    }
-    
-    private void validateBookId(Long bookId) throws IdInvalidException {
-        if (bookId == null || bookId <= 0) {
-            throw new IdInvalidException("Book identifier is invalid: " + bookId);
+        if (request.getFormatCode() == null || request.getFormatCode().trim().isEmpty()) {
+            throw new IdInvalidException("Format code is required");
         }
     }
     
-    private void validateVariantFormatId(Long variantFormatId) throws IdInvalidException {
-        if (variantFormatId == null || variantFormatId <= 0) {
-            throw new IdInvalidException("Variant format identifier is invalid: " + variantFormatId);
-        }
-    }
-    
-    private Book findBookById(Long bookId) {
-        return bookRepository.findById(bookId)
-                .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
-    }
-    
-    private VariantFormat findVariantFormatById(Long variantFormatId) {
-        return variantFormatRepository.findById(variantFormatId)
-                .orElseThrow(() -> new RuntimeException("Variant format not found with identifier: " + variantFormatId));
-    }
-    
-    private Variant createVariantFromRequest(CreateVariantRequest request, Book book, VariantFormat variantFormat) {
+    private Variant createVariantFromRequest(CreateVariantRequest request) {
         Variant variant = new Variant();
-        variant.setVariantFormat(variantFormat);
-        variant.setBook(book);
+        variant.setFormatCode(request.getFormatCode());
+        variant.setFormatName(request.getFormatName());
         return variant;
     }
 
@@ -93,10 +67,14 @@ public class VariantServiceImpl implements VariantService {
 
     @Override
     public List<VariantResponse> getVariantsByBookId(Long bookId) throws IdInvalidException {
-        validateBookId(bookId);
-        Book book = findBookById(bookId);
+        if (bookId == null || bookId <= 0) {
+            throw new IdInvalidException("Book identifier is invalid: " + bookId);
+        }
         
-        List<Variant> variants = variantRepository.findByBook(book);
+        List<BookVariant> bookVariants = bookVariantRepository.findByBookId(bookId);
+        List<Variant> variants = bookVariants.stream()
+                .map(BookVariant::getVariant)
+                .collect(Collectors.toList());
         return mapToVariantResponseList(variants);
     }
     
@@ -115,7 +93,7 @@ public class VariantServiceImpl implements VariantService {
     @Transactional
     public VariantResponse updateVariant(Long variantId, UpdateVariantRequest request) throws IdInvalidException {
         validateVariantId(variantId);
-        validateRequest(request);
+        validateRequestForUpdate(request);
         
         Variant variant = findVariantById(variantId);
         updateVariantFields(variant, request);
@@ -124,21 +102,19 @@ public class VariantServiceImpl implements VariantService {
         return variantMapper.toVariantResponse(updatedVariant);
     }
     
-    private void validateRequest(UpdateVariantRequest request) throws IdInvalidException {
+    private void validateRequestForUpdate(UpdateVariantRequest request) throws IdInvalidException {
         if (request == null) {
             throw new IdInvalidException("UpdateVariantRequest cannot be null");
         }
     }
     
     private void updateVariantFields(Variant variant, UpdateVariantRequest request) {
-        if (request.getVariantFormatId() != null && request.getVariantFormatId() > 0) {
-            VariantFormat variantFormat = findVariantFormatById(request.getVariantFormatId());
-            variant.setVariantFormat(variantFormat);
+        if (request.getFormatCode() != null && !request.getFormatCode().trim().isEmpty()) {
+            variant.setFormatCode(request.getFormatCode());
         }
         
-        if (request.getBookId() != null && request.getBookId() > 0) {
-            Book book = findBookById(request.getBookId());
-            variant.setBook(book);
+        if (request.getFormatName() != null) {
+            variant.setFormatName(request.getFormatName());
         }
     }
 

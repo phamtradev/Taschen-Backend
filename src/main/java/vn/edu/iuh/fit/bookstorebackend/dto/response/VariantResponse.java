@@ -4,18 +4,9 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 
 @Data
-@JsonPropertyOrder({ "id", "variantFormat", "bookId", "bookTitle" })
+@JsonPropertyOrder({ "id", "formatCode", "formatName" })
 public class VariantResponse {
     private Long id;
-    private VariantFormatDTO variantFormat;
-    private Long bookId;
-    private String bookTitle;
-    
-    @Data
-    @JsonPropertyOrder({ "id", "code", "name" })
-    public static class VariantFormatDTO {
-        private Long id;
-        private String code;
-        private String name;
-    }
+    private String formatCode;
+    private String formatName;
 }

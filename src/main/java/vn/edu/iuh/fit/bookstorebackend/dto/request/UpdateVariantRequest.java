@@ -6,6 +6,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class UpdateVariantRequest {
-    private Long variantFormatId;
-    private Long bookId;
+    private String formatCode;
+    private String formatName;
 }

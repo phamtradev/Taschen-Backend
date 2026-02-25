@@ -5,7 +5,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class UpdateVariantFormatRequest {
-    private String code;
-    private String name;
+public class UpdateBookVariantRequest {
+    private Double price;
+    private Integer stockQuantity;
 }

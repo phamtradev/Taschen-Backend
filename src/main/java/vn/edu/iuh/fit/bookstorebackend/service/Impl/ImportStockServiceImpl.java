@@ -10,13 +10,16 @@ import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
 import vn.edu.iuh.fit.bookstorebackend.mapper.ImportStockMapper;
 import vn.edu.iuh.fit.bookstorebackend.common.PurchaseOrderStatus;
 import vn.edu.iuh.fit.bookstorebackend.model.Book;
+import vn.edu.iuh.fit.bookstorebackend.model.BookVariant;
 import vn.edu.iuh.fit.bookstorebackend.model.ImportStock;
 import vn.edu.iuh.fit.bookstorebackend.model.ImportStockDetail;
 import vn.edu.iuh.fit.bookstorebackend.model.PurchaseOrder;
+import vn.edu.iuh.fit.bookstorebackend.model.PurchaseOrderItem;
 import vn.edu.iuh.fit.bookstorebackend.model.Supplier;
 import vn.edu.iuh.fit.bookstorebackend.model.User;
 import vn.edu.iuh.fit.bookstorebackend.model.Variant;
 import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.BookVariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.ImportStockDetailRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.ImportStockRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.PurchaseOrderRepository;
@@ -38,6 +41,7 @@ public class ImportStockServiceImpl implements ImportStockService {
     private final SupplierRepository supplierRepository;
     private final UserRepository userRepository;
     private final BookRepository bookRepository;
+    private final BookVariantRepository bookVariantRepository;
     private final VariantRepository variantRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final ImportStockMapper importStockMapper;
@@ -59,7 +63,7 @@ public class ImportStockServiceImpl implements ImportStockService {
         ImportStock importStock = createImportStockFromRequest(request, supplier, createdBy, purchaseOrder);
         ImportStock savedImportStock = importStockRepository.save(importStock);
 
-        createImportStockDetails(savedImportStock, request.getDetails());
+        createImportStockDetails(savedImportStock, request.getDetails(), purchaseOrder);
 
         entityManager.flush();
         entityManager.clear();
@@ -82,21 +86,21 @@ public class ImportStockServiceImpl implements ImportStockService {
         if (request.getPurchaseOrderId() == null || request.getPurchaseOrderId() <= 0) {
             throw new IdInvalidException("Purchase order identifier is invalid");
         }
-        if (request.getDetails() == null || request.getDetails().isEmpty()) {
-            throw new IdInvalidException("Import stock details cannot be null or empty");
-        }
-        for (CreateImportStockRequest.ImportStockDetailRequest detail : request.getDetails()) {
-            if (detail.getBookId() == null || detail.getBookId() <= 0) {
-                throw new IdInvalidException("Book identifier is invalid");
-            }
-            if (detail.getVariantId() == null || detail.getVariantId() <= 0) {
-                throw new IdInvalidException("Variant identifier is invalid");
-            }
-            if (detail.getQuantity() <= 0) {
-                throw new IdInvalidException("Quantity must be greater than 0");
-            }
-            if (detail.getImportPrice() < 0) {
-                throw new IdInvalidException("Import price cannot be negative");
+        // Details optional: nếu null/empty, sẽ lấy từ PurchaseOrder
+        if (request.getDetails() != null && !request.getDetails().isEmpty()) {
+            for (CreateImportStockRequest.ImportStockDetailRequest detail : request.getDetails()) {
+                if (detail.getBookId() == null || detail.getBookId() <= 0) {
+                    throw new IdInvalidException("Book identifier is invalid");
+                }
+                if (detail.getVariantId() == null || detail.getVariantId() <= 0) {
+                    throw new IdInvalidException("Variant identifier is invalid");
+                }
+                if (detail.getQuantity() <= 0) {
+                    throw new IdInvalidException("Quantity must be greater than 0");
+                }
+                if (detail.getImportPrice() < 0) {
+                    throw new IdInvalidException("Import price cannot be negative");
+                }
             }
         }
     }
@@ -136,27 +140,66 @@ public class ImportStockServiceImpl implements ImportStockService {
         return importStock;
     }
 
-    private void createImportStockDetails(ImportStock importStock, List<CreateImportStockRequest.ImportStockDetailRequest> detailRequests) {
-        for (CreateImportStockRequest.ImportStockDetailRequest detailRequest : detailRequests) {
-            Book book = findBookById(detailRequest.getBookId());
-            Variant variant = findVariantById(detailRequest.getVariantId());
-
-            ImportStockDetail detail = new ImportStockDetail();
-            detail.setImportStock(importStock);
-            detail.setBook(book);
-            detail.setVariant(variant);
-            detail.setQuantity(detailRequest.getQuantity());
-            detail.setImportPrice(detailRequest.getImportPrice());
-
-            importStockDetailRepository.save(detail);
-
-            updateBookStockQuantity(book, detailRequest.getQuantity());
+    private void createImportStockDetails(ImportStock importStock, List<CreateImportStockRequest.ImportStockDetailRequest> detailRequests, PurchaseOrder purchaseOrder) {
+        // Nếu details null/empty, lấy từ PurchaseOrder
+        if (detailRequests == null || detailRequests.isEmpty()) {
+            List<PurchaseOrderItem> poItems = purchaseOrder.getPurchaseOrderItems();
+            if (poItems == null || poItems.isEmpty()) {
+                throw new RuntimeException("Purchase order has no items");
+            }
+            for (PurchaseOrderItem poItem : poItems) {
+                createImportStockDetailFromPOItem(importStock, poItem);
+            }
+        } else {
+            for (CreateImportStockRequest.ImportStockDetailRequest detailRequest : detailRequests) {
+                createImportStockDetailFromRequest(importStock, detailRequest);
+            }
         }
     }
 
-    private void updateBookStockQuantity(Book book, int quantity) {
+    private void createImportStockDetailFromPOItem(ImportStock importStock, PurchaseOrderItem poItem) {
+        Book book = poItem.getBook();
+        Variant variant = poItem.getVariant();
+
+        ImportStockDetail detail = new ImportStockDetail();
+        detail.setImportStock(importStock);
+        detail.setBook(book);
+        detail.setVariant(variant);
+        detail.setQuantity(poItem.getQuantity());
+        detail.setImportPrice(poItem.getImportPrice());
+
+        importStockDetailRepository.save(detail);
+
+        updateStockQuantity(book, variant, poItem.getQuantity());
+    }
+
+    private void createImportStockDetailFromRequest(ImportStock importStock, CreateImportStockRequest.ImportStockDetailRequest detailRequest) {
+        Book book = findBookById(detailRequest.getBookId());
+        Variant variant = findVariantById(detailRequest.getVariantId());
+
+        ImportStockDetail detail = new ImportStockDetail();
+        detail.setImportStock(importStock);
+        detail.setBook(book);
+        detail.setVariant(variant);
+        detail.setQuantity(detailRequest.getQuantity());
+        detail.setImportPrice(detailRequest.getImportPrice());
+
+        importStockDetailRepository.save(detail);
+
+        updateStockQuantity(book, variant, detailRequest.getQuantity());
+    }
+
+    // Updated: now also updates bookVariant stock
+    private void updateStockQuantity(Book book, Variant variant, int quantity) {
+        // Update book total stock
         book.setStockQuantity(book.getStockQuantity() + quantity);
         bookRepository.save(book);
+
+        // Update bookVariant stock
+        BookVariant bookVariant = bookVariantRepository.findByBookIdAndVariantId(book.getId(), variant.getId())
+                .orElseThrow(() -> new RuntimeException("BookVariant not found for book: " + book.getId() + " and variant: " + variant.getId()));
+        bookVariant.setStockQuantity(bookVariant.getStockQuantity() + quantity);
+        bookVariantRepository.save(bookVariant);
     }
 
     @Override

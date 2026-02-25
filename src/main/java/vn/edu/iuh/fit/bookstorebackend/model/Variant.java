@@ -12,11 +12,9 @@ public class Variant {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "variant_format_id", nullable = false)
-    private VariantFormat variantFormat;
+    @Column(name = "format_code", length = 100)
+    private String formatCode;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "book_id", nullable = false)
-    private Book book;
+    @Column(name = "format_name", length = 255)
+    private String formatName;
 }

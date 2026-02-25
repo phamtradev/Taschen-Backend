@@ -45,7 +45,7 @@ public class Book {
     private Boolean isActive = true;
 
     @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<Variant> variants;
+    private List<BookVariant> bookVariants;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
