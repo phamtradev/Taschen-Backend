@@ -27,5 +27,7 @@ public class BookResponse {
     public static class VariantFormatInfo {
         private String formatCode;
         private String formatName;
+        private Double price;
+        private Integer stockQuantity;
     }
 }

@@ -6,9 +6,9 @@ import org.mapstruct.Named;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateBookRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.BookResponse;
 import vn.edu.iuh.fit.bookstorebackend.model.Book;
+import vn.edu.iuh.fit.bookstorebackend.model.BookVariant;
 import vn.edu.iuh.fit.bookstorebackend.model.Category;
 import vn.edu.iuh.fit.bookstorebackend.model.Supplier;
-import vn.edu.iuh.fit.bookstorebackend.model.Variant;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 public interface BookMapper {
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "variants", ignore = true)
+    @Mapping(target = "bookVariants", ignore = true)
     @Mapping(target = "categories", ignore = true)
     @Mapping(target = "price", ignore = true)
     @Mapping(target = "stockQuantity", ignore = true)
@@ -27,21 +27,23 @@ public interface BookMapper {
     @Mapping(target = "batches", ignore = true)
     Book toBook(CreateBookRequest request);
 
-    @Mapping(target = "variantFormats", source = "variants", qualifiedByName = "variantsToFormatInfo")
+    @Mapping(target = "variantFormats", source = "bookVariants", qualifiedByName = "bookVariantsToFormatInfo")
     @Mapping(target = "categoryIds", source = "categories", qualifiedByName = "categoriesToIds")
     @Mapping(target = "supplierId", source = "supplier", qualifiedByName = "supplierToId")
     BookResponse toBookResponse(Book book);
 
-    @Named("variantsToFormatInfo")
-    default List<BookResponse.VariantFormatInfo> variantsToFormatInfo(List<Variant> variants) {
-        if (variants == null || variants.isEmpty()) {
+    @Named("bookVariantsToFormatInfo")
+    default List<BookResponse.VariantFormatInfo> bookVariantsToFormatInfo(List<BookVariant> bookVariants) {
+        if (bookVariants == null || bookVariants.isEmpty()) {
             return new ArrayList<>();
         }
-        return variants.stream()
-                .map(variant -> {
+        return bookVariants.stream()
+                .map(bv -> {
                     BookResponse.VariantFormatInfo info = new BookResponse.VariantFormatInfo();
-                    info.setFormatCode(variant.getFormatCode());
-                    info.setFormatName(variant.getFormatName());
+                    info.setFormatCode(bv.getVariant().getFormatCode());
+                    info.setFormatName(bv.getVariant().getFormatName());
+                    info.setPrice(bv.getPrice());
+                    info.setStockQuantity(bv.getStockQuantity());
                     return info;
                 })
                 .collect(Collectors.toList());
