@@ -57,7 +57,7 @@ public class BookServiceImpl implements BookService {
         
         Book savedBook = bookRepository.save(book);
         
-        setBookVariants(savedBook, request.getVariantFormats());
+        setBookVariants(savedBook, request.getVariantIds());
         bookVariantRepository.saveAll(savedBook.getBookVariants());
         
         bookEmbeddingService.generateEmbedding(savedBook.getId());
@@ -109,22 +109,16 @@ public class BookServiceImpl implements BookService {
         book.setCategories(new ArrayList<>(categoriesSet));
     }
     
-    private void setBookVariants(Book book, List<String> variantFormats) throws IdInvalidException {
-        if (variantFormats == null || variantFormats.isEmpty()) {
+    private void setBookVariants(Book book, List<Long> variantIds) throws IdInvalidException {
+        if (variantIds == null || variantIds.isEmpty()) {
             book.setBookVariants(new ArrayList<>());
             return;
         }
 
         List<BookVariant> bookVariants = new ArrayList<>();
-        for (String formatName : variantFormats) {
-            // Tìm variant theo formatName, nếu không có thì tạo mới
-            Variant variant = variantRepository.findByFormatName(formatName)
-                    .orElseGet(() -> {
-                        Variant newVariant = new Variant();
-                        newVariant.setFormatName(formatName);
-                        newVariant.setFormatCode(formatName.substring(0, Math.min(3, formatName.length())).toUpperCase());
-                        return variantRepository.save(newVariant);
-                    });
+        for (Long variantId : variantIds) {
+            Variant variant = variantRepository.findById(variantId)
+                    .orElseThrow(() -> new IdInvalidException("Variant not found with id: " + variantId));
 
             BookVariant bookVariant = new BookVariant();
             bookVariant.setBook(book);
@@ -179,7 +173,7 @@ public class BookServiceImpl implements BookService {
         updateBookCategories(book, request.getCategoryIds());
         
         Book updatedBook = bookRepository.save(book);
-        updateBookVariants(updatedBook, request.getVariantFormats());
+        updateBookVariants(updatedBook, request.getVariantIds());
         
         bookEmbeddingService.regenerateEmbedding(bookId);
         
@@ -242,8 +236,8 @@ public class BookServiceImpl implements BookService {
         }
     }
     
-    private void updateBookVariants(Book book, List<String> variantFormats) throws IdInvalidException {
-        setBookVariants(book, variantFormats);
+    private void updateBookVariants(Book book, List<Long> variantIds) throws IdInvalidException {
+        setBookVariants(book, variantIds);
     }
 
     @Override
