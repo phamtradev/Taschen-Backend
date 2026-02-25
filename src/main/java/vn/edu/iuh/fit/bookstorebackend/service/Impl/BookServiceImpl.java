@@ -12,11 +12,13 @@ import vn.edu.iuh.fit.bookstorebackend.dto.response.BookResponse;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.PageResponse;
 import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
 import vn.edu.iuh.fit.bookstorebackend.model.Book;
+import vn.edu.iuh.fit.bookstorebackend.model.BookVariant;
 import vn.edu.iuh.fit.bookstorebackend.model.Category;
 import vn.edu.iuh.fit.bookstorebackend.model.Supplier;
 import vn.edu.iuh.fit.bookstorebackend.model.Variant;
 import vn.edu.iuh.fit.bookstorebackend.mapper.BookMapper;
 import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.BookVariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.CategoryRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.SupplierRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.VariantRepository;
@@ -35,6 +37,7 @@ import java.util.stream.Collectors;
 public class BookServiceImpl implements BookService {
 
     private final BookRepository bookRepository;
+    private final BookVariantRepository bookVariantRepository;
     private final CategoryRepository categoryRepository;
     private final SupplierRepository supplierRepository;
     private final VariantRepository variantRepository;
@@ -51,9 +54,11 @@ public class BookServiceImpl implements BookService {
         
         Book book = createBookFromRequest(request, supplier);
         setBookCategories(book, request.getCategoryIds());
-        setBookVariants(book, request.getVariantIds());
         
         Book savedBook = bookRepository.save(book);
+        
+        setBookVariants(savedBook, request.getVariantIds());
+        bookVariantRepository.saveAll(savedBook.getBookVariants());
         
         bookEmbeddingService.generateEmbedding(savedBook.getId());
         
@@ -106,15 +111,25 @@ public class BookServiceImpl implements BookService {
     
     private void setBookVariants(Book book, List<Long> variantIds) throws IdInvalidException {
         if (variantIds == null || variantIds.isEmpty()) {
-            book.setVariants(new ArrayList<>());
+            book.setBookVariants(new ArrayList<>());
             return;
         }
-        
+
         List<Variant> variants = variantRepository.findAllById(variantIds);
         if (variants.size() != variantIds.size()) {
             throw new IdInvalidException("One or more variant identifiers are invalid");
         }
-        book.setVariants(variants);
+
+        List<BookVariant> bookVariants = new ArrayList<>();
+        for (Variant variant : variants) {
+            BookVariant bookVariant = new BookVariant();
+            bookVariant.setBook(book);
+            bookVariant.setVariant(variant);
+            bookVariant.setPrice(book.getPrice());
+            bookVariant.setStockQuantity(book.getStockQuantity());
+            bookVariants.add(bookVariant);
+        }
+        book.setBookVariants(bookVariants);
     }
     
     @Override
@@ -225,10 +240,6 @@ public class BookServiceImpl implements BookService {
     
     private void updateBookVariants(Book book, List<Long> variantIds) throws IdInvalidException {
         setBookVariants(book, variantIds);
-    }
-    
-    private void deleteExistingVariants(Book book) {
-        book.setVariants(new ArrayList<>());
     }
 
     @Override
