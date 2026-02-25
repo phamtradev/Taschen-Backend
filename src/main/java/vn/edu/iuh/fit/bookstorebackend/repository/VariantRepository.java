@@ -9,7 +9,7 @@ import java.util.List;
 
 @Repository
 public interface VariantRepository extends JpaRepository<Variant, Long> {
-    List<Variant> findByBook(Book book);
+    List<Variant> findByBooks(Book book);
     
-    List<Variant> findByBookId(Long bookId);
+    List<Variant> findByBooksId(Long bookId);
 }

@@ -6,35 +6,22 @@ import org.mapstruct.Named;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.VariantResponse;
 import vn.edu.iuh.fit.bookstorebackend.model.Book;
 import vn.edu.iuh.fit.bookstorebackend.model.Variant;
-import vn.edu.iuh.fit.bookstorebackend.model.VariantFormat;
+
+import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface VariantMapper {
 
-    @Mapping(target = "bookId", source = "book", qualifiedByName = "bookToId")
-    @Mapping(target = "bookTitle", source = "book", qualifiedByName = "bookToTitle")
-    @Mapping(target = "variantFormat", source = "variantFormat", qualifiedByName = "variantFormatToDTO")
+    @Mapping(target = "bookIds", source = "books", qualifiedByName = "booksToIds")
     VariantResponse toVariantResponse(Variant variant);
 
-    @Named("bookToId")
-    default Long bookToId(Book book) {
-        return book != null ? book.getId() : null;
-    }
-
-    @Named("bookToTitle")
-    default String bookToTitle(Book book) {
-        return book != null ? book.getTitle() : null;
-    }
-
-    @Named("variantFormatToDTO")
-    default VariantResponse.VariantFormatDTO variantFormatToDTO(VariantFormat variantFormat) {
-        if (variantFormat == null) {
+    @Named("booksToIds")
+    default List<Long> booksToIds(List<Book> books) {
+        if (books == null) {
             return null;
         }
-        VariantResponse.VariantFormatDTO dto = new VariantResponse.VariantFormatDTO();
-        dto.setId(variantFormat.getId());
-        dto.setCode(variantFormat.getCode());
-        dto.setName(variantFormat.getName());
-        return dto;
+        return books.stream()
+                .map(Book::getId)
+                .toList();
     }
 }
