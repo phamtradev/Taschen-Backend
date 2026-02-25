@@ -35,7 +35,8 @@ public class SecurityConfiguration {
             "/api/books/**",
             "/api/categories/**",
             "/api/suppliers/**",
-            "/api/variants/**"
+            "/api/variants/**",
+            "/api/book-variants/**"
     };
 
     @Bean
