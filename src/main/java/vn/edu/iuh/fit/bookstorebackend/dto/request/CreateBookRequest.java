@@ -20,4 +20,5 @@ public class CreateBookRequest {
     private Boolean isActive;
     private List<Long> categoryIds;
     private List<String> variantFormats;
+    private Long supplierId;
 }

@@ -6,7 +6,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-@JsonPropertyOrder({ "id", "title", "author", "description", "publicationYear", "weightGrams", "pageCount", "price", "stockQuantity", "imageUrl", "isActive", "variantFormats", "categoryIds" })
+@JsonPropertyOrder({ "id", "title", "author", "description", "publicationYear", "weightGrams", "pageCount", "price", "stockQuantity", "imageUrl", "isActive", "variantFormats", "categoryIds", "supplierId" })
 public class BookResponse {
     private Long id;
     private String title;
@@ -21,4 +21,5 @@ public class BookResponse {
     private Boolean isActive;
     private List<String> variantFormats;
     private List<Long> categoryIds;
+    private Long supplierId;
 }

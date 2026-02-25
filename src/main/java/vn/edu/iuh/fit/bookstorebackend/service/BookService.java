@@ -26,4 +26,6 @@ public interface BookService {
     List<BookResponse> getAllBooksSorted(String sortByField, String sortDirection);
     
     List<BookResponse> getBooksByCategoryId(Long categoryId) throws IdInvalidException;
+    
+    List<BookResponse> getBooksBySupplierId(Long supplierId) throws IdInvalidException;
 }
