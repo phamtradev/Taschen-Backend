@@ -44,7 +44,12 @@ public class Book {
     @Column(name = "is_active")
     private Boolean isActive = true;
 
-    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+            name = "book_variants",
+            joinColumns = @JoinColumn(name = "book_id"),
+            inverseJoinColumns = @JoinColumn(name = "variant_id")
+    )
     private List<Variant> variants;
 
     @ManyToMany(fetch = FetchType.LAZY)

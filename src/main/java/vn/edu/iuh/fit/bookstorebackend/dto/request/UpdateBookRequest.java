@@ -19,5 +19,5 @@ public class UpdateBookRequest {
     private String imageUrl;
     private Boolean isActive;
     private List<Long> categoryIds;
-    private List<Long> variantFormatIds;
+    private List<Long> variantIds;
 }
