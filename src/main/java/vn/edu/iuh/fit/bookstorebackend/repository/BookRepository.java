@@ -18,4 +18,8 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     List<Book> findByCategoryIdWithCategories(@Param("categoryId") Long categoryId);
     
     List<Book> findBySupplierId(Long supplierId);
+    
+    @Query("SELECT CASE WHEN COUNT(b) > 0 THEN true ELSE false END FROM Book b " +
+           "JOIN b.bookVariants bv WHERE b.title = :title AND bv.variant.id IN :variantIds")
+    boolean existsByTitleAndVariantIds(@Param("title") String title, @Param("variantIds") List<Long> variantIds);
 }
