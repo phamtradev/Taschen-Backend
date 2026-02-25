@@ -9,8 +9,10 @@ import vn.edu.iuh.fit.bookstorebackend.dto.response.VariantResponse;
 import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
 import vn.edu.iuh.fit.bookstorebackend.model.Book;
 import vn.edu.iuh.fit.bookstorebackend.model.Variant;
+import vn.edu.iuh.fit.bookstorebackend.model.VariantFormat;
 import vn.edu.iuh.fit.bookstorebackend.mapper.VariantMapper;
 import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.VariantFormatRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.VariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.VariantService;
 
@@ -23,6 +25,7 @@ public class VariantServiceImpl implements VariantService {
 
     private final VariantRepository variantRepository;
     private final BookRepository bookRepository;
+    private final VariantFormatRepository variantFormatRepository;
     private final VariantMapper variantMapper;
 
     @Override
@@ -30,10 +33,11 @@ public class VariantServiceImpl implements VariantService {
     public VariantResponse createVariant(CreateVariantRequest request) throws IdInvalidException {
         validateRequest(request);
         validateBookId(request.getBookId());
-        validateFormat(request.getFormat());
+        validateVariantFormatId(request.getVariantFormatId());
         
         Book book = findBookById(request.getBookId());
-        Variant variant = createVariantFromRequest(request, book);
+        VariantFormat variantFormat = findVariantFormatById(request.getVariantFormatId());
+        Variant variant = createVariantFromRequest(request, book, variantFormat);
         
         Variant savedVariant = variantRepository.save(variant);
         return variantMapper.toVariantResponse(savedVariant);
@@ -51,9 +55,9 @@ public class VariantServiceImpl implements VariantService {
         }
     }
     
-    private void validateFormat(String format) throws IdInvalidException {
-        if (format == null || format.trim().isEmpty()) {
-            throw new IdInvalidException("Format cannot be null or empty");
+    private void validateVariantFormatId(Long variantFormatId) throws IdInvalidException {
+        if (variantFormatId == null || variantFormatId <= 0) {
+            throw new IdInvalidException("Variant format identifier is invalid: " + variantFormatId);
         }
     }
     
@@ -62,9 +66,14 @@ public class VariantServiceImpl implements VariantService {
                 .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
     }
     
-    private Variant createVariantFromRequest(CreateVariantRequest request, Book book) {
+    private VariantFormat findVariantFormatById(Long variantFormatId) {
+        return variantFormatRepository.findById(variantFormatId)
+                .orElseThrow(() -> new RuntimeException("Variant format not found with identifier: " + variantFormatId));
+    }
+    
+    private Variant createVariantFromRequest(CreateVariantRequest request, Book book, VariantFormat variantFormat) {
         Variant variant = new Variant();
-        variant.setFormat(request.getFormat());
+        variant.setVariantFormat(variantFormat);
         variant.setBook(book);
         return variant;
     }
@@ -122,8 +131,9 @@ public class VariantServiceImpl implements VariantService {
     }
     
     private void updateVariantFields(Variant variant, UpdateVariantRequest request) {
-        if (request.getFormat() != null && !request.getFormat().trim().isEmpty()) {
-            variant.setFormat(request.getFormat());
+        if (request.getVariantFormatId() != null && request.getVariantFormatId() > 0) {
+            VariantFormat variantFormat = findVariantFormatById(request.getVariantFormatId());
+            variant.setVariantFormat(variantFormat);
         }
         
         if (request.getBookId() != null && request.getBookId() > 0) {
