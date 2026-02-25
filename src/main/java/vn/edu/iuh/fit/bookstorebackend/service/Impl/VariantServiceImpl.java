@@ -7,10 +7,10 @@ import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateVariantRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.UpdateVariantRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.VariantResponse;
 import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
-import vn.edu.iuh.fit.bookstorebackend.model.Book;
+import vn.edu.iuh.fit.bookstorebackend.model.BookVariant;
 import vn.edu.iuh.fit.bookstorebackend.model.Variant;
 import vn.edu.iuh.fit.bookstorebackend.mapper.VariantMapper;
-import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.BookVariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.VariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.VariantService;
 
@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 public class VariantServiceImpl implements VariantService {
 
     private final VariantRepository variantRepository;
-    private final BookRepository bookRepository;
+    private final BookVariantRepository bookVariantRepository;
     private final VariantMapper variantMapper;
 
     @Override
@@ -70,10 +70,11 @@ public class VariantServiceImpl implements VariantService {
         if (bookId == null || bookId <= 0) {
             throw new IdInvalidException("Book identifier is invalid: " + bookId);
         }
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
         
-        List<Variant> variants = variantRepository.findByBooks(book);
+        List<BookVariant> bookVariants = bookVariantRepository.findByBookId(bookId);
+        List<Variant> variants = bookVariants.stream()
+                .map(BookVariant::getVariant)
+                .collect(Collectors.toList());
         return mapToVariantResponseList(variants);
     }
     
@@ -115,7 +116,6 @@ public class VariantServiceImpl implements VariantService {
         if (request.getFormatName() != null) {
             variant.setFormatName(request.getFormatName());
         }
-        // Book-Variant relationship is managed by BookService
     }
 
     @Override
