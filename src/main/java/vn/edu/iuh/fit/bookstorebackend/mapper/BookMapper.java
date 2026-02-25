@@ -27,19 +27,19 @@ public interface BookMapper {
     @Mapping(target = "batches", ignore = true)
     Book toBook(CreateBookRequest request);
 
-    @Mapping(target = "variantFormats", source = "variants", qualifiedByName = "variantsToFormats")
+    @Mapping(target = "variantFormatIds", source = "variants", qualifiedByName = "variantsToFormatIds")
     @Mapping(target = "categoryIds", source = "categories", qualifiedByName = "categoriesToIds")
     @Mapping(target = "supplierId", source = "supplier", qualifiedByName = "supplierToId")
     BookResponse toBookResponse(Book book);
 
-    @Named("variantsToFormats")
-    default List<String> variantsToFormats(List<Variant> variants) {
+    @Named("variantsToFormatIds")
+    default List<Long> variantsToFormatIds(List<Variant> variants) {
         if (variants == null || variants.isEmpty()) {
             return new ArrayList<>();
         }
         return variants.stream()
-                .map(Variant::getFormat)
-                .filter(format -> format != null && !format.trim().isEmpty())
+                .map(variant -> variant.getVariantFormat() != null ? variant.getVariantFormat().getId() : null)
+                .filter(id -> id != null)
                 .collect(Collectors.toList());
     }
 
