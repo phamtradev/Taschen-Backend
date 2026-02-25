@@ -13,10 +13,12 @@ import vn.edu.iuh.fit.bookstorebackend.dto.response.PageResponse;
 import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
 import vn.edu.iuh.fit.bookstorebackend.model.Book;
 import vn.edu.iuh.fit.bookstorebackend.model.Category;
+import vn.edu.iuh.fit.bookstorebackend.model.Supplier;
 import vn.edu.iuh.fit.bookstorebackend.model.Variant;
 import vn.edu.iuh.fit.bookstorebackend.mapper.BookMapper;
 import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.CategoryRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.SupplierRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.VariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.BookEmbeddingService;
 import vn.edu.iuh.fit.bookstorebackend.service.BookService;
@@ -34,6 +36,7 @@ public class BookServiceImpl implements BookService {
 
     private final BookRepository bookRepository;
     private final CategoryRepository categoryRepository;
+    private final SupplierRepository supplierRepository;
     private final VariantRepository variantRepository;
     private final BookMapper bookMapper;
     private final BookEmbeddingService bookEmbeddingService;
@@ -44,7 +47,9 @@ public class BookServiceImpl implements BookService {
         validateRequest(request);
         validateTitleNotExists(request.getTitle());
         
-        Book book = createBookFromRequest(request);
+        Supplier supplier = findSupplierById(request.getSupplierId());
+        
+        Book book = createBookFromRequest(request, supplier);
         setBookCategories(book, request.getCategoryIds());
         
         Book savedBook = bookRepository.save(book);
@@ -53,6 +58,14 @@ public class BookServiceImpl implements BookService {
         bookEmbeddingService.generateEmbedding(savedBook.getId());
         
         return bookMapper.toBookResponse(savedBook);
+    }
+    
+    private Supplier findSupplierById(Long supplierId) throws IdInvalidException {
+        if (supplierId == null) {
+            return null;
+        }
+        return supplierRepository.findById(supplierId)
+                .orElseThrow(() -> new IdInvalidException("Supplier not found with identifier: " + supplierId));
     }
     
     private void validateRequest(CreateBookRequest request) throws IdInvalidException {
@@ -67,13 +80,14 @@ public class BookServiceImpl implements BookService {
         }
     } 
     
-    private Book createBookFromRequest(CreateBookRequest request) {
+    private Book createBookFromRequest(CreateBookRequest request, Supplier supplier) {
         Book book = bookMapper.toBook(request);
         book.setPrice(request.getPrice() != null ? request.getPrice() : 0.0);
         book.setStockQuantity(request.getStockQuantity() != null 
                 ? request.getStockQuantity() : 0);
         book.setIsActive(request.getIsActive() != null 
                 ? request.getIsActive() : true);
+        book.setSupplier(supplier);
         return book;
     }
     
@@ -293,6 +307,17 @@ public class BookServiceImpl implements BookService {
         categoryRepository.findById(categoryId)
                 .orElseThrow(() -> new RuntimeException(
                         "Category not found with identifier: " + categoryId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookResponse> getBooksBySupplierId(Long supplierId) throws IdInvalidException {
+        if (supplierId == null || supplierId <= 0) {
+            throw new IdInvalidException("Supplier identifier is invalid: " + supplierId);
+        }
+        
+        List<Book> books = bookRepository.findBySupplierId(supplierId);
+        return mapToBookResponseList(books);
     }
 
     private List<BookResponse> mapToBookResponseList(List<Book> books) {

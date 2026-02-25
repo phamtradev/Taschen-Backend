@@ -7,6 +7,7 @@ import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateBookRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.BookResponse;
 import vn.edu.iuh.fit.bookstorebackend.model.Book;
 import vn.edu.iuh.fit.bookstorebackend.model.Category;
+import vn.edu.iuh.fit.bookstorebackend.model.Supplier;
 import vn.edu.iuh.fit.bookstorebackend.model.Variant;
 
 import java.util.ArrayList;
@@ -22,10 +23,13 @@ public interface BookMapper {
     @Mapping(target = "price", ignore = true)
     @Mapping(target = "stockQuantity", ignore = true)
     @Mapping(target = "isActive", ignore = true)
+    @Mapping(target = "supplier", ignore = true)
+    @Mapping(target = "batches", ignore = true)
     Book toBook(CreateBookRequest request);
 
     @Mapping(target = "variantFormats", source = "variants", qualifiedByName = "variantsToFormats")
     @Mapping(target = "categoryIds", source = "categories", qualifiedByName = "categoriesToIds")
+    @Mapping(target = "supplierId", source = "supplier", qualifiedByName = "supplierToId")
     BookResponse toBookResponse(Book book);
 
     @Named("variantsToFormats")
@@ -51,5 +55,10 @@ public interface BookMapper {
         } catch (Exception e) {
             return new ArrayList<>();
         }
+    }
+
+    @Named("supplierToId")
+    default Long supplierToId(Supplier supplier) {
+        return supplier != null ? supplier.getId() : null;
     }
 }
