@@ -48,7 +48,7 @@ public class BookServiceImpl implements BookService {
     @Transactional
     public BookResponse createBook(CreateBookRequest request) throws IdInvalidException {
         validateRequest(request);
-        validateTitleNotExists(request.getTitle());
+        validateTitleWithVariants(request.getTitle(), request.getVariantIds());
         
         Supplier supplier = findSupplierById(request.getSupplierId());
         
@@ -79,9 +79,11 @@ public class BookServiceImpl implements BookService {
         }
     }
     
-    private void validateTitleNotExists(String title) {
-        if (title != null && bookRepository.existsByTitle(title)) {
-            throw new RuntimeException("Book with title already exists: " + title);
+    private void validateTitleWithVariants(String title, List<Long> variantIds) throws IdInvalidException {
+        if (title != null && variantIds != null && !variantIds.isEmpty()) {
+            if (bookRepository.existsByTitleAndVariantIds(title, variantIds)) {
+                throw new IdInvalidException("Book with title '" + title + "' and this variant already exists");
+            }
         }
     } 
     
@@ -186,9 +188,9 @@ public class BookServiceImpl implements BookService {
         }
     }
     
-    private void updateBookFields(Book book, UpdateBookRequest request) {
+    private void updateBookFields(Book book, UpdateBookRequest request) throws IdInvalidException {
         if (request.getTitle() != null && !request.getTitle().equals(book.getTitle())) {
-            validateTitleNotExists(request.getTitle());
+            validateTitleWithVariants(request.getTitle(), request.getVariantIds());
             book.setTitle(request.getTitle());
         }
         if (request.getAuthor() != null) {
