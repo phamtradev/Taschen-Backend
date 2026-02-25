@@ -15,10 +15,12 @@ import vn.edu.iuh.fit.bookstorebackend.model.Book;
 import vn.edu.iuh.fit.bookstorebackend.model.Category;
 import vn.edu.iuh.fit.bookstorebackend.model.Supplier;
 import vn.edu.iuh.fit.bookstorebackend.model.Variant;
+import vn.edu.iuh.fit.bookstorebackend.model.VariantFormat;
 import vn.edu.iuh.fit.bookstorebackend.mapper.BookMapper;
 import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.CategoryRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.SupplierRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.VariantFormatRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.VariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.BookEmbeddingService;
 import vn.edu.iuh.fit.bookstorebackend.service.BookService;
@@ -38,6 +40,7 @@ public class BookServiceImpl implements BookService {
     private final CategoryRepository categoryRepository;
     private final SupplierRepository supplierRepository;
     private final VariantRepository variantRepository;
+    private final VariantFormatRepository variantFormatRepository;
     private final BookMapper bookMapper;
     private final BookEmbeddingService bookEmbeddingService;
 
@@ -53,7 +56,7 @@ public class BookServiceImpl implements BookService {
         setBookCategories(book, request.getCategoryIds());
         
         Book savedBook = bookRepository.save(book);
-        createBookVariants(savedBook, request.getVariantFormats());
+        createBookVariants(savedBook, request.getVariantFormatIds());
         
         bookEmbeddingService.generateEmbedding(savedBook.getId());
         
@@ -104,14 +107,18 @@ public class BookServiceImpl implements BookService {
         book.setCategories(new ArrayList<>(categoriesSet));
     }
     
-    private void createBookVariants(Book book, List<String> variantFormats) {
-        if (variantFormats == null || variantFormats.isEmpty()) {
+    private void createBookVariants(Book book, List<Long> variantFormatIds) throws IdInvalidException {
+        if (variantFormatIds == null || variantFormatIds.isEmpty()) {
             return;
         }
         
-        List<Variant> variants = variantFormats.stream()
-                .filter(format -> format != null && !format.trim().isEmpty())
-                .map(format -> createVariant(book, format.trim()))
+        Set<VariantFormat> variantFormatsSet = variantFormatRepository.findByIdIn(variantFormatIds);
+        if (variantFormatsSet.size() != variantFormatIds.size()) {
+            throw new IdInvalidException("One or more variant format identifiers are invalid");
+        }
+        
+        List<Variant> variants = variantFormatsSet.stream()
+                .map(format -> createVariant(book, format))
                 .collect(Collectors.toList());
         
         if (!variants.isEmpty()) {
@@ -119,9 +126,9 @@ public class BookServiceImpl implements BookService {
         }
     }
     
-    private Variant createVariant(Book book, String format) {
+    private Variant createVariant(Book book, VariantFormat variantFormat) {
         Variant variant = new Variant();
-        variant.setFormat(format);
+        variant.setVariantFormat(variantFormat);
         variant.setBook(book);
         return variant;
     }
@@ -169,7 +176,7 @@ public class BookServiceImpl implements BookService {
         updateBookCategories(book, request.getCategoryIds());
         
         Book updatedBook = bookRepository.save(book);
-        updateBookVariants(updatedBook, request.getVariantFormats());
+        updateBookVariants(updatedBook, request.getVariantFormatIds());
         
         bookEmbeddingService.regenerateEmbedding(bookId);
         
@@ -232,15 +239,15 @@ public class BookServiceImpl implements BookService {
         }
     }
     
-    private void updateBookVariants(Book book, List<String> variantFormats) {
-        if (variantFormats == null) {
+    private void updateBookVariants(Book book, List<Long> variantFormatIds) throws IdInvalidException {
+        if (variantFormatIds == null) {
             return;
         }
         
         deleteExistingVariants(book);
         
-        if (!variantFormats.isEmpty()) {
-            createBookVariants(book, variantFormats);
+        if (!variantFormatIds.isEmpty()) {
+            createBookVariants(book, variantFormatIds);
         }
     }
     

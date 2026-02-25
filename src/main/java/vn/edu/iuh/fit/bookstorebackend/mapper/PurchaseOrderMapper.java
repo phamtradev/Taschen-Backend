@@ -24,7 +24,7 @@ public interface PurchaseOrderMapper {
     @Mapping(target = "bookId", expression = "java(item.getBook().getId())")
     @Mapping(target = "bookTitle", expression = "java(item.getBook().getTitle())")
     @Mapping(target = "variantId", expression = "java(item.getVariant() != null ? item.getVariant().getId() : null)")
-    @Mapping(target = "variantFormat", expression = "java(item.getVariant() != null ? item.getVariant().getFormat() : null)")
+    @Mapping(target = "variantFormat", expression = "java(item.getVariant() != null && item.getVariant().getVariantFormat() != null ? item.getVariant().getVariantFormat().getName() : null)")
     PurchaseOrderItemResponse toPurchaseOrderItemResponse(PurchaseOrderItem item);
 
     List<PurchaseOrderItemResponse> toPurchaseOrderItemResponseList(List<PurchaseOrderItem> items);

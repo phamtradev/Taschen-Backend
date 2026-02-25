@@ -19,6 +19,6 @@ public class CreateBookRequest {
     private String imageUrl;
     private Boolean isActive;
     private List<Long> categoryIds;
-    private List<String> variantFormats;
+    private List<Long> variantFormatIds;
     private Long supplierId;
 }

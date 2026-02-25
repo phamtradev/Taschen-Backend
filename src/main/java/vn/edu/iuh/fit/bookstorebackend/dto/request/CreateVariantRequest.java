@@ -6,6 +6,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class CreateVariantRequest {
-    private String format;
+    private Long variantFormatId;
     private Long bookId;
 }
