@@ -115,13 +115,11 @@ public class BookServiceImpl implements BookService {
             return;
         }
 
-        List<Variant> variants = variantRepository.findAllById(variantIds);
-        if (variants.size() != variantIds.size()) {
-            throw new IdInvalidException("One or more variant identifiers are invalid");
-        }
-
         List<BookVariant> bookVariants = new ArrayList<>();
-        for (Variant variant : variants) {
+        for (Long variantId : variantIds) {
+            Variant variant = variantRepository.findById(variantId)
+                    .orElseThrow(() -> new IdInvalidException("Variant not found with id: " + variantId));
+
             BookVariant bookVariant = new BookVariant();
             bookVariant.setBook(book);
             bookVariant.setVariant(variant);
