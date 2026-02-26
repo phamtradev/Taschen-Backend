@@ -32,6 +32,9 @@ public class PermissionFilter extends OncePerRequestFilter {
     private static final String[] SKIP_FILTER_PATHS = {
             "/api/auth/",
             "/api/promotions/validate/",
+            "/api/batches/",
+            "/api/variants/",
+            "/api/book-variants/",
             "/actuator/"
     };
 
