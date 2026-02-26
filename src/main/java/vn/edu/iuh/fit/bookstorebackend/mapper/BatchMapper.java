@@ -17,6 +17,9 @@ public interface BatchMapper {
     @Mapping(target = "createdById", expression = "java(batch.getCreatedBy().getId())")
     @Mapping(target = "createdByName", expression = "java(batch.getCreatedBy().getFirstName() + \" \" + batch.getCreatedBy().getLastName())")
     @Mapping(target = "importStockDetailId", expression = "java(batch.getImportStockDetail() != null ? batch.getImportStockDetail().getId() : null)")
+    @Mapping(target = "variant.id", expression = "java(batch.getVariant().getId())")
+    @Mapping(target = "variant.formatName", expression = "java(batch.getVariant().getFormatName())")
+    @Mapping(target = "variant.formatCode", expression = "java(batch.getVariant().getFormatCode())")
     BatchResponse toBatchResponse(Batch batch);
 
     List<BatchResponse> toBatchResponseList(List<Batch> batches);
