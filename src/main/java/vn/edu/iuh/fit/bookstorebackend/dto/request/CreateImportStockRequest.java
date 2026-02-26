@@ -27,5 +27,6 @@ public class CreateImportStockRequest {
         private Long variantId;
         private int quantity;
         private double importPrice;
+        private Long supplierId;
     }
 }

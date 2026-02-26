@@ -5,6 +5,8 @@ import lombok.Data;
 
 import java.util.List;
 
+import vn.edu.iuh.fit.bookstorebackend.model.Supplier;
+
 @Entity
 @Data
 @Table(name = "import_stock_details")
@@ -31,6 +33,10 @@ public class ImportStockDetail {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "variant_id", nullable = false)
     private Variant variant;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supplier_id", nullable = false)
+    private Supplier supplier;
 
     @OneToMany(mappedBy = "importStockDetail", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Batch> batches; // Một ImportStockDetail có thể tạo nhiều Batch

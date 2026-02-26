@@ -23,4 +23,7 @@ public interface BatchRepository extends JpaRepository<Batch, Long> {
     List<Batch> findByBook_IdAndRemainingQuantityGreaterThanOrderByCreatedAtAsc(Long bookId, int remainingQuantity);
 
     List<Batch> findByBook_IdAndRemainingQuantityGreaterThanOrderByCreatedAtDesc(Long bookId, int remainingQuantity);
+
+    Optional<Batch> findByBook_IdAndVariant_IdAndImportPriceAndSupplier_Id(
+            Long bookId, Long variantId, Double importPrice, Long supplierId);
 }

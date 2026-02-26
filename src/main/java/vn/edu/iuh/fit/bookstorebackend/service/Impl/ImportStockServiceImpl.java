@@ -11,6 +11,7 @@ import vn.edu.iuh.fit.bookstorebackend.mapper.ImportStockMapper;
 import vn.edu.iuh.fit.bookstorebackend.common.PurchaseOrderStatus;
 import vn.edu.iuh.fit.bookstorebackend.model.Book;
 import vn.edu.iuh.fit.bookstorebackend.model.BookVariant;
+import vn.edu.iuh.fit.bookstorebackend.model.Batch;
 import vn.edu.iuh.fit.bookstorebackend.model.ImportStock;
 import vn.edu.iuh.fit.bookstorebackend.model.ImportStockDetail;
 import vn.edu.iuh.fit.bookstorebackend.model.PurchaseOrder;
@@ -20,6 +21,7 @@ import vn.edu.iuh.fit.bookstorebackend.model.User;
 import vn.edu.iuh.fit.bookstorebackend.model.Variant;
 import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.BookVariantRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.BatchRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.ImportStockDetailRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.ImportStockRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.PurchaseOrderRepository;
@@ -44,6 +46,7 @@ public class ImportStockServiceImpl implements ImportStockService {
     private final BookVariantRepository bookVariantRepository;
     private final VariantRepository variantRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
+    private final BatchRepository batchRepository;
     private final ImportStockMapper importStockMapper;
     private final EntityManager entityManager;
 
@@ -94,6 +97,9 @@ public class ImportStockServiceImpl implements ImportStockService {
                 }
                 if (detail.getVariantId() == null || detail.getVariantId() <= 0) {
                     throw new IdInvalidException("Variant identifier is invalid");
+                }
+                if (detail.getSupplierId() == null || detail.getSupplierId() <= 0) {
+                    throw new IdInvalidException("Supplier identifier is invalid");
                 }
                 if (detail.getQuantity() <= 0) {
                     throw new IdInvalidException("Quantity must be greater than 0");
@@ -160,6 +166,8 @@ public class ImportStockServiceImpl implements ImportStockService {
     private void createImportStockDetailFromPOItem(ImportStock importStock, PurchaseOrderItem poItem) {
         Book book = poItem.getBook();
         Variant variant = poItem.getVariant();
+        Supplier supplier = importStock.getSupplier();
+        User createdBy = importStock.getCreatedBy();
 
         ImportStockDetail detail = new ImportStockDetail();
         detail.setImportStock(importStock);
@@ -167,8 +175,12 @@ public class ImportStockServiceImpl implements ImportStockService {
         detail.setVariant(variant);
         detail.setQuantity(poItem.getQuantity());
         detail.setImportPrice(poItem.getImportPrice());
+        detail.setSupplier(supplier);
 
         importStockDetailRepository.save(detail);
+
+        // Auto-create or merge Batch
+        createOrMergeBatch(book, variant, poItem.getImportPrice(), supplier, poItem.getQuantity(), createdBy, detail);
 
         updateStockQuantity(book, variant, poItem.getQuantity());
     }
@@ -176,6 +188,7 @@ public class ImportStockServiceImpl implements ImportStockService {
     private void createImportStockDetailFromRequest(ImportStock importStock, CreateImportStockRequest.ImportStockDetailRequest detailRequest) {
         Book book = findBookById(detailRequest.getBookId());
         Variant variant = findVariantById(detailRequest.getVariantId());
+        Supplier supplier = findSupplierById(detailRequest.getSupplierId());
 
         ImportStockDetail detail = new ImportStockDetail();
         detail.setImportStock(importStock);
@@ -183,8 +196,13 @@ public class ImportStockServiceImpl implements ImportStockService {
         detail.setVariant(variant);
         detail.setQuantity(detailRequest.getQuantity());
         detail.setImportPrice(detailRequest.getImportPrice());
+        detail.setSupplier(supplier);
 
         importStockDetailRepository.save(detail);
+
+        // Auto-create or merge Batch
+        User createdBy = importStock.getCreatedBy();
+        createOrMergeBatch(book, variant, detailRequest.getImportPrice(), supplier, detailRequest.getQuantity(), createdBy, detail);
 
         updateStockQuantity(book, variant, detailRequest.getQuantity());
     }
@@ -261,5 +279,47 @@ public class ImportStockServiceImpl implements ImportStockService {
     private Variant findVariantById(Long variantId) {
         return variantRepository.findById(variantId)
                 .orElseThrow(() -> new RuntimeException("Variant not found with identifier: " + variantId));
+    }
+
+    /**
+     * Auto-create or merge Batch when importing stock
+     * - If batch exists with same book + variant + importPrice + supplier → accumulate quantity
+     * - Otherwise create new batch
+     */
+    private void createOrMergeBatch(Book book, Variant variant, double importPrice, 
+                                     Supplier supplier, int quantity, User createdBy, ImportStockDetail importStockDetail) {
+        // Find existing batch with same criteria
+        var existingBatch = batchRepository.findByBook_IdAndVariant_IdAndImportPriceAndSupplier_Id(
+                book.getId(), variant.getId(), importPrice, supplier.getId());
+
+        if (existingBatch.isPresent()) {
+            // Merge: accumulate quantity
+            Batch batch = existingBatch.get();
+            batch.setQuantity(batch.getQuantity() + quantity);
+            batch.setRemainingQuantity(batch.getRemainingQuantity() + quantity);
+            batchRepository.save(batch);
+        } else {
+            // Create new batch
+            Batch batch = new Batch();
+            batch.setBatchCode(generateBatchCode());
+            batch.setQuantity(quantity);
+            batch.setRemainingQuantity(quantity);
+            batch.setImportPrice(importPrice);
+            batch.setSupplier(supplier);
+            batch.setBook(book);
+            batch.setCreatedBy(createdBy);
+            batch.setVariant(variant);
+            batch.setImportStockDetail(importStockDetail);
+            batch.setCreatedAt(LocalDateTime.now());
+            batchRepository.save(batch);
+        }
+    }
+
+    private String generateBatchCode() {
+        String prefix = "LH";
+        String month = String.format("%02d", LocalDateTime.now().getMonthValue());
+        String year = String.valueOf(LocalDateTime.now().getYear());
+        long count = batchRepository.count() + 1;
+        return String.format("%s-%s-%s-%04d", prefix, month, year, count);
     }
 }

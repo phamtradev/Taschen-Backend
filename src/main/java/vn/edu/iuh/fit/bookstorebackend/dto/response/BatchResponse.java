@@ -20,12 +20,13 @@ public class BatchResponse {
     private double importPrice;
     private double sellingPrice;
     private LocalDate productionDate;
-    private String manufacturer;
     private LocalDateTime createdAt;
     private Long bookId;
     private String bookTitle;
     private Long createdById;
     private String createdByName;
+    private Long supplierId;
+    private String supplierName;
     private Long importStockDetailId;
 
     @Builder.Default
