@@ -16,6 +16,7 @@ import vn.edu.iuh.fit.bookstorebackend.model.Supplier;
 import vn.edu.iuh.fit.bookstorebackend.model.User;
 import vn.edu.iuh.fit.bookstorebackend.model.Variant;
 import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.BookVariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.PurchaseOrderItemRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.PurchaseOrderRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.SupplierRepository;
@@ -37,6 +38,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final UserRepository userRepository;
     private final BookRepository bookRepository;
     private final VariantRepository variantRepository;
+    private final BookVariantRepository bookVariantRepository;
     private final PurchaseOrderMapper purchaseOrderMapper;
     private final EntityManager entityManager;
 
@@ -81,6 +83,9 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             }
             if (item.getVariantId() == null || item.getVariantId() <= 0) {
                 throw new IdInvalidException("Variant identifier is invalid");
+            }
+            if (!bookVariantRepository.existsByBookIdAndVariantId(item.getBookId(), item.getVariantId())) {
+                throw new IdInvalidException("Variant " + item.getVariantId() + " does not belong to Book " + item.getBookId());
             }
             if (item.getQuantity() <= 0) {
                 throw new IdInvalidException("Quantity must be greater than 0");
