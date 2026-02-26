@@ -153,9 +153,6 @@ public class BatchServiceImpl implements BatchService {
     @Override
     @Transactional(readOnly = true)
     public List<BatchResponse> getAllBatches() {
-        // Role: ADMIN hoặc WAREHOUSE_STAFF - Lấy tất cả Batch
-        User currentUser = getCurrentUser();
-        validateImporterRole(currentUser);
         List<Batch> batches = batchRepository.findAll();
         List<BatchResponse> responses = batchMapper.toBatchResponseList(batches);
         return enrichWithSellingPrice(responses, batches);
