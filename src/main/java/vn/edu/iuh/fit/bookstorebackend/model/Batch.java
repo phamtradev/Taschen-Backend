@@ -7,6 +7,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import vn.edu.iuh.fit.bookstorebackend.model.Supplier;
+
 @Entity
 @Data
 @Table(name = "batches")
@@ -31,11 +33,12 @@ public class Batch {
     @Column(name = "production_date")
     private LocalDate productionDate;
 
-    @Column(name = "manufacturer", length = 255)
-    private String manufacturer;
-
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supplier_id", nullable = false)
+    private Supplier supplier;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_id", nullable = false)

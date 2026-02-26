@@ -17,9 +17,9 @@ public class CreateBatchRequest {
     private Long variantId;
     private Long importStockDetailId; // Optional: Link với ImportStockDetail
     private Long createdById;
+    private Long supplierId;
     private Integer quantity;
     private Double importPrice;
     private LocalDate productionDate;
-    private String manufacturer;
     private String batchCode; // Optional: Nếu không có sẽ tự động generate
 }

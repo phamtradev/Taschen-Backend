@@ -18,6 +18,7 @@ import vn.edu.iuh.fit.bookstorebackend.model.Book;
 import vn.edu.iuh.fit.bookstorebackend.model.BookVariant;
 import vn.edu.iuh.fit.bookstorebackend.model.ImportStockDetail;
 import vn.edu.iuh.fit.bookstorebackend.model.OrderDetail;
+import vn.edu.iuh.fit.bookstorebackend.model.Supplier;
 import vn.edu.iuh.fit.bookstorebackend.model.User;
 import vn.edu.iuh.fit.bookstorebackend.model.Variant;
 import vn.edu.iuh.fit.bookstorebackend.repository.BatchDetailRepository;
@@ -26,6 +27,7 @@ import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.BookVariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.ImportStockDetailRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.OrderDetailRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.SupplierRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.UserRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.VariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.BatchService;
@@ -43,6 +45,7 @@ public class BatchServiceImpl implements BatchService {
     private final BookVariantRepository bookVariantRepository;
     private final VariantRepository variantRepository;
     private final UserRepository userRepository;
+    private final SupplierRepository supplierRepository;
     private final ImportStockDetailRepository importStockDetailRepository;
     private final OrderDetailRepository orderDetailRepository;
     private final BatchMapper batchMapper;
@@ -58,6 +61,8 @@ public class BatchServiceImpl implements BatchService {
         validateImporterRole(createdBy);
 
         Variant variant = findVariantById(request.getVariantId());
+        
+        Supplier supplier = findSupplierById(request.getSupplierId());
 
         ImportStockDetail importStockDetail = null;
         if (request.getImportStockDetailId() != null) {
@@ -68,7 +73,7 @@ public class BatchServiceImpl implements BatchService {
                 ? request.getBatchCode()
                 : generateBatchCode();
 
-        Batch batch = createBatchFromRequest(request, book, createdBy, variant, importStockDetail, batchCode);
+        Batch batch = createBatchFromRequest(request, book, createdBy, variant, supplier, importStockDetail, batchCode);
         Batch savedBatch = batchRepository.save(batch);
 
         syncBookStockQuantity(book.getId());
@@ -88,6 +93,9 @@ public class BatchServiceImpl implements BatchService {
         }
         if (request.getCreatedById() == null || request.getCreatedById() <= 0) {
             throw new IdInvalidException("User identifier is invalid");
+        }
+        if (request.getSupplierId() == null || request.getSupplierId() <= 0) {
+            throw new IdInvalidException("Supplier identifier is invalid");
         }
         if (request.getQuantity() == null || request.getQuantity() <= 0) {
             throw new IdInvalidException("Quantity must be greater than 0");
@@ -119,15 +127,15 @@ public class BatchServiceImpl implements BatchService {
         return String.format("%s-%s-%s-%04d", prefix, month, year, count);
     }
 
-    private Batch createBatchFromRequest(CreateBatchRequest request, Book book, User createdBy, Variant variant, ImportStockDetail importStockDetail, String batchCode) {
+    private Batch createBatchFromRequest(CreateBatchRequest request, Book book, User createdBy, Variant variant, Supplier supplier, ImportStockDetail importStockDetail, String batchCode) {
         Batch batch = new Batch();
         batch.setBatchCode(batchCode);
         batch.setQuantity(request.getQuantity());
         batch.setRemainingQuantity(request.getQuantity());
         batch.setImportPrice(request.getImportPrice());
         batch.setProductionDate(request.getProductionDate());
-        batch.setManufacturer(request.getManufacturer());
         batch.setCreatedAt(LocalDateTime.now());
+        batch.setSupplier(supplier);
         batch.setBook(book);
         batch.setCreatedBy(createdBy);
         batch.setVariant(variant);
@@ -393,6 +401,11 @@ public class BatchServiceImpl implements BatchService {
     private User findUserById(Long userId) {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with identifier: " + userId));
+    }
+
+    private Supplier findSupplierById(Long supplierId) {
+        return supplierRepository.findById(supplierId)
+                .orElseThrow(() -> new RuntimeException("Supplier not found with identifier: " + supplierId));
     }
 
     private ImportStockDetail findImportStockDetailById(Long importStockDetailId) {
