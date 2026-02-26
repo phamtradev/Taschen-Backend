@@ -27,6 +27,7 @@ import vn.edu.iuh.fit.bookstorebackend.repository.BookVariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.ImportStockDetailRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.OrderDetailRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.UserRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.VariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.BatchService;
 
 import java.time.LocalDateTime;
@@ -40,6 +41,7 @@ public class BatchServiceImpl implements BatchService {
     private final BatchDetailRepository batchDetailRepository;
     private final BookRepository bookRepository;
     private final BookVariantRepository bookVariantRepository;
+    private final VariantRepository variantRepository;
     private final UserRepository userRepository;
     private final ImportStockDetailRepository importStockDetailRepository;
     private final OrderDetailRepository orderDetailRepository;
@@ -55,6 +57,8 @@ public class BatchServiceImpl implements BatchService {
         User createdBy = findUserById(request.getCreatedById());
         validateImporterRole(createdBy);
 
+        Variant variant = findVariantById(request.getVariantId());
+
         ImportStockDetail importStockDetail = null;
         if (request.getImportStockDetailId() != null) {
             importStockDetail = findImportStockDetailById(request.getImportStockDetailId());
@@ -64,7 +68,7 @@ public class BatchServiceImpl implements BatchService {
                 ? request.getBatchCode()
                 : generateBatchCode();
 
-        Batch batch = createBatchFromRequest(request, book, createdBy, importStockDetail, batchCode);
+        Batch batch = createBatchFromRequest(request, book, createdBy, variant, importStockDetail, batchCode);
         Batch savedBatch = batchRepository.save(batch);
 
         syncBookStockQuantity(book.getId());
@@ -78,6 +82,9 @@ public class BatchServiceImpl implements BatchService {
         }
         if (request.getBookId() == null || request.getBookId() <= 0) {
             throw new IdInvalidException("Book identifier is invalid");
+        }
+        if (request.getVariantId() == null || request.getVariantId() <= 0) {
+            throw new IdInvalidException("Variant identifier is invalid");
         }
         if (request.getCreatedById() == null || request.getCreatedById() <= 0) {
             throw new IdInvalidException("User identifier is invalid");
@@ -93,7 +100,7 @@ public class BatchServiceImpl implements BatchService {
     private void validateImporterRole(User user) {
         if (user.getRoles() == null || user.getRoles().isEmpty()) {
             throw new RuntimeException("User does not have any roles. Required roles: ADMIN or WAREHOUSE_STAFF");
-        }
+        } 
 
         boolean hasPermission = user.getRoles().stream()
                 .anyMatch(role -> "ADMIN".equals(role.getCode())
@@ -112,7 +119,7 @@ public class BatchServiceImpl implements BatchService {
         return String.format("%s-%s-%s-%04d", prefix, month, year, count);
     }
 
-    private Batch createBatchFromRequest(CreateBatchRequest request, Book book, User createdBy, ImportStockDetail importStockDetail, String batchCode) {
+    private Batch createBatchFromRequest(CreateBatchRequest request, Book book, User createdBy, Variant variant, ImportStockDetail importStockDetail, String batchCode) {
         Batch batch = new Batch();
         batch.setBatchCode(batchCode);
         batch.setQuantity(request.getQuantity());
@@ -123,6 +130,7 @@ public class BatchServiceImpl implements BatchService {
         batch.setCreatedAt(LocalDateTime.now());
         batch.setBook(book);
         batch.setCreatedBy(createdBy);
+        batch.setVariant(variant);
         batch.setImportStockDetail(importStockDetail);
         return batch;
     }
@@ -378,6 +386,11 @@ public class BatchServiceImpl implements BatchService {
     private Book findBookById(Long bookId) {
         return bookRepository.findById(bookId)
                 .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
+    }
+
+    private Variant findVariantById(Long variantId) throws IdInvalidException {
+        return variantRepository.findById(variantId)
+                .orElseThrow(() -> new IdInvalidException("Variant not found with id: " + variantId));
     }
 
     private User findUserById(Long userId) {
