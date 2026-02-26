@@ -17,10 +17,19 @@ public interface BatchMapper {
     @Mapping(target = "createdById", expression = "java(batch.getCreatedBy().getId())")
     @Mapping(target = "createdByName", expression = "java(batch.getCreatedBy().getFirstName() + \" \" + batch.getCreatedBy().getLastName())")
     @Mapping(target = "importStockDetailId", expression = "java(batch.getImportStockDetail() != null ? batch.getImportStockDetail().getId() : null)")
-    @Mapping(target = "variant.id", expression = "java(batch.getVariant().getId())")
-    @Mapping(target = "variant.formatName", expression = "java(batch.getVariant().getFormatName())")
-    @Mapping(target = "variant.formatCode", expression = "java(batch.getVariant().getFormatCode())")
+    @Mapping(target = "variant", expression = "java(buildVariantInfo(batch))")
     BatchResponse toBatchResponse(Batch batch);
+
+    default BatchResponse.VariantInfo buildVariantInfo(Batch batch) {
+        if (batch.getVariant() == null) {
+            return null;
+        }
+        return BatchResponse.VariantInfo.builder()
+                .id(batch.getVariant().getId())
+                .formatName(batch.getVariant().getFormatName())
+                .formatCode(batch.getVariant().getFormatCode())
+                .build();
+    }
 
     List<BatchResponse> toBatchResponseList(List<Batch> batches);
 
