@@ -18,6 +18,7 @@ public class BatchResponse {
     private int quantity;
     private int remainingQuantity;
     private double importPrice;
+    private double sellingPrice;
     private LocalDate productionDate;
     private String manufacturer;
     private LocalDateTime createdAt;
@@ -26,4 +27,17 @@ public class BatchResponse {
     private Long createdById;
     private String createdByName;
     private Long importStockDetailId;
+
+    @Builder.Default
+    private VariantInfo variant = new VariantInfo();
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class VariantInfo {
+        private Long id;
+        private String formatName;
+        private String formatCode;
+    }
 }

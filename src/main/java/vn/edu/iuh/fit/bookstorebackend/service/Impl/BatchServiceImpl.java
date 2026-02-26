@@ -15,12 +15,15 @@ import vn.edu.iuh.fit.bookstorebackend.mapper.BatchMapper;
 import vn.edu.iuh.fit.bookstorebackend.model.Batch;
 import vn.edu.iuh.fit.bookstorebackend.model.BatchDetail;
 import vn.edu.iuh.fit.bookstorebackend.model.Book;
+import vn.edu.iuh.fit.bookstorebackend.model.BookVariant;
 import vn.edu.iuh.fit.bookstorebackend.model.ImportStockDetail;
 import vn.edu.iuh.fit.bookstorebackend.model.OrderDetail;
 import vn.edu.iuh.fit.bookstorebackend.model.User;
+import vn.edu.iuh.fit.bookstorebackend.model.Variant;
 import vn.edu.iuh.fit.bookstorebackend.repository.BatchDetailRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.BatchRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.BookVariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.ImportStockDetailRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.OrderDetailRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.UserRepository;
@@ -36,6 +39,7 @@ public class BatchServiceImpl implements BatchService {
     private final BatchRepository batchRepository;
     private final BatchDetailRepository batchDetailRepository;
     private final BookRepository bookRepository;
+    private final BookVariantRepository bookVariantRepository;
     private final UserRepository userRepository;
     private final ImportStockDetailRepository importStockDetailRepository;
     private final OrderDetailRepository orderDetailRepository;
@@ -101,10 +105,11 @@ public class BatchServiceImpl implements BatchService {
     }
 
     private String generateBatchCode() {
-        String prefix = "BATCH";
+        String prefix = "LH";
+        String month = String.format("%02d", LocalDateTime.now().getMonthValue());
         String year = String.valueOf(LocalDateTime.now().getYear());
         long count = batchRepository.count() + 1;
-        return String.format("%s-%s-%04d", prefix, year, count);
+        return String.format("%s-%s-%s-%04d", prefix, month, year, count);
     }
 
     private Batch createBatchFromRequest(CreateBatchRequest request, Book book, User createdBy, ImportStockDetail importStockDetail, String batchCode) {
@@ -127,7 +132,8 @@ public class BatchServiceImpl implements BatchService {
     public BatchResponse getBatchById(Long batchId) throws IdInvalidException {
         validateBatchId(batchId);
         Batch batch = findBatchById(batchId);
-        return batchMapper.toBatchResponse(batch);
+        BatchResponse response = batchMapper.toBatchResponse(batch);
+        return enrichSingleWithSellingPrice(response, batch);
     }
 
     private void validateBatchId(Long batchId) throws IdInvalidException {
@@ -143,7 +149,8 @@ public class BatchServiceImpl implements BatchService {
         User currentUser = getCurrentUser();
         validateImporterRole(currentUser);
         List<Batch> batches = batchRepository.findAll();
-        return batchMapper.toBatchResponseList(batches);
+        List<BatchResponse> responses = batchMapper.toBatchResponseList(batches);
+        return enrichWithSellingPrice(responses, batches);
     }
 
     @Override
@@ -152,7 +159,8 @@ public class BatchServiceImpl implements BatchService {
         validateBookId(bookId);
         validateBookExists(bookId);
         List<Batch> batches = batchRepository.findByBook_IdOrderByCreatedAtDesc(bookId);
-        return batchMapper.toBatchResponseList(batches);
+        List<BatchResponse> responses = batchMapper.toBatchResponseList(batches);
+        return enrichWithSellingPrice(responses, batches);
     }
 
     private void validateBookId(Long bookId) throws IdInvalidException {
@@ -176,7 +184,8 @@ public class BatchServiceImpl implements BatchService {
         validateUserId(userId);
         validateUserExists(userId);
         List<Batch> batches = batchRepository.findByCreatedBy_IdOrderByCreatedAtDesc(userId);
-        return batchMapper.toBatchResponseList(batches);
+        List<BatchResponse> responses = batchMapper.toBatchResponseList(batches);
+        return enrichWithSellingPrice(responses, batches);
     }
 
     private void validateUserId(Long userId) throws IdInvalidException {
@@ -197,7 +206,8 @@ public class BatchServiceImpl implements BatchService {
         validateBookId(bookId);
         validateBookExists(bookId);
         List<Batch> batches = batchRepository.findByBook_IdAndRemainingQuantityGreaterThanOrderByCreatedAtAsc(bookId, 0);
-        return batchMapper.toBatchResponseList(batches);
+        List<BatchResponse> responses = batchMapper.toBatchResponseList(batches);
+        return enrichWithSellingPrice(responses, batches);
     }
 
     @Override
@@ -420,5 +430,30 @@ public class BatchServiceImpl implements BatchService {
             throw new RuntimeException("User is null");
         }
         // Có thể thêm check isActive nếu User có field này
+    }
+
+    private List<BatchResponse> enrichWithSellingPrice(List<BatchResponse> responses, List<Batch> batches) {
+        for (int i = 0; i < responses.size(); i++) {
+            Batch batch = batches.get(i);
+            BatchResponse response = responses.get(i);
+            double sellingPrice = getSellingPrice(batch);
+            response.setSellingPrice(sellingPrice);
+        }
+        return responses;
+    }
+    
+    private BatchResponse enrichSingleWithSellingPrice(BatchResponse response, Batch batch) {
+        double sellingPrice = getSellingPrice(batch);
+        response.setSellingPrice(sellingPrice);
+        return response;
+    }
+
+    private double getSellingPrice(Batch batch) {
+        Book book = batch.getBook();
+        Variant variant = batch.getVariant();
+        return bookVariantRepository
+                .findByBookIdAndVariantId(book.getId(), variant.getId())
+                .map(BookVariant::getPrice)
+                .orElse(book.getPrice());
     }
 }
