@@ -14,6 +14,7 @@ import java.time.LocalDate;
 public class CreateBatchRequest {
 
     private Long bookId;
+    private Long variantId;
     private Long importStockDetailId; // Optional: Link với ImportStockDetail
     private Long createdById;
     private Integer quantity;
