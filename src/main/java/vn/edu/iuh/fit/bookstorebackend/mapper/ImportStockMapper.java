@@ -17,11 +17,14 @@ public interface ImportStockMapper {
     @Mapping(target = "createdById", expression = "java(importStock.getCreatedBy().getId())")
     @Mapping(target = "createdByName", expression = "java(importStock.getCreatedBy().getFirstName() + \" \" + importStock.getCreatedBy().getLastName())")
     @Mapping(target = "purchaseOrderId", expression = "java(importStock.getPurchaseOrder() != null ? importStock.getPurchaseOrder().getId() : null)")
+    @Mapping(target = "received", expression = "java(importStock.isReceived())")
     @Mapping(target = "details", source = "importStockDetails")
     ImportStockResponse toImportStockResponse(ImportStock importStock);
 
     @Mapping(target = "bookId", expression = "java(detail.getBook().getId())")
     @Mapping(target = "bookTitle", expression = "java(detail.getBook().getTitle())")
+    @Mapping(target = "variantId", expression = "java(detail.getVariant().getId())")
+    @Mapping(target = "variantName", expression = "java(detail.getVariant().getName())")
     ImportStockDetailResponse toImportStockDetailResponse(ImportStockDetail detail);
 
     List<ImportStockDetailResponse> toImportStockDetailResponseList(List<ImportStockDetail> details);

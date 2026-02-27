@@ -7,11 +7,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
-@JsonPropertyOrder({ "id", "importDate", "supplierId", "supplierName", "createdById", "createdByName", "details" })
+@JsonPropertyOrder({ "id", "importDate", "received", "supplierId", "supplierName", "createdById", "createdByName", "purchaseOrderId", "details" })
 public class ImportStockResponse {
 
     private Long id;
     private LocalDateTime importDate;
+    private boolean received;
     private Long supplierId;
     private String supplierName;
     private Long createdById;
