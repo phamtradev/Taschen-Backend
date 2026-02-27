@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateImportStockRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.ImportStockResponse;
+import vn.edu.iuh.fit.bookstorebackend.dto.response.ReceiveStockResponse;
 import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
 import vn.edu.iuh.fit.bookstorebackend.mapper.ImportStockMapper;
 import vn.edu.iuh.fit.bookstorebackend.common.PurchaseOrderStatus;
@@ -32,6 +33,7 @@ import vn.edu.iuh.fit.bookstorebackend.service.ImportStockService;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -167,7 +169,6 @@ public class ImportStockServiceImpl implements ImportStockService {
         Book book = poItem.getBook();
         Variant variant = poItem.getVariant();
         Supplier supplier = importStock.getSupplier();
-        User createdBy = importStock.getCreatedBy();
 
         ImportStockDetail detail = new ImportStockDetail();
         detail.setImportStock(importStock);
@@ -178,11 +179,7 @@ public class ImportStockServiceImpl implements ImportStockService {
         detail.setSupplier(supplier);
 
         importStockDetailRepository.save(detail);
-
-        // Auto-create or merge Batch
-        createOrMergeBatch(book, variant, poItem.getImportPrice(), supplier, poItem.getQuantity(), createdBy, detail);
-
-        updateStockQuantity(book, variant, poItem.getQuantity());
+        // KHÔNG tạo Batch ở đây nữa - sẽ tạo khi "Nhập kho"
     }
 
     private void createImportStockDetailFromRequest(ImportStock importStock, CreateImportStockRequest.ImportStockDetailRequest detailRequest) {
@@ -198,16 +195,9 @@ public class ImportStockServiceImpl implements ImportStockService {
         detail.setImportPrice(detailRequest.getImportPrice());
         detail.setSupplier(supplier);
 
-        importStockDetailRepository.save(detail);
-
-        // Auto-create or merge Batch
-        User createdBy = importStock.getCreatedBy();
-        createOrMergeBatch(book, variant, detailRequest.getImportPrice(), supplier, detailRequest.getQuantity(), createdBy, detail);
-
-        updateStockQuantity(book, variant, detailRequest.getQuantity());
+        importStockDetailRepository.save(detail);        
     }
 
-    // Updated: now also updates bookVariant stock
     private void updateStockQuantity(Book book, Variant variant, int quantity) {
         // Update book total stock
         book.setStockQuantity(book.getStockQuantity() + quantity);
@@ -282,37 +272,140 @@ public class ImportStockServiceImpl implements ImportStockService {
     }
 
     /**
-     * Auto-create or merge Batch when importing stock
-     * - If batch exists with same book + variant + importPrice + supplier → accumulate quantity
-     * - Otherwise create new batch
+     * Nhập kho: tạo Batch từ ImportStockDetail
+     * - Nếu batch đã tồn tại (cùng book + variant + importPrice + supplier) → cộng dồn số lượng
+     * - Nếu batch mới → tạo batch mới
      */
-    private void createOrMergeBatch(Book book, Variant variant, double importPrice, 
-                                     Supplier supplier, int quantity, User createdBy, ImportStockDetail importStockDetail) {
-        // Find existing batch with same criteria
-        var existingBatch = batchRepository.findByBook_IdAndVariant_IdAndImportPriceAndSupplier_Id(
-                book.getId(), variant.getId(), importPrice, supplier.getId());
+    @Override
+    @Transactional
+    public ReceiveStockResponse receiveStock(Long importStockId, Long userId) throws IdInvalidException {
+        validateReceiveStockRequest(importStockId, userId);
+
+        ImportStock importStock = findImportStockById(importStockId);
+        validateImportStockNotReceived(importStock);
+
+        User createdBy = findUserById(userId);
+        validateImporterRole(createdBy);
+
+        List<ImportStockDetail> details = getImportStockDetails(importStock);
+
+        List<ReceiveStockResponse.BatchReceiveResult> batchResults = processBatchCreation(details, createdBy);
+
+        markAsReceived(importStock);
+
+        return buildReceiveStockResponse(importStockId, batchResults);
+    }
+
+    private void validateReceiveStockRequest(Long importStockId, Long userId) throws IdInvalidException {
+        if (importStockId == null || importStockId <= 0) {
+            throw new IdInvalidException("Import stock identifier is invalid");
+        }
+        if (userId == null || userId <= 0) {
+            throw new IdInvalidException("User identifier is invalid");
+        }
+    }
+
+    private void validateImportStockNotReceived(ImportStock importStock) {
+        if (importStock.isReceived()) {
+            throw new RuntimeException("Import stock has already been received");
+        }
+    }
+
+    private List<ImportStockDetail> getImportStockDetails(ImportStock importStock) {
+        List<ImportStockDetail> details = importStock.getImportStockDetails();
+        if (details == null || details.isEmpty()) {
+            throw new RuntimeException("Import stock has no details");
+        }
+        return details;
+    }
+
+    private List<ReceiveStockResponse.BatchReceiveResult> processBatchCreation(List<ImportStockDetail> details, User createdBy) {
+        List<ReceiveStockResponse.BatchReceiveResult> batchResults = new java.util.ArrayList<>();
+        for (ImportStockDetail detail : details) {
+            ReceiveStockResponse.BatchReceiveResult result = createBatchFromDetail(detail, createdBy);
+            batchResults.add(result);
+            updateStockQuantity(detail.getBook(), detail.getVariant(), detail.getQuantity());
+        }
+        return batchResults;
+    }
+
+    private void markAsReceived(ImportStock importStock) {
+        importStock.setReceived(true);
+        importStockRepository.save(importStock);
+    }
+
+    private ReceiveStockResponse buildReceiveStockResponse(Long importStockId, List<ReceiveStockResponse.BatchReceiveResult> batchResults) {
+        return ReceiveStockResponse.builder()
+                .importStockId(importStockId)
+                .received(true)
+                .batchResults(batchResults)
+                .build();
+    }
+
+    private ReceiveStockResponse.BatchReceiveResult createBatchFromDetail(ImportStockDetail detail, User createdBy) {
+        Book book = detail.getBook();
+        Variant variant = detail.getVariant();
+        Supplier supplier = detail.getSupplier();
+        int quantity = detail.getQuantity();
+        double importPrice = detail.getImportPrice();
+
+        var existingBatch = findExistingBatch(book, variant, importPrice, supplier);
 
         if (existingBatch.isPresent()) {
-            // Merge: accumulate quantity
-            Batch batch = existingBatch.get();
-            batch.setQuantity(batch.getQuantity() + quantity);
-            batch.setRemainingQuantity(batch.getRemainingQuantity() + quantity);
-            batchRepository.save(batch);
+            return mergeBatch(existingBatch.get(), detail, quantity);
         } else {
-            // Create new batch
-            Batch batch = new Batch();
-            batch.setBatchCode(generateBatchCode());
-            batch.setQuantity(quantity);
-            batch.setRemainingQuantity(quantity);
-            batch.setImportPrice(importPrice);
-            batch.setSupplier(supplier);
-            batch.setBook(book);
-            batch.setCreatedBy(createdBy);
-            batch.setVariant(variant);
-            batch.setImportStockDetail(importStockDetail);
-            batch.setCreatedAt(LocalDateTime.now());
-            batchRepository.save(batch);
+            return createNewBatch(detail, createdBy, quantity, importPrice);
         }
+    }
+
+    private Optional<Batch> findExistingBatch(Book book, Variant variant, double importPrice, Supplier supplier) {
+        return batchRepository.findByBook_IdAndVariant_IdAndImportPriceAndSupplier_Id(
+                book.getId(), variant.getId(), importPrice, supplier.getId());
+    }
+
+    private ReceiveStockResponse.BatchReceiveResult mergeBatch(Batch batch, ImportStockDetail detail, int quantity) {
+        batch.setQuantity(batch.getQuantity() + quantity);
+        batch.setRemainingQuantity(batch.getRemainingQuantity() + quantity);
+        batch.setImportStockDetail(detail);
+        batchRepository.save(batch);
+
+        return buildBatchResponse(batch, detail.getBook(), detail.getVariant(), detail.getQuantity(), detail.getImportPrice(), false);
+    }
+
+    private ReceiveStockResponse.BatchReceiveResult createNewBatch(ImportStockDetail detail, User createdBy, int quantity, double importPrice) {
+        Batch batch = createBatchEntity(detail, createdBy, quantity, importPrice);
+        batchRepository.save(batch);
+
+        return buildBatchResponse(batch, detail.getBook(), detail.getVariant(), quantity, importPrice, true);
+    }
+
+    private Batch createBatchEntity(ImportStockDetail detail, User createdBy, int quantity, double importPrice) {
+        Batch batch = new Batch();
+        batch.setBatchCode(generateBatchCode());
+        batch.setQuantity(quantity);
+        batch.setRemainingQuantity(quantity);
+        batch.setImportPrice(importPrice);
+        batch.setSupplier(detail.getSupplier());
+        batch.setBook(detail.getBook());
+        batch.setCreatedBy(createdBy);
+        batch.setVariant(detail.getVariant());
+        batch.setImportStockDetail(detail);
+        batch.setCreatedAt(LocalDateTime.now());
+        return batch;
+    }
+
+    private ReceiveStockResponse.BatchReceiveResult buildBatchResponse(Batch batch, Book book, Variant variant, int quantity, double importPrice, boolean isNew) {
+        return ReceiveStockResponse.BatchReceiveResult.builder()
+                .batchId(batch.getId())
+                .batchCode(batch.getBatchCode())
+                .bookId(book.getId())
+                .bookTitle(book.getTitle())
+                .variantId(variant.getId())
+                .variantName(variant.getFormatName())
+                .quantity(quantity)
+                .importPrice(importPrice)
+                .isNew(isNew)
+                .build();
     }
 
     private String generateBatchCode() {

@@ -18,6 +18,9 @@ public class ImportStock {
     @Column(name = "import_date", nullable = false)
     private LocalDateTime importDate;
 
+    @Column(name = "received", nullable = false)
+    private boolean received = false; // false = chưa nhập kho, true = đã nhập kho
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_id", nullable = false)
     private User createdBy;
