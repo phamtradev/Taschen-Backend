@@ -228,6 +228,11 @@ public class BookServiceImpl implements BookService {
         if (request.getIsActive() != null) {
             book.setIsActive(request.getIsActive());
         }
+        if (request.getSupplierId() != null) {
+            Supplier supplier = supplierRepository.findById(request.getSupplierId())
+                    .orElseThrow(() -> new IdInvalidException("Supplier not found"));
+            book.setSupplier(supplier);
+        }
     }
     
     private void updateBookCategories(Book book, List<Long> categoryIds) throws IdInvalidException {

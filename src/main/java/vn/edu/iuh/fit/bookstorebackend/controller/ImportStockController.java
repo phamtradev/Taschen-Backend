@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateImportStockRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.ImportStockResponse;
+import vn.edu.iuh.fit.bookstorebackend.dto.response.ReceiveStockResponse;
 import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
 import vn.edu.iuh.fit.bookstorebackend.service.ImportStockService;
 
@@ -23,7 +24,7 @@ public class ImportStockController {
     @PostMapping
     public ResponseEntity<ImportStockResponse> createImportStock(
             @RequestBody CreateImportStockRequest request) throws IdInvalidException {
-        // Role: ADMIN hoặc WAREHOUSE_STAFF - Tạo phiếu nhập kho từ PurchaseOrder đã APPROVED
+        // Role: ADMIN hoặc WAREHOUSE_STAFF - Tạo phiếu nhập kho từ PurchaseOrder đã ORDERED
         ImportStockResponse importStockResponse = importStockService.createImportStock(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(importStockResponse);
     }
@@ -39,5 +40,14 @@ public class ImportStockController {
             @PathVariable Long bookId) throws IdInvalidException {
         List<ImportStockResponse> importStocks = importStockService.getImportHistoryByBookId(bookId);
         return ResponseEntity.status(HttpStatus.OK).body(importStocks);
+    }
+
+    @PostMapping("/{id}/receive")
+    public ResponseEntity<ReceiveStockResponse> receiveStock(
+            @PathVariable Long id,
+            @RequestParam Long userId) throws IdInvalidException {
+        // Role: ADMIN hoặc WAREHOUSE_STAFF - Nhập kho tạo Batch + cập nhật tồn kho
+        ReceiveStockResponse response = importStockService.receiveStock(id, userId);
+        return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 }
