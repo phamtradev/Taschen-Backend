@@ -35,6 +35,13 @@ public class ImportStockController {
         return ResponseEntity.status(HttpStatus.OK).body(importStocks);
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<ImportStockResponse> getImportStockById(
+            @PathVariable Long id) throws IdInvalidException {
+        ImportStockResponse importStock = importStockService.getImportStockById(id);
+        return ResponseEntity.status(HttpStatus.OK).body(importStock);
+    }
+
     @GetMapping("/book/{bookId}")
     public ResponseEntity<List<ImportStockResponse>> getImportHistoryByBookId(
             @PathVariable Long bookId) throws IdInvalidException {

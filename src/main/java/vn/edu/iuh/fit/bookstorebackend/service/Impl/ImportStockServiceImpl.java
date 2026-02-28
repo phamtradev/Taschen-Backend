@@ -79,6 +79,16 @@ public class ImportStockServiceImpl implements ImportStockService {
         return importStockMapper.toImportStockResponse(importStockWithDetails);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ImportStockResponse getImportStockById(Long id) throws IdInvalidException {
+        if (id == null || id <= 0) {
+            throw new IdInvalidException("Import stock identifier is invalid");
+        }
+        ImportStock importStock = findImportStockById(id);
+        return importStockMapper.toImportStockResponse(importStock);
+    }
+
     private void validateCreateImportStockRequest(CreateImportStockRequest request) throws IdInvalidException {
         if (request == null) {
             throw new IdInvalidException("CreateImportStockRequest cannot be null");

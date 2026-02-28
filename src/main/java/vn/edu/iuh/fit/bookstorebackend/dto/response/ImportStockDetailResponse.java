@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import lombok.Data;
 
 @Data
-@JsonPropertyOrder({ "id", "bookId", "bookTitle", "variantId", "variantName", "quantity", "importPrice" })
+@JsonPropertyOrder({ "id", "bookId", "bookTitle", "variantId", "variantName", "quantity", "importPrice", "supplierId", "supplierName" })
 public class ImportStockDetailResponse {
 
     private Long id;
@@ -14,4 +14,6 @@ public class ImportStockDetailResponse {
     private String variantName;
     private int quantity;
     private double importPrice;
+    private Long supplierId;
+    private String supplierName;
 }
