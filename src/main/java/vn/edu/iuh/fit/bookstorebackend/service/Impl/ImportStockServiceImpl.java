@@ -64,6 +64,7 @@ public class ImportStockServiceImpl implements ImportStockService {
         
         PurchaseOrder purchaseOrder = findPurchaseOrderById(request.getPurchaseOrderId());
         validatePurchaseOrderForImport(purchaseOrder);
+        validateSupplierMatchesPurchaseOrder(request.getSupplierId(), purchaseOrder);
 
         ImportStock importStock = createImportStockFromRequest(request, supplier, createdBy, purchaseOrder);
         ImportStock savedImportStock = importStockRepository.save(importStock);
@@ -136,6 +137,15 @@ public class ImportStockServiceImpl implements ImportStockService {
         if (purchaseOrder.getStatus() != PurchaseOrderStatus.APPROVED 
                 && purchaseOrder.getStatus() != PurchaseOrderStatus.ORDERED) {
             throw new RuntimeException("Purchase order must be APPROVED or ORDERED to create import stock. Current status: " + purchaseOrder.getStatus());
+        }
+    }
+
+    private void validateSupplierMatchesPurchaseOrder(Long supplierId, PurchaseOrder purchaseOrder) throws IdInvalidException {
+        if (purchaseOrder.getSupplier() == null) {
+            throw new RuntimeException("Purchase order has no supplier");
+        }
+        if (!purchaseOrder.getSupplier().getId().equals(supplierId)) {
+            throw new IdInvalidException("Supplier must match the supplier in purchase order: " + purchaseOrder.getSupplier().getName());
         }
     }
 
