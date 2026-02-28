@@ -11,6 +11,8 @@ public interface ImportStockService {
 
     ImportStockResponse createImportStock(CreateImportStockRequest request) throws IdInvalidException;
 
+    ImportStockResponse getImportStockById(Long id) throws IdInvalidException;
+
     List<ImportStockResponse> getAllImportStocks();
 
     List<ImportStockResponse> getImportHistoryByBookId(Long bookId) throws IdInvalidException;

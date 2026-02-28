@@ -25,6 +25,8 @@ public interface ImportStockMapper {
     @Mapping(target = "bookTitle", expression = "java(detail.getBook().getTitle())")
     @Mapping(target = "variantId", expression = "java(detail.getVariant().getId())")
     @Mapping(target = "variantName", expression = "java(detail.getVariant().getFormatName())")
+    @Mapping(target = "supplierId", expression = "java(detail.getSupplier().getId())")
+    @Mapping(target = "supplierName", expression = "java(detail.getSupplier().getName())")
     ImportStockDetailResponse toImportStockDetailResponse(ImportStockDetail detail);
 
     List<ImportStockDetailResponse> toImportStockDetailResponseList(List<ImportStockDetail> details);
