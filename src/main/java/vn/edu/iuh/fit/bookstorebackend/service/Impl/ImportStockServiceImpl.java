@@ -223,9 +223,17 @@ public class ImportStockServiceImpl implements ImportStockService {
         book.setStockQuantity(book.getStockQuantity() + quantity);
         bookRepository.save(book);
 
-        // Update bookVariant stock
+        // Update bookVariant stock - auto create if not exists
         BookVariant bookVariant = bookVariantRepository.findByBookIdAndVariantId(book.getId(), variant.getId())
-                .orElseThrow(() -> new RuntimeException("BookVariant not found for book: " + book.getId() + " and variant: " + variant.getId()));
+                .orElseGet(() -> {
+                    // Auto create BookVariant if not exists
+                    BookVariant newBookVariant = new BookVariant();
+                    newBookVariant.setBook(book);
+                    newBookVariant.setVariant(variant);
+                    newBookVariant.setPrice(0.0);
+                    newBookVariant.setStockQuantity(0);
+                    return bookVariantRepository.save(newBookVariant);
+                });
         bookVariant.setStockQuantity(bookVariant.getStockQuantity() + quantity);
         bookVariantRepository.save(bookVariant);
     }
