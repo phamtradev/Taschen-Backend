@@ -18,12 +18,23 @@ services:
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-bookstoreecommerce}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
-      SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-root}
-      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-123456}
+      # DB config for application-prod.properties (DB_URL_PROD, DB_USERNAME_PROD, DB_PASSWORD_PROD)
+      DB_URL_PROD: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-bookstoreecommerce}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+      DB_USERNAME_PROD: ${DB_USERNAME:-root}
+      DB_PASSWORD_PROD: ${DB_PASSWORD:-123456}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       # RAM optimization for t3.micro (512MB limit)
       JAVA_OPTS: "-Xmx256m -Xms128m -XX:+UseG1GC"
+      # OLD - Spring auto-config (not used with prod profile)
+      # SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-bookstoreecommerce}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
+      # SPRING_DATASOURCE_USERNAME: ${DB_USERNAME:-root}
+      # SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-123456}
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     deploy:
       resources:
         limits:
