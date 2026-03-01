@@ -25,6 +25,7 @@ public class BookResponse {
     
     @Data
     public static class VariantFormatInfo {
+        private Long variantId;
         private String formatCode;
         private String formatName;
         private Double price;

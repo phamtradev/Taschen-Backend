@@ -40,6 +40,7 @@ public interface BookMapper {
         return bookVariants.stream()
                 .map(bv -> {
                     BookResponse.VariantFormatInfo info = new BookResponse.VariantFormatInfo();
+                    info.setVariantId(bv.getVariant().getId());
                     info.setFormatCode(bv.getVariant().getFormatCode());
                     info.setFormatName(bv.getVariant().getFormatName());
                     info.setPrice(bv.getPrice());
