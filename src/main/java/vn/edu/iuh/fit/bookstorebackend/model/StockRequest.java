@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import jakarta.persistence.*;
 import lombok.Data;
 import vn.edu.iuh.fit.bookstorebackend.common.StockRequestStatus;
+import vn.edu.iuh.fit.bookstorebackend.model.Variant;
 
 @Entity
 @Data
@@ -37,6 +38,10 @@ public class StockRequest {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "book_id", nullable = false)
     private Book book;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "variant_id")
+    private Variant variant;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_user_id", nullable = false)

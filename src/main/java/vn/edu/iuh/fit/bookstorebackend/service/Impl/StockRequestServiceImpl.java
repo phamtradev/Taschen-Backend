@@ -13,9 +13,11 @@ import vn.edu.iuh.fit.bookstorebackend.mapper.StockRequestMapper;
 import vn.edu.iuh.fit.bookstorebackend.model.Book;
 import vn.edu.iuh.fit.bookstorebackend.model.StockRequest;
 import vn.edu.iuh.fit.bookstorebackend.model.User;
+import vn.edu.iuh.fit.bookstorebackend.model.Variant;
 import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.StockRequestRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.UserRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.VariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.service.StockRequestService;
 
 import java.time.LocalDateTime;
@@ -29,6 +31,7 @@ public class StockRequestServiceImpl implements StockRequestService {
     private final StockRequestRepository stockRequestRepository;
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
+    private final VariantRepository variantRepository;
     private final StockRequestMapper stockRequestMapper;
 
     @Override
@@ -37,10 +40,12 @@ public class StockRequestServiceImpl implements StockRequestService {
         validateCreateStockRequestRequest(request);
 
         Book book = findBookById(request.getBookId());
+        Variant variant = findVariantById(request.getVariantId());
+        validateVariantBelongsToBook(variant, book);
         User createdBy = findUserById(request.getCreatedById());
         validateSellerRole(createdBy);
 
-        StockRequest stockRequest = createStockRequestFromRequest(request, book, createdBy);
+        StockRequest stockRequest = createStockRequestFromRequest(request, book, variant, createdBy);
         StockRequest savedStockRequest = stockRequestRepository.save(stockRequest);
 
         return stockRequestMapper.toStockRequestResponse(savedStockRequest);
@@ -61,6 +66,17 @@ public class StockRequestServiceImpl implements StockRequestService {
         }
     }
 
+    private void validateVariantBelongsToBook(Variant variant, Book book) throws IdInvalidException {
+        if (variant != null && book != null) {
+            boolean belongsToBook = book.getBookVariants() != null &&
+                    book.getBookVariants().stream()
+                            .anyMatch(bv -> bv.getVariant().getId().equals(variant.getId()));
+            if (!belongsToBook) {
+                throw new IdInvalidException("Variant does not belong to the specified book");
+            }
+        }
+    }
+
     private void validateSellerRole(User createdBy) {
         if (createdBy.getRoles() == null || createdBy.getRoles().isEmpty()) {
             throw new RuntimeException("User does not have any roles. Required roles: ADMIN or SELLER");
@@ -74,9 +90,10 @@ public class StockRequestServiceImpl implements StockRequestService {
         }
     }
 
-    private StockRequest createStockRequestFromRequest(CreateStockRequestRequest request, Book book, User createdBy) {
+    private StockRequest createStockRequestFromRequest(CreateStockRequestRequest request, Book book, Variant variant, User createdBy) {
         StockRequest stockRequest = new StockRequest();
         stockRequest.setBook(book);
+        stockRequest.setVariant(variant);
         stockRequest.setQuantity(request.getQuantity());
         stockRequest.setReason(request.getReason());
         stockRequest.setStatus(StockRequestStatus.PENDING);
@@ -228,5 +245,13 @@ public class StockRequestServiceImpl implements StockRequestService {
     private StockRequest findStockRequestById(Long stockRequestId) {
         return stockRequestRepository.findById(stockRequestId)
                 .orElseThrow(() -> new RuntimeException("Stock request not found"));
+    }
+
+    private Variant findVariantById(Long variantId) {
+        if (variantId == null) {
+            return null;
+        }
+        return variantRepository.findById(variantId)
+                .orElseThrow(() -> new RuntimeException("Variant not found with identifier: " + variantId));
     }
 }

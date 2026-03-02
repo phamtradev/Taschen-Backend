@@ -1,6 +1,7 @@
 package vn.edu.iuh.fit.bookstorebackend.service;
 
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreatePurchaseOrderRequest;
+import vn.edu.iuh.fit.bookstorebackend.dto.request.CreatePurchaseOrderFromStockRequestRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.PurchaseOrderResponse;
 import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
 
@@ -9,6 +10,8 @@ import java.util.List;
 public interface PurchaseOrderService {
 
     PurchaseOrderResponse createPurchaseOrder(CreatePurchaseOrderRequest request) throws IdInvalidException;
+
+    PurchaseOrderResponse createPurchaseOrderFromStockRequest(CreatePurchaseOrderFromStockRequestRequest request) throws IdInvalidException;
 
     List<PurchaseOrderResponse> getAllPurchaseOrders();
 

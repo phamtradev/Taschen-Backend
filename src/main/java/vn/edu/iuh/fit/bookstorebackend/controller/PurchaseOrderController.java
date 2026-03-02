@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.ApprovePurchaseOrderRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CancelPurchaseOrderRequest;
+import vn.edu.iuh.fit.bookstorebackend.dto.request.CreatePurchaseOrderFromStockRequestRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreatePurchaseOrderRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.PayPurchaseOrderRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.PurchaseOrderResponse;
@@ -28,6 +29,14 @@ public class PurchaseOrderController {
             @RequestBody CreatePurchaseOrderRequest request) throws IdInvalidException {
         // Role: ADMIN, WAREHOUSE_STAFF, hoặc SELLER - Tạo đơn đặt hàng từ nhà cung cấp
         PurchaseOrderResponse purchaseOrderResponse = purchaseOrderService.createPurchaseOrder(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(purchaseOrderResponse);
+    }
+
+    @PostMapping("/from-stock-request")
+    public ResponseEntity<PurchaseOrderResponse> createPurchaseOrderFromStockRequest(
+            @RequestBody CreatePurchaseOrderFromStockRequestRequest request) throws IdInvalidException {
+        // Role: ADMIN, WAREHOUSE_STAFF - Tạo đơn đặt hàng từ StockRequest đã duyệt
+        PurchaseOrderResponse purchaseOrderResponse = purchaseOrderService.createPurchaseOrderFromStockRequest(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(purchaseOrderResponse);
     }
 

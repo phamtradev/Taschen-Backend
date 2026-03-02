@@ -5,6 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.bookstorebackend.common.PurchaseOrderStatus;
+import vn.edu.iuh.fit.bookstorebackend.common.StockRequestStatus;
+import vn.edu.iuh.fit.bookstorebackend.dto.request.CreatePurchaseOrderFromStockRequestRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreatePurchaseOrderRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.PurchaseOrderResponse;
 import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
@@ -12,6 +14,7 @@ import vn.edu.iuh.fit.bookstorebackend.mapper.PurchaseOrderMapper;
 import vn.edu.iuh.fit.bookstorebackend.model.Book;
 import vn.edu.iuh.fit.bookstorebackend.model.PurchaseOrder;
 import vn.edu.iuh.fit.bookstorebackend.model.PurchaseOrderItem;
+import vn.edu.iuh.fit.bookstorebackend.model.StockRequest;
 import vn.edu.iuh.fit.bookstorebackend.model.Supplier;
 import vn.edu.iuh.fit.bookstorebackend.model.User;
 import vn.edu.iuh.fit.bookstorebackend.model.Variant;
@@ -19,6 +22,7 @@ import vn.edu.iuh.fit.bookstorebackend.repository.BookRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.BookVariantRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.PurchaseOrderItemRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.PurchaseOrderRepository;
+import vn.edu.iuh.fit.bookstorebackend.repository.StockRequestRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.SupplierRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.UserRepository;
 import vn.edu.iuh.fit.bookstorebackend.repository.VariantRepository;
@@ -39,6 +43,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final BookRepository bookRepository;
     private final VariantRepository variantRepository;
     private final BookVariantRepository bookVariantRepository;
+    private final StockRequestRepository stockRequestRepository;
     private final PurchaseOrderMapper purchaseOrderMapper;
     private final EntityManager entityManager;
 
@@ -62,6 +67,77 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         PurchaseOrder purchaseOrderWithItems = findPurchaseOrderById(savedPurchaseOrder.getId());
 
         return purchaseOrderMapper.toPurchaseOrderResponse(purchaseOrderWithItems);
+    }
+
+    @Override
+    @Transactional
+    public PurchaseOrderResponse createPurchaseOrderFromStockRequest(CreatePurchaseOrderFromStockRequestRequest request) throws IdInvalidException {
+        validateCreatePurchaseOrderFromStockRequest(request);
+
+        // Lấy StockRequest đã duyệt
+        StockRequest stockRequest = findStockRequestById(request.getStockRequestId());
+        validateStockRequestStatusApproved(stockRequest);
+
+        // Lấy thông tin Supplier và User
+        Supplier supplier = findSupplierById(request.getSupplierId());
+        User createdBy = findUserById(request.getCreatedById());
+
+        // Tạo PurchaseOrder
+        PurchaseOrder purchaseOrder = new PurchaseOrder();
+        purchaseOrder.setSupplier(supplier);
+        purchaseOrder.setCreatedBy(createdBy);
+        purchaseOrder.setNote(request.getNote());
+        purchaseOrder.setStatus(PurchaseOrderStatus.PENDING);
+
+        PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
+
+        // Tạo PurchaseOrderItem từ StockRequest
+        Book book = stockRequest.getBook();
+        Variant variant = stockRequest.getVariant();
+
+        PurchaseOrderItem item = new PurchaseOrderItem();
+        item.setPurchaseOrder(savedPurchaseOrder);
+        item.setBook(book);
+        item.setVariant(variant);
+        item.setQuantity(stockRequest.getQuantity());
+        item.setImportPrice(request.getImportPrice());
+
+        purchaseOrderItemRepository.save(item);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        PurchaseOrder purchaseOrderWithItems = findPurchaseOrderById(savedPurchaseOrder.getId());
+        return purchaseOrderMapper.toPurchaseOrderResponse(purchaseOrderWithItems);
+    }
+
+    private void validateCreatePurchaseOrderFromStockRequest(CreatePurchaseOrderFromStockRequestRequest request) throws IdInvalidException {
+        if (request == null) {
+            throw new IdInvalidException("Request cannot be null");
+        }
+        if (request.getStockRequestId() == null || request.getStockRequestId() <= 0) {
+            throw new IdInvalidException("Stock request id is invalid");
+        }
+        if (request.getSupplierId() == null || request.getSupplierId() <= 0) {
+            throw new IdInvalidException("Supplier id is invalid");
+        }
+        if (request.getCreatedById() == null || request.getCreatedById() <= 0) {
+            throw new IdInvalidException("User id is invalid");
+        }
+        if (request.getImportPrice() < 0) {
+            throw new IdInvalidException("Import price cannot be negative");
+        }
+    }
+
+    private void validateStockRequestStatusApproved(StockRequest stockRequest) {
+        if (stockRequest.getStatus() != StockRequestStatus.APPROVED) {
+            throw new RuntimeException("Stock request must be APPROVED to create purchase order. Current status: " + stockRequest.getStatus());
+        }
+    }
+
+    private StockRequest findStockRequestById(Long stockRequestId) {
+        return stockRequestRepository.findById(stockRequestId)
+                .orElseThrow(() -> new RuntimeException("Stock request not found with identifier: " + stockRequestId));
     }
 
     private void validateCreatePurchaseOrderRequest(CreatePurchaseOrderRequest request) throws IdInvalidException {
