@@ -200,14 +200,14 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
 
     private void validateSellerRole(User user) {
         if (user.getRoles() == null || user.getRoles().isEmpty()) {
-            throw new RuntimeException("User does not have any roles. Required role: SELLER");
+            throw new RuntimeException("User does not have any roles. Required roles: ADMIN or SELLER");
         }
 
         boolean hasPermission = user.getRoles().stream()
-                .anyMatch(role -> "SELLER".equals(role.getCode()));
+                .anyMatch(role -> "SELLER".equals(role.getCode()) || "ADMIN".equals(role.getCode()));
 
         if (!hasPermission) {
-            throw new RuntimeException("User does not have permission to process return requests. Required role: SELLER");
+            throw new RuntimeException("User does not have permission to process return requests. Required roles: ADMIN or SELLER");
         }
     }
 

@@ -63,14 +63,14 @@ public class StockRequestServiceImpl implements StockRequestService {
 
     private void validateSellerRole(User createdBy) {
         if (createdBy.getRoles() == null || createdBy.getRoles().isEmpty()) {
-            throw new RuntimeException("User does not have any roles. Required role: SELLER");
+            throw new RuntimeException("User does not have any roles. Required roles: ADMIN or SELLER");
         }
 
         boolean hasPermission = createdBy.getRoles().stream()
-                .anyMatch(role -> "SELLER".equals(role.getCode()));
+                .anyMatch(role -> "SELLER".equals(role.getCode()) || "ADMIN".equals(role.getCode()));
 
         if (!hasPermission) {
-            throw new RuntimeException("User does not have permission to create stock requests. Required role: SELLER");
+            throw new RuntimeException("User does not have permission to create stock requests. Required roles: ADMIN or SELLER");
         }
     }
 
