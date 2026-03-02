@@ -88,7 +88,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserResponse> getAllUsers() {
-        List<User> users = userRepository.findAll();
+        List<User> users = userRepository.findAllWithRoles();
         return mapToUserResponseList(users);
     }
 
@@ -105,7 +105,7 @@ public class UserServiceImpl implements UserService {
     }
     
     private User findUserById(Long id) {
-        return userRepository.findById(id)
+        return userRepository.findByIdWithRoles(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
     }
     
