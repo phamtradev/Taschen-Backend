@@ -10,6 +10,8 @@ public interface StockRequestMapper {
 
     @Mapping(target = "bookId", expression = "java(stockRequest.getBook().getId())")
     @Mapping(target = "bookTitle", expression = "java(stockRequest.getBook().getTitle())")
+    @Mapping(target = "variantId", expression = "java(stockRequest.getVariant() != null ? stockRequest.getVariant().getId() : null)")
+    @Mapping(target = "variantName", expression = "java(stockRequest.getVariant() != null ? stockRequest.getVariant().getFormatName() : null)")
     @Mapping(target = "createdById", expression = "java(stockRequest.getCreatedBy().getId())")
     @Mapping(target = "createdByName", expression = "java(stockRequest.getCreatedBy().getFirstName() + \" \" + stockRequest.getCreatedBy().getLastName())")
     @Mapping(target = "processedById", expression = "java(stockRequest.getProcessedBy() != null ? stockRequest.getProcessedBy().getId() : null)")

@@ -7,7 +7,7 @@ import vn.edu.iuh.fit.bookstorebackend.common.StockRequestStatus;
 import java.time.LocalDateTime;
 
 @Data
-@JsonPropertyOrder({ "id", "quantity", "reason", "status", "createdAt", "processedAt", "responseMessage", "bookId", "bookTitle", "createdById", "createdByName", "processedById", "processedByName" })
+@JsonPropertyOrder({ "id", "quantity", "reason", "status", "createdAt", "processedAt", "responseMessage", "bookId", "bookTitle", "variantId", "variantName", "createdById", "createdByName", "processedById", "processedByName" })
 public class StockRequestResponse {
 
     private Long id;
@@ -19,6 +19,8 @@ public class StockRequestResponse {
     private String responseMessage;
     private Long bookId;
     private String bookTitle;
+    private Long variantId;
+    private String variantName;
     private Long createdById;
     private String createdByName;
     private Long processedById;
