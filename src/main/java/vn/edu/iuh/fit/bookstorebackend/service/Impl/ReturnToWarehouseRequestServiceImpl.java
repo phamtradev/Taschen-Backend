@@ -233,7 +233,7 @@ public class ReturnToWarehouseRequestServiceImpl implements ReturnToWarehouseReq
     }
 
     private User findUserByEmail(String email) {
-        return userRepository.findByEmailWithRoles(email)
+        return userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
     }
 

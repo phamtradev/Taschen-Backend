@@ -164,7 +164,7 @@ public class DisposalRequestServiceImpl implements DisposalRequestService {
         if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
             throw new RuntimeException("User is not authenticated");
         }
-        return userRepository.findByEmailWithRoles(auth.getName())
+        return userRepository.findByEmail(auth.getName())
                 .orElseThrow(() -> new RuntimeException("User information not found"));
     }
 

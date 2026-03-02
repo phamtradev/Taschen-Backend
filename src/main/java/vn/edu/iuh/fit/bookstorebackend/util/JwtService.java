@@ -63,7 +63,7 @@ public class JwtService {
         //check tồn tại trong db
         String email = decoded.getSubject();
         if (email != null) {
-            Optional<User> maybeUser = userRepository.findByEmailWithRoles(email);
+            Optional<User> maybeUser = userRepository.findByEmail(email);
             if (maybeUser.isPresent()) {
                 User user = maybeUser.get();
                 List<RefreshToken> tokens = refreshTokenRepository.findByUser(user);

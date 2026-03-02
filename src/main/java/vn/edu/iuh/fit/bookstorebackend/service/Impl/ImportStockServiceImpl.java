@@ -285,7 +285,7 @@ public class ImportStockServiceImpl implements ImportStockService {
     }
 
     private User findUserById(Long userId) {
-        return userRepository.findByIdWithRoles(userId)
+        return userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with identifier: " + userId));
     }
 
