@@ -63,7 +63,7 @@ public class PermissionFilter extends OncePerRequestFilter {
 
         String email = auth.getName();
         try {
-            User user = userRepository.findByEmail(email)
+            User user = userRepository.findByEmailWithRoles(email)
                     .orElse(null);
 
             if (user != null && user.getRoles() != null) {

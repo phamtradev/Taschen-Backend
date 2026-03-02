@@ -628,7 +628,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
     private User findUserByEmail(String email) {
-        return userRepository.findByEmail(email)
+        return userRepository.findByEmailWithRoles(email)
                 .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
     }
 
