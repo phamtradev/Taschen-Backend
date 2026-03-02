@@ -348,7 +348,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     }
 
     private User findUserById(Long userId) {
-        return userRepository.findById(userId)
+        return userRepository.findByIdWithRoles(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with identifier: " + userId));
     }
 

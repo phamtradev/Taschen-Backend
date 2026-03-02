@@ -399,7 +399,7 @@ public class BatchServiceImpl implements BatchService {
     }
 
     private User findUserById(Long userId) {
-        return userRepository.findById(userId)
+        return userRepository.findByIdWithRoles(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with identifier: " + userId));
     }
 
@@ -444,7 +444,7 @@ public class BatchServiceImpl implements BatchService {
     }
 
     private User findUserByEmail(String email) {
-        return userRepository.findByEmail(email)
+        return userRepository.findByEmailWithRoles(email)
                 .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
     }
 
