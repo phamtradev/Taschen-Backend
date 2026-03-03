@@ -104,6 +104,10 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
 
         purchaseOrderItemRepository.save(item);
 
+        // Cập nhật status StockRequest thành ORDERED
+        stockRequest.setStatus(StockRequestStatus.ORDERED);
+        stockRequestRepository.save(stockRequest);
+
         entityManager.flush();
         entityManager.clear();
 
