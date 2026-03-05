@@ -195,6 +195,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
             Book book = findBookById(itemRequest.getBookId());
             Variant variant = findVariantById(itemRequest.getVariantId());
 
+            //check if the book and variant are available
             PurchaseOrderItem item = new PurchaseOrderItem();
             item.setPurchaseOrder(purchaseOrder);
             item.setBook(book);
