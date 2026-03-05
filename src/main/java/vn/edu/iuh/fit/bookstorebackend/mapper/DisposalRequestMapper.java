@@ -14,7 +14,7 @@ import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface DisposalRequestMapper {
-
+    //map DisposalRequest to DisposalRequestResponse
     @Mapping(target = "createdById", expression = "java(request.getCreatedBy().getId())")
     @Mapping(target = "createdByName", expression = "java(request.getCreatedBy().getFirstName() + \" \" + request.getCreatedBy().getLastName())")
     @Mapping(target = "processedById", expression = "java(request.getProcessedBy() != null ? request.getProcessedBy().getId() : null)")
