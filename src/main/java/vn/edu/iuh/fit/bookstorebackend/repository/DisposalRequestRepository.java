@@ -11,13 +11,25 @@ import java.util.Optional;
 @Repository
 public interface DisposalRequestRepository extends JpaRepository<DisposalRequest, Long> {
 
-    @EntityGraph(type = EntityGraph.EntityGraphType.FETCH, attributePaths = {"items", "createdBy", "processedBy", "items.batch"})
+    @EntityGraph(type = EntityGraph.EntityGraphType.FETCH, attributePaths = {
+            "items", "createdBy", "processedBy",
+            "items.batch", "items.batch.book", "items.batch.variant",
+            "items.batch.supplier", "items.batch.createdBy"
+    })
     @Override
     Optional<DisposalRequest> findById(Long id);
 
-    @EntityGraph(type = EntityGraph.EntityGraphType.FETCH, attributePaths = {"items", "createdBy", "processedBy", "items.batch"})
+    @EntityGraph(type = EntityGraph.EntityGraphType.FETCH, attributePaths = {
+            "items", "createdBy", "processedBy",
+            "items.batch", "items.batch.book", "items.batch.variant",
+            "items.batch.supplier", "items.batch.createdBy"
+    })
     List<DisposalRequest> findByCreatedBy_IdOrderByCreatedAtDesc(Long userId);
 
-    @EntityGraph(type = EntityGraph.EntityGraphType.FETCH, attributePaths = {"items", "createdBy", "processedBy", "items.batch"})
+    @EntityGraph(type = EntityGraph.EntityGraphType.FETCH, attributePaths = {
+            "items", "createdBy", "processedBy",
+            "items.batch", "items.batch.book", "items.batch.variant",
+            "items.batch.supplier", "items.batch.createdBy"
+    })
     List<DisposalRequest> findAllByOrderByCreatedAtDesc();
 }
