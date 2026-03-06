@@ -6,19 +6,19 @@ import org.mapstruct.Named;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.BatchResponse;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.DisposalRequestItemResponse;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.DisposalRequestResponse;
+import vn.edu.iuh.fit.bookstorebackend.dto.response.DisposalRequestResponse.UserInfo;
 import vn.edu.iuh.fit.bookstorebackend.model.Batch;
 import vn.edu.iuh.fit.bookstorebackend.model.DisposalRequest;
 import vn.edu.iuh.fit.bookstorebackend.model.DisposalRequestItem;
+import vn.edu.iuh.fit.bookstorebackend.model.User;
 
 import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface DisposalRequestMapper {
     //map DisposalRequest to DisposalRequestResponse
-    @Mapping(target = "createdById", expression = "java(request.getCreatedBy().getId())")
-    @Mapping(target = "createdByName", expression = "java(request.getCreatedBy().getFirstName() + \" \" + request.getCreatedBy().getLastName())")
-    @Mapping(target = "processedById", expression = "java(request.getProcessedBy() != null ? request.getProcessedBy().getId() : null)")
-    @Mapping(target = "processedByName", expression = "java(request.getProcessedBy() != null ? request.getProcessedBy().getFirstName() + \" \" + request.getProcessedBy().getLastName() : null)")
+    @Mapping(target = "createdBy", source = "createdBy", qualifiedByName = "mapUserToUserInfo")
+    @Mapping(target = "processedBy", source = "processedBy", qualifiedByName = "mapUserToUserInfo")
     @Mapping(target = "items", source = "items")
     DisposalRequestResponse toResponse(DisposalRequest request);
 
@@ -29,6 +29,17 @@ public interface DisposalRequestMapper {
     DisposalRequestItemResponse toItemResponse(DisposalRequestItem item);
 
     List<DisposalRequestItemResponse> toItemResponseList(List<DisposalRequestItem> items);
+
+    @Named("mapUserToUserInfo")
+    default UserInfo mapUserToUserInfo(User user) {
+        if (user == null) {
+            return null;
+        }
+        return UserInfo.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .build();
+    }
 
     @Named("mapBatchToResponse")
     default BatchResponse mapBatchToResponse(Batch batch) {
