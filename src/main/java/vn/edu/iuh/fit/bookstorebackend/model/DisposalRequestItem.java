@@ -15,6 +15,9 @@ public class DisposalRequestItem {
     @Column(name = "quantity", nullable = false)
     private int quantity;
 
+    @Column(name = "remaining_quantity_after")
+    private Integer remainingQuantityAfter;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "disposal_request_id", nullable = false)
     private DisposalRequest disposalRequest;

@@ -10,10 +10,11 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonPropertyOrder({ "id", "batchId", "quantity", "batch" })
+@JsonPropertyOrder({ "id", "batchId", "quantity", "remainingQuantityAfter", "batch" })
 public class DisposalRequestItemResponse {
     private Long id;
     private int quantity;
+    private Integer remainingQuantityAfter;
     private Long batchId;
     private BatchResponse batch;
 }
