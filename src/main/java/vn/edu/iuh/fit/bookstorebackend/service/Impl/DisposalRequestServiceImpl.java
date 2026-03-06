@@ -117,6 +117,8 @@ public class DisposalRequestServiceImpl implements DisposalRequestService {
             Batch batch = item.getBatch();
             batch.setRemainingQuantity(batch.getRemainingQuantity() - item.getQuantity());
             batchRepository.save(batch);
+
+            item.setRemainingQuantityAfter(batch.getRemainingQuantity());
             bookIdsToSync.add(batch.getBook().getId());
         }
 
