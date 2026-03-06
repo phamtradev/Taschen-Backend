@@ -14,7 +14,7 @@ import java.util.List;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonPropertyOrder({ "id", "reason", "responseNote", "status", "createdAt", "processedAt", "createdById", "createdByName", "processedById", "processedByName", "items" })
+@JsonPropertyOrder({ "id", "reason", "responseNote", "status", "createdAt", "processedAt", "createdBy", "processedBy", "items" })
 public class DisposalRequestResponse {
     private Long id;
     private String reason;
@@ -22,9 +22,16 @@ public class DisposalRequestResponse {
     private DisposalRequestStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime processedAt;
-    private Long createdById;
-    private String createdByName;
-    private Long processedById;
-    private String processedByName;
+    private UserInfo createdBy;
+    private UserInfo processedBy;
     private List<DisposalRequestItemResponse> items;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class UserInfo {
+        private Long id;
+        private String email;
+    }
 }
