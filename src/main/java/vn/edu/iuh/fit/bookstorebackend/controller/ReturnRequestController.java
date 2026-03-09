@@ -1,5 +1,6 @@
 package vn.edu.iuh.fit.bookstorebackend.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,7 +24,7 @@ public class ReturnRequestController {
 
     @PostMapping
     public ResponseEntity<ReturnRequestResponse> createReturnRequest(
-            @RequestBody CreateReturnRequestRequest request) throws IdInvalidException {
+            @Valid @RequestBody CreateReturnRequestRequest request) throws IdInvalidException {
         // Role: CUSTOMER (chủ đơn) hoặc SELLER - Tạo yêu cầu trả hàng
         ReturnRequestResponse returnRequestResponse = returnRequestService.createReturnRequest(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(returnRequestResponse);
@@ -45,7 +46,7 @@ public class ReturnRequestController {
     @PutMapping("/{returnRequestId}/approve")
     public ResponseEntity<ReturnRequestResponse> approveReturnRequest(
             @PathVariable Long returnRequestId,
-            @RequestBody ProcessReturnRequestRequest request) throws IdInvalidException {
+            @Valid @RequestBody ProcessReturnRequestRequest request) throws IdInvalidException {
         // Role: SELLER - Duyệt yêu cầu trả hàng
         ReturnRequestResponse returnRequestResponse = returnRequestService.approveReturnRequest(
                 returnRequestId, request);
@@ -55,7 +56,7 @@ public class ReturnRequestController {
     @PutMapping("/{returnRequestId}/reject")
     public ResponseEntity<ReturnRequestResponse> rejectReturnRequest(
             @PathVariable Long returnRequestId,
-            @RequestBody ProcessReturnRequestRequest request) throws IdInvalidException {
+            @Valid @RequestBody ProcessReturnRequestRequest request) throws IdInvalidException {
         // Role: SELLER - Từ chối yêu cầu trả hàng
         ReturnRequestResponse returnRequestResponse = returnRequestService.rejectReturnRequest(
                 returnRequestId, request);
