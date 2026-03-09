@@ -1,5 +1,6 @@
 package vn.edu.iuh.fit.bookstorebackend.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -44,7 +45,7 @@ public class CartItemController {
     @PutMapping("/{cartItemId}/quantity")
     public ResponseEntity<CartItemResponse> updateQuantity(
             @PathVariable Long cartItemId,
-            @RequestBody UpdateQuantityRequest request) throws IdInvalidException {
+            @Valid @RequestBody UpdateQuantityRequest request) throws IdInvalidException {
         CartItemResponse cartItemResponse = cartItemService.updateQuantity(
                 cartItemId, request.getQuantity());
         return ResponseEntity.status(HttpStatus.OK).body(cartItemResponse);
