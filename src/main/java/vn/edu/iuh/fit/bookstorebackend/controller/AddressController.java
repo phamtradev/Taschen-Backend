@@ -1,5 +1,6 @@
 package vn.edu.iuh.fit.bookstorebackend.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,7 +29,7 @@ public class AddressController {
     @PostMapping
     public ResponseEntity<AddressResponse> create(
             @PathVariable Long userId,
-            @RequestBody AddressRequest request) throws IdInvalidException {
+            @Valid @RequestBody AddressRequest request) throws IdInvalidException {
 
         AddressResponse resp = addressService.createAddress(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(resp);
@@ -46,7 +47,7 @@ public class AddressController {
     public ResponseEntity<AddressResponse> update(
             @PathVariable Long userId,
             @PathVariable("id") Long addressId,
-            @RequestBody AddressRequest request) throws IdInvalidException {
+            @Valid @RequestBody AddressRequest request) throws IdInvalidException {
 
         return ResponseEntity.ok(addressService.updateAddress(addressId, request));
     }
