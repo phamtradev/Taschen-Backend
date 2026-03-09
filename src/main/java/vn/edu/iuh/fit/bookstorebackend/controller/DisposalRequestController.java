@@ -1,5 +1,6 @@
 package vn.edu.iuh.fit.bookstorebackend.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +22,7 @@ public class DisposalRequestController {
 
     @PostMapping
     public ResponseEntity<DisposalRequestResponse> createDisposalRequest(
-            @RequestBody CreateDisposalRequestRequest request) throws IdInvalidException {
+            @Valid @RequestBody CreateDisposalRequestRequest request) throws IdInvalidException {
         // Role: WAREHOUSE_STAFF - Tạo yêu cầu xuất hủy
         DisposalRequestResponse response = disposalRequestService.createDisposalRequest(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -47,7 +48,7 @@ public class DisposalRequestController {
     @PutMapping("/{id}/approve")
     public ResponseEntity<DisposalRequestResponse> approveDisposalRequest(
             @PathVariable Long id,
-            @RequestBody ProcessDisposalRequestRequest request) throws IdInvalidException {
+            @Valid @RequestBody ProcessDisposalRequestRequest request) throws IdInvalidException {
         // Role: ADMIN - Duyệt yêu cầu xuất hủy
         return ResponseEntity.ok(disposalRequestService.approveDisposalRequest(id, request));
     }
@@ -55,7 +56,7 @@ public class DisposalRequestController {
     @PutMapping("/{id}/reject")
     public ResponseEntity<DisposalRequestResponse> rejectDisposalRequest(
             @PathVariable Long id,
-            @RequestBody ProcessDisposalRequestRequest request) throws IdInvalidException {
+            @Valid @RequestBody ProcessDisposalRequestRequest request) throws IdInvalidException {
         // Role: ADMIN - Từ chối yêu cầu xuất hủy
         return ResponseEntity.ok(disposalRequestService.rejectDisposalRequest(id, request));
     }
