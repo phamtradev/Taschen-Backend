@@ -1,5 +1,6 @@
 package vn.edu.iuh.fit.bookstorebackend.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,7 +23,7 @@ public class OrderController {
 
     @PostMapping
     public ResponseEntity<OrderResponse> createOrder(
-            @RequestBody CreateOrderRequest request) throws IdInvalidException {
+            @Valid @RequestBody CreateOrderRequest request) throws IdInvalidException {
         OrderResponse orderResponse = orderService.createOrder(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(orderResponse);
     }
@@ -43,7 +44,7 @@ public class OrderController {
     @PutMapping("/{orderId}/status")
     public ResponseEntity<OrderResponse> updateOrderStatus(
             @PathVariable Long orderId,
-            @RequestBody UpdateOrderStatusRequest request) throws IdInvalidException {
+            @Valid @RequestBody UpdateOrderStatusRequest request) throws IdInvalidException {
         OrderResponse orderResponse = orderService.updateOrderStatus(
                 orderId, request.getStatus());
         return ResponseEntity.status(HttpStatus.OK).body(orderResponse);
@@ -52,7 +53,7 @@ public class OrderController {
     @PutMapping("/{orderId}/payment-method")
     public ResponseEntity<OrderResponse> updatePaymentMethod(
             @PathVariable Long orderId,
-            @RequestBody UpdatePaymentMethodRequest request) throws IdInvalidException {
+            @Valid @RequestBody UpdatePaymentMethodRequest request) throws IdInvalidException {
         OrderResponse orderResponse = orderService.updatePaymentMethod(
                 orderId, request.getPaymentMethod());
         return ResponseEntity.status(HttpStatus.OK).body(orderResponse);
