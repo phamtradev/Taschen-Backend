@@ -1,5 +1,6 @@
 package vn.edu.iuh.fit.bookstorebackend.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -35,7 +36,7 @@ public class CartController {
     @PostMapping("/users/{userId}/items")
     public ResponseEntity<CartResponse> addToCart(
             @PathVariable Long userId,
-            @RequestBody AddToCartRequest request) throws IdInvalidException {
+            @Valid @RequestBody AddToCartRequest request) throws IdInvalidException {
         CartResponse cartResponse = cartService.addToCart(userId, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(cartResponse);
     }
