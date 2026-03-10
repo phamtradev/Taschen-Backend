@@ -37,7 +37,8 @@ public class SecurityConfiguration {
             "/api/suppliers/**",
             "/api/variants/**",
             "/api/book-variants/**",
-            "/api/batches/**"
+            "/api/batches/**",
+            "/api/banners/**"
     };
 
     @Bean
@@ -59,8 +60,8 @@ public class SecurityConfiguration {
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(permissionFilter, JwtAuthenticationFilter.class)
                 .sessionManagement(session -> session
-                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-        );
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                );
 
         return http.build();
     }

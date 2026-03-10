@@ -35,12 +35,13 @@ public class PermissionFilter extends OncePerRequestFilter {
             "/api/batches/",
             "/api/variants/",
             "/api/book-variants/",
+            "/api/banners/",
             "/actuator/"
     };
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-            HttpServletResponse response, FilterChain filterChain)
+                                    HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
         String path = request.getRequestURI();
