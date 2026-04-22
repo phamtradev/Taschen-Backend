@@ -89,7 +89,159 @@ Controllers must be **thin**, similar to existing controllers (e.g., `AddressCon
   - Use `orElseThrow(...)`
 - No business logic inside repositories.
 
-## Exception Handling (Project-Specific)
+## Layer Separation: Model vs DTO (CRITICAL)
+
+### Standard Senior Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Controller                                                 │
+│  - Nhận Request DTO                                        │
+│  - Trả Response DTO                                         │
+│  - KHÔNG có business logic                                  │
+└─────────────────────────────────────────────────────────────┘
+                           ↓ ↑
+┌─────────────────────────────────────────────────────────────┐
+│  Service                                                    │
+│  - NHẬN Request DTO (từ Controller)                       │
+│  - Tương tác: Repository, Entity, Mapper, other Services   │
+│  - TRẢ Response DTO (qua Mapper)                           │
+│  - Chứa toàn bộ business logic                            │
+└─────────────────────────────────────────────────────────────┘
+                           ↓ ↑
+┌─────────────────────────────────────────────────────────────┐
+│  Repository                                                 │
+│  - Tương tác: CHỈ Entity/Model                           │
+│  - TRẢ: CHỈ Entity/Model                                  │
+│  - KHÔNG biết gì về DTO                                   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Chi Tiết Từng Layer
+
+| Layer | Làm gì | Tương tác với |
+|-------|--------|---------------|
+| **Controller** | Nhận request → gọi service → trả response | Service, DTO |
+| **Service** | Business logic, điều phối, gọi nhiều repo/service | Repository, Entity, Mapper, other Services |
+| **Repository** | Truy xuất database | Chỉ Entity |
+| **Mapper** | Chuyển đổi Entity ↔ DTO | Entity, DTO |
+
+### Tóm Tắt Bằng Code
+
+```java
+// ✓ Repository - CHỈ làm việc với Entity
+@Repository
+public interface BookRepository extends JpaRepository<Book, Long> {
+    Optional<Book> findById(Long id);  // ✓ Trả Entity
+    List<Book> findByCategoryId(Long categoryId);  // ✓ Trả Entity
+    // KHÔNG BAO GIỜ: List<BookResponse> findAll(); // ❌
+}
+
+// ✓ Service - NHẬN DTO, TRẢ DTO, TƯƠNG TÁC REPO/ENTITY/SERVICE
+@Service
+public class BookServiceImpl implements BookService {
+    private final BookRepository bookRepository;
+    private final BookMapper bookMapper;
+    private final NotificationService notificationService;  // ✓ Gọi service khác
+
+    public BookResponse getBookById(Long id) {
+        Book book = bookRepository.findById(id)...;  // ✓ Gọi repo
+        return bookMapper.toBookResponse(book);       // ✓ Trả DTO
+    }
+}
+
+// ✓ Controller - GỌI SERVICE
+@RestController
+public class BookController {
+    private final BookService bookService;
+    
+    @GetMapping("/{id}")
+    public BookResponse getById(@PathVariable Long id) {
+        return bookService.getBookById(id);  // ✓ Chỉ gọi service
+    }
+}
+```
+
+### Service Gọi Service (Cross-Cutting)
+
+```java
+@Service
+public class OrderServiceImpl {
+    private final OrderRepository orderRepository;
+    private final BookRepository bookRepository;
+    private final NotificationService notificationService;  // ✓ Gọi service khác
+    private final PaymentService paymentService;           // ✓ Gọi service khác
+    private final OrderMapper orderMapper;
+
+    public OrderResponse createOrder(CreateOrderRequest request) {
+        // Gọi nhiều repo, nhiều service
+        Book book = bookRepository.findById(request.getBookId());
+        paymentService.processPayment(...);
+        notificationService.sendEmail(...);
+        
+        return orderMapper.toOrderResponse(savedOrder);
+    }
+}
+```
+
+---
+
+## Async / Background Processing
+
+### Priority Operations
+
+| Operation | Sync/Async? | Reason |
+|-----------|-------------|--------|
+| AI/ML API (Gemini, ChatGPT) | ⚡ **ASYNC** | Latency 1-5s |
+| Send Email/SMS | ⚡ **ASYNC** | SMTP latency |
+| Send Notification/Push | ⚡ **ASYNC** | Unpredictable latency |
+| Payment Gateway | ⚡ **ASYNC** | Callback pattern |
+| DB CRUD operations | ✅ **SYNC** | Fast, need result immediately |
+
+### Critical: External API Calls = @Async
+
+```java
+//  WRONG - Synchronous API call in transaction
+@Transactional
+public void createBook(...) {
+    bookRepository.save(book);
+    embeddingService.generateEmbedding(bookId);  // 🔴 BLOCKS 3-5s!
+}
+
+//  CORRECT - Fire-and-forget
+@Service
+public class BookServiceImpl {
+
+    @Async("embeddingTaskExecutor")
+    public void generateEmbeddingAsync(Long bookId) { }
+
+    @Transactional
+    public BookResponse createBook(...) {
+        bookRepository.save(book);
+        bookEmbeddingService.generateEmbeddingAsync(bookId);  //  Non-blocking
+        return mapper.toBookResponse(saved);
+    }
+}
+```
+
+### Anti-Patterns
+
+- API call in @Transactional = **FORBIDDEN**
+- Self-invocation @Async = **@Async ignored**
+- Synchronous payment = **User waits 10s**
+
+### Checklist
+
+- [ ] External API = @Async?
+- [ ] Transaction does NOT contain I/O?
+- [ ] @Async = void or Future?
+- [ ] Has retry + circuit breaker?
+
+---
+
+## Exception Handling (Existing content preserved)
+
+### Throw IdInvalidException for: (Project-Specific)
 - Use `IdInvalidException` for:
   - invalid IDs
   - non-existing resources
