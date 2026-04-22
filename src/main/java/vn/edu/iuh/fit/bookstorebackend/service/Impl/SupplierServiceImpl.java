@@ -32,21 +32,10 @@ public class SupplierServiceImpl implements SupplierService {
     @Override
     @Transactional
     public SupplierResponse createSupplier(CreateSupplierRequest request) throws IdInvalidException {
-        validateCreateSupplierRequest(request);
-
         Supplier supplier = supplierMapper.toSupplier(request);
         Supplier savedSupplier = supplierRepository.save(supplier);
 
         return supplierMapper.toSupplierResponse(savedSupplier);
-    }
-
-    private void validateCreateSupplierRequest(CreateSupplierRequest request) throws IdInvalidException {
-        if (request == null) {
-            throw new IdInvalidException("CreateSupplierRequest cannot be null");
-        }
-        if (request.getName() == null || request.getName().trim().isEmpty()) {
-            throw new IdInvalidException("Supplier name cannot be null or empty");
-        }
     }
 
     @Override

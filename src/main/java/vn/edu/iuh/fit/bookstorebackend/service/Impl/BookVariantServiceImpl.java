@@ -31,8 +31,6 @@ public class BookVariantServiceImpl implements BookVariantService {
     @Override
     @Transactional
     public BookVariantResponse createBookVariant(CreateBookVariantRequest request) throws IdInvalidException {
-        validateCreateRequest(request);
-
         Book book = findBookById(request.getBookId());
         Variant variant = findVariantById(request.getVariantId());
         validateBookVariantNotExists(book.getId(), variant.getId());
@@ -41,18 +39,6 @@ public class BookVariantServiceImpl implements BookVariantService {
         BookVariant saved = bookVariantRepository.save(bookVariant);
 
         return bookVariantMapper.toBookVariantResponse(saved);
-    }
-
-    private void validateCreateRequest(CreateBookVariantRequest request) throws IdInvalidException {
-        if (request == null) {
-            throw new IdInvalidException("CreateBookVariantRequest cannot be null");
-        }
-        if (request.getBookId() == null || request.getBookId() <= 0) {
-            throw new IdInvalidException("Book id is invalid: " + request.getBookId());
-        }
-        if (request.getVariantId() == null || request.getVariantId() <= 0) {
-            throw new IdInvalidException("Variant id is invalid: " + request.getVariantId());
-        }
     }
 
     private Book findBookById(Long bookId) throws IdInvalidException {

@@ -37,33 +37,15 @@ public class StockRequestServiceImpl implements StockRequestService {
     @Override
     @Transactional
     public StockRequestResponse createStockRequest(CreateStockRequestRequest request) throws IdInvalidException {
-        validateCreateStockRequestRequest(request);
-
         Book book = findBookById(request.getBookId());
         Variant variant = findVariantById(request.getVariantId());
         validateVariantBelongsToBook(variant, book);
         User createdBy = findUserById(request.getCreatedById());
-        validateSellerRole(createdBy);
 
         StockRequest stockRequest = createStockRequestFromRequest(request, book, variant, createdBy);
         StockRequest savedStockRequest = stockRequestRepository.save(stockRequest);
 
         return stockRequestMapper.toStockRequestResponse(savedStockRequest);
-    }
-
-    private void validateCreateStockRequestRequest(CreateStockRequestRequest request) throws IdInvalidException {
-        if (request == null) {
-            throw new IdInvalidException("Request cannot be null");
-        }
-        if (request.getBookId() == null || request.getBookId() <= 0) {
-            throw new IdInvalidException("Book id is invalid");
-        }
-        if (request.getCreatedById() == null || request.getCreatedById() <= 0) {
-            throw new IdInvalidException("User id is invalid");
-        }
-        if (request.getQuantity() <= 0) {
-            throw new IdInvalidException("Quantity must be greater than 0");
-        }
     }
 
     private void validateVariantBelongsToBook(Variant variant, Book book) throws IdInvalidException {
@@ -74,19 +56,6 @@ public class StockRequestServiceImpl implements StockRequestService {
             if (!belongsToBook) {
                 throw new IdInvalidException("Variant does not belong to the specified book");
             }
-        }
-    }
-
-    private void validateSellerRole(User createdBy) {
-        if (createdBy.getRoles() == null || createdBy.getRoles().isEmpty()) {
-            throw new RuntimeException("User does not have any roles. Required roles: ADMIN or SELLER");
-        }
-
-        boolean hasPermission = createdBy.getRoles().stream()
-                .anyMatch(role -> "SELLER".equals(role.getCode()) || "ADMIN".equals(role.getCode()));
-
-        if (!hasPermission) {
-            throw new RuntimeException("User does not have permission to create stock requests. Required roles: ADMIN or SELLER");
         }
     }
 
@@ -106,7 +75,6 @@ public class StockRequestServiceImpl implements StockRequestService {
     @Transactional(readOnly = true)
     public List<StockRequestResponse> getMyStockRequest(Long userId) {
         validateUserId(userId);
-
         List<StockRequest> stockRequests = stockRequestRepository.findByCreatedBy_IdOrderByCreatedAtDesc(userId);
         return mapToStockRequestResponseList(stockRequests);
     }
@@ -134,27 +102,15 @@ public class StockRequestServiceImpl implements StockRequestService {
     @Transactional
     public StockRequestResponse approveStockRequest(Long stockRequestId, ApproveStockRequestRequest request) throws IdInvalidException {
         validateStockRequestId(stockRequestId);
-        validateApproveStockRequestRequest(request);
 
         StockRequest stockRequest = findStockRequestById(stockRequestId);
         validateStockRequestStatusForApproval(stockRequest);
 
         User processedBy = findUserById(request.getProcessedById());
-        validateApproverRole(processedBy);
-        
         approveStockRequest(stockRequest, processedBy, request.getResponseMessage());
 
         StockRequest savedStockRequest = stockRequestRepository.save(stockRequest);
         return stockRequestMapper.toStockRequestResponse(savedStockRequest);
-    }
-
-    private void validateApproveStockRequestRequest(ApproveStockRequestRequest request) throws IdInvalidException {
-        if (request == null) {
-            throw new IdInvalidException("Request cannot be null");
-        }
-        if (request.getProcessedById() == null || request.getProcessedById() <= 0) {
-            throw new IdInvalidException("User id is invalid");
-        }
     }
 
     private void validateStockRequestStatusForApproval(StockRequest stockRequest) {
@@ -174,27 +130,15 @@ public class StockRequestServiceImpl implements StockRequestService {
     @Transactional
     public StockRequestResponse rejectStockRequest(Long stockRequestId, RejectStockRequestRequest request) throws IdInvalidException {
         validateStockRequestId(stockRequestId);
-        validateRejectStockRequestRequest(request);
 
         StockRequest stockRequest = findStockRequestById(stockRequestId);
         validateStockRequestStatusForRejection(stockRequest);
 
         User processedBy = findUserById(request.getProcessedById());
-        validateApproverRole(processedBy);
-        
         rejectStockRequest(stockRequest, processedBy, request.getResponseMessage());
 
         StockRequest savedStockRequest = stockRequestRepository.save(stockRequest);
         return stockRequestMapper.toStockRequestResponse(savedStockRequest);
-    }
-
-    private void validateRejectStockRequestRequest(RejectStockRequestRequest request) throws IdInvalidException {
-        if (request == null) {
-            throw new IdInvalidException("Request cannot be null");
-        }
-        if (request.getProcessedById() == null || request.getProcessedById() <= 0) {
-            throw new IdInvalidException("User id is invalid");
-        }
     }
 
     private void validateStockRequestStatusForRejection(StockRequest stockRequest) {
@@ -210,28 +154,12 @@ public class StockRequestServiceImpl implements StockRequestService {
         stockRequest.setResponseMessage(responseMessage);
     }
 
-
     private void validateStockRequestId(Long stockRequestId) throws IdInvalidException {
         if (stockRequestId == null || stockRequestId <= 0) {
             throw new IdInvalidException("Stock request id is invalid");
         }
     }
 
-    private void validateApproverRole(User processedBy) {
-        if (processedBy.getRoles() == null || processedBy.getRoles().isEmpty()) {
-            throw new RuntimeException("User does not have any roles. Required roles: ADMIN or WAREHOUSE_STAFF");
-        }
-
-        boolean hasPermission = processedBy.getRoles().stream()
-                .anyMatch(role -> "ADMIN".equals(role.getCode()) 
-                        || "WAREHOUSE_STAFF".equals(role.getCode()));
-
-        if (!hasPermission) {
-            throw new RuntimeException("User does not have permission to approve/reject stock requests. Required roles: ADMIN or WAREHOUSE_STAFF");
-        }
-    }
-
-    // Find helpers
     private Book findBookById(Long bookId) {
         return bookRepository.findById(bookId)
                 .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
