@@ -1,9 +1,11 @@
 package vn.edu.iuh.fit.bookstorebackend.service.Impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.NotificationResponse;
@@ -19,6 +21,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificationServiceImpl implements NotificationService {
@@ -85,11 +88,22 @@ public class NotificationServiceImpl implements NotificationService {
         return notificationRepository.countByReceiverAndIsRead(currentUser, false);
     }
 
+    /**
+     * Create a notification asynchronously.
+     * This method runs in a separate thread to avoid blocking the main request.
+     */
     @Override
+    @Async("notificationTaskExecutor")
     @Transactional
     public void createNotification(User sender, User receiver, String title, String content) {
-        Notification notification = createNotificationFromParams(sender, receiver, title, content);
-        notificationRepository.save(notification);
+        log.info("Creating notification asynchronously for user: {}", receiver.getId());
+        try {
+            Notification notification = createNotificationFromParams(sender, receiver, title, content);
+            notificationRepository.save(notification);
+            log.debug("Notification created successfully for user: {}", receiver.getId());
+        } catch (Exception e) {
+            log.error("Failed to create notification for user: {}", receiver.getId(), e);
+        }
     }
     
     private Notification createNotificationFromParams(User sender, User receiver, String title, String content) {
