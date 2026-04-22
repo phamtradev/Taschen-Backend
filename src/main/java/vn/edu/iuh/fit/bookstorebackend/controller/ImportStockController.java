@@ -2,6 +2,7 @@ package vn.edu.iuh.fit.bookstorebackend.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateImportStockRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.ImportStockResponse;
@@ -13,6 +14,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/import-stocks")
+@Validated
 public class ImportStockController {
 
     private final ImportStockService importStockService;
@@ -23,7 +25,7 @@ public class ImportStockController {
 
     @PostMapping
     public ResponseEntity<ImportStockResponse> createImportStock(
-            @RequestBody CreateImportStockRequest request) throws IdInvalidException {
+            @Valid @RequestBody CreateImportStockRequest request) throws IdInvalidException {
         // Role: ADMIN hoặc WAREHOUSE_STAFF - Tạo phiếu nhập kho từ PurchaseOrder đã ORDERED
         ImportStockResponse importStockResponse = importStockService.createImportStock(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(importStockResponse);

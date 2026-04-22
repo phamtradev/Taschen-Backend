@@ -2,6 +2,7 @@ package vn.edu.iuh.fit.bookstorebackend.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateSupplierRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.UpdateSupplierRequest;
@@ -13,6 +14,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/suppliers")
+@Validated
 public class SupplierController {
 
     private final SupplierService supplierService;
@@ -36,7 +38,7 @@ public class SupplierController {
 
     @PostMapping
     public ResponseEntity<SupplierResponse> createSupplier(
-            @RequestBody CreateSupplierRequest request) throws IdInvalidException {
+            @Valid @RequestBody CreateSupplierRequest request) throws IdInvalidException {
         SupplierResponse supplierResponse = supplierService.createSupplier(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(supplierResponse);
     }

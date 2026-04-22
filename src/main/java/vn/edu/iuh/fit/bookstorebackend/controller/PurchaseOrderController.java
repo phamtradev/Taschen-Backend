@@ -2,6 +2,7 @@ package vn.edu.iuh.fit.bookstorebackend.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.ApprovePurchaseOrderRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CancelPurchaseOrderRequest;
@@ -16,6 +17,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/purchase-orders")
+@Validated
 public class PurchaseOrderController {
 
     private final PurchaseOrderService purchaseOrderService;
@@ -26,7 +28,7 @@ public class PurchaseOrderController {
 
     @PostMapping
     public ResponseEntity<PurchaseOrderResponse> createPurchaseOrder(
-            @RequestBody CreatePurchaseOrderRequest request) throws IdInvalidException {
+            @Valid @RequestBody CreatePurchaseOrderRequest request) throws IdInvalidException {
         // Role: ADMIN, WAREHOUSE_STAFF, hoặc SELLER - Tạo đơn đặt hàng từ nhà cung cấp
         PurchaseOrderResponse purchaseOrderResponse = purchaseOrderService.createPurchaseOrder(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(purchaseOrderResponse);
@@ -34,7 +36,7 @@ public class PurchaseOrderController {
 
     @PostMapping("/from-stock-request")
     public ResponseEntity<PurchaseOrderResponse> createPurchaseOrderFromStockRequest(
-            @RequestBody CreatePurchaseOrderFromStockRequestRequest request) throws IdInvalidException {
+            @Valid @RequestBody CreatePurchaseOrderFromStockRequestRequest request) throws IdInvalidException {
         // Role: ADMIN, WAREHOUSE_STAFF - Tạo đơn đặt hàng từ StockRequest đã duyệt
         PurchaseOrderResponse purchaseOrderResponse = purchaseOrderService.createPurchaseOrderFromStockRequest(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(purchaseOrderResponse);

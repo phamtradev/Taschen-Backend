@@ -3,6 +3,7 @@ package vn.edu.iuh.fit.bookstorebackend.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreatePermissionForRoleRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreatePermissionRequest;
@@ -15,6 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/permissions")
 @RequiredArgsConstructor
+@Validated
 public class PermissionController {
 
     private final PermissionService permissionService;
