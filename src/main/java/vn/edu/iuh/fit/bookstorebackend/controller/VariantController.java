@@ -4,6 +4,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import jakarta.validation.Valid;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateVariantRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.UpdateVariantRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.VariantResponse;
