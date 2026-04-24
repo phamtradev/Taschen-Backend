@@ -142,7 +142,7 @@ BOOK_CATEGORIES {
 BOOK_EMBEDDINGS {
     int id PK
     int book_id UK FK NN
-    json vector
+    text vector
     varchar model
     int dimension
     text text_used
@@ -481,7 +481,7 @@ BANNERS {
 | `DOUBLE` | `int` | Stored as integer (scaled) |
 | `DATETIME` | `datetime` | Date and time |
 | `DATE` | `date` | Date only |
-| `JSON` | `json` | JSON data |
+| `JSON` | `text` | JSON data (vector stored as text) |
 
 > Mermaid ER diagrams only support 5 native data types: `int`, `varchar`, `text`, `datetime`, `date`. All other types are mapped to the closest supported type.
 
