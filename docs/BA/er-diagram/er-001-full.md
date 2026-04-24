@@ -12,12 +12,12 @@
 erDiagram
     %% === USER DOMAIN ===
     USERS ||--o| USER_ROLES : "N:M"
-    USERS ||--o{ ADDRESSES : "1:N" }
+    USERS ||--o{ ADDRESSES : "1:N"
     USERS ||--o| REFRESH_TOKENS : "1:N"
     USERS ||--o| VERIFICATION_TOKENS : "1:N"
-    USERS ||--o{ NOTIFICATIONS : "1:N" }
-    USERS ||--o{ ORDERS : "1:N" }
-    USERS ||--o{ USER_CARTS : "1:1" }
+    USERS ||--o{ NOTIFICATIONS : "1:N"
+    USERS ||--o{ ORDERS : "1:N"
+    USERS ||--o{ USER_CARTS : "1:1"
 
     USERS {
         bigint id PK
@@ -249,13 +249,13 @@ erDiagram
     }
 
     %% === INVENTORY DOMAIN ===
-    BATCHES ||--o{ BATCH_DETAILS : "1:N" }
+    BATCHES ||--o{ BATCH_DETAILS : "1:N"
     BATCHES }o--|| BOOKS : "N:1"
     BATCHES }o--|| VARIANTS : "N:1"
     BATCHES }o--|| SUPPLIERS : "N:1"
     BATCHES }o--|| USERS : "N:1"
     BATCHES }o--|| IMPORT_STOCK_DETAILS : "N:1"
-    BATCHES ||--o{ DISPOSAL_REQUEST_ITEMS : "1:N" }
+    BATCHES ||--o{ DISPOSAL_REQUEST_ITEMS : "1:N"
 
     BATCHES {
         bigint id PK
@@ -297,7 +297,7 @@ erDiagram
     }
 
     IMPORT_STOCK_DETAILS ||--o|| IMPORT_STOCKS : "N:1"
-    IMPORT_STOCK_DETAILS ||--o{ BATCHES : "1:N" }
+    IMPORT_STOCK_DETAILS ||--o{ BATCHES : "1:N"
     IMPORT_STOCK_DETAILS }o--|| BOOKS : "N:1"
     IMPORT_STOCK_DETAILS }o--|| VARIANTS : "N:1"
     IMPORT_STOCK_DETAILS }o--|| SUPPLIERS : "N:1"
