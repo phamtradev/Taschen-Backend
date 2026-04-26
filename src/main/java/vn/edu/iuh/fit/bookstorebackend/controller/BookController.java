@@ -111,4 +111,12 @@ public class BookController {
         List<BookResponse> similarBooks = bookEmbeddingService.findSimilarBooks(bookId, limit);
         return ResponseEntity.status(HttpStatus.OK).body(similarBooks);
     }
+
+    @GetMapping("/search/similar")
+    public ResponseEntity<List<BookResponse>> findSimilarByText(
+            @RequestParam String query,
+            @RequestParam(required = false, defaultValue = "10") int limit) {
+        List<BookResponse> similarBooks = bookEmbeddingService.findSimilarByText(query, limit);
+        return ResponseEntity.status(HttpStatus.OK).body(similarBooks);
+    }
 }

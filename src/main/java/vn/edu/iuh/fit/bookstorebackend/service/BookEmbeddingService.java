@@ -13,5 +13,7 @@ public interface BookEmbeddingService {
 
     List<BookResponse> findSimilarBooks(Long bookId, int limit) throws IdInvalidException;
 
+    List<BookResponse> findSimilarByText(String queryText, int limit);
+
     void deleteEmbedding(Long bookId);
 }

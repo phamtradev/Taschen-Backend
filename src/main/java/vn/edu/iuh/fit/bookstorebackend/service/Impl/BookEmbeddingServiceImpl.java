@@ -1,5 +1,8 @@
 package vn.edu.iuh.fit.bookstorebackend.service.Impl;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,10 +50,11 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
     @Value("${ai.api.key}")
     private String aiApiKey;
 
-    /**
-     * Vector dimension (100 dimensions)
-     */
-    private static final int VECTOR_DIMENSION = 100;
+    // Batch size for streaming embeddings (avoid loading all into RAM at once)
+    private static final int BATCH_SIZE = 500;
+
+    // Standard embedding dimension - Gemini returns 768
+    private static final int VECTOR_DIMENSION = 768;
 
     @Override
     @Async("embeddingTaskExecutor")
@@ -93,28 +97,102 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
 
         List<Double> currentVector = parseVector(currentEmbedding.getVector());
 
-        List<BookEmbedding> allEmbeddings = embeddingRepository.findAll();
+        // Use top-k min-heap approach: only keep top 'limit' results in memory
+        // Instead of loading all embeddings, we process in batches
+        PriorityQueue<Map.Entry<Long, Double>> topK = new PriorityQueue<>(
+                Map.Entry.<Long, Double>comparingByValue()
+        );
 
-        List<BookEmbedding> candidates = allEmbeddings.stream()
-                .filter(e -> !e.getBookId().equals(bookId))
-                .collect(Collectors.toList());
+        int totalProcessed = 0;
 
-        Map<Long, Double> similarities = new HashMap<>();
+        // Process embeddings in batches to avoid OOM with large datasets
+        int pageNum = 0;
+        Page<BookEmbedding> page;
+        do {
+            Pageable pageable = PageRequest.of(pageNum, BATCH_SIZE);
+            page = embeddingRepository.findAll(pageable);
+            for (BookEmbedding embedding : page.getContent()) {
+                if (embedding.getBookId().equals(bookId)) {
+                    continue;
+                }
+                List<Double> otherVector = parseVector(embedding.getVector());
+                double similarity = cosineSimilarity(currentVector, otherVector);
 
-        for (BookEmbedding embedding : candidates) {
-            List<Double> otherVector = parseVector(embedding.getVector());
-            double similarity = cosineSimilarity(currentVector, otherVector);
-            similarities.put(embedding.getBookId(), similarity);
-        }
+                topK.offer(Map.entry(embedding.getBookId(), similarity));
+                if (topK.size() > limit) {
+                    topK.poll();
+                }
+            }
+            pageNum++;
+            totalProcessed += page.getNumberOfElements();
+        } while (page.hasNext());
 
-        return similarities.entrySet().stream()
-                .sorted(Map.Entry.<Long, Double>comparingByValue().reversed())
-                .limit(limit)
-                .map(entry -> {
-                    Book book = bookRepository.findById(entry.getKey()).orElse(null);
-                    return book != null ? bookMapper.toBookResponse(book) : null;
-                })
+        log.info("Processed {} embeddings for similarity search against bookId={}", totalProcessed, bookId);
+
+        // Extract top-k results and sort descending
+        List<Map.Entry<Long, Double>> topResults = new ArrayList<>(topK);
+        topResults.sort(Map.Entry.<Long, Double>comparingByValue().reversed());
+
+        // Fetch books in a single query
+        List<Long> topBookIds = topResults.stream()
+                .map(Map.Entry::getKey)
+                .toList();
+
+        Map<Long, Book> bookMap = bookRepository.findAllById(topBookIds).stream()
+                .collect(Collectors.toMap(Book::getId, b -> b));
+
+        return topResults.stream()
+                .map(entry -> bookMap.get(entry.getKey()))
                 .filter(Objects::nonNull)
+                .map(bookMapper::toBookResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookResponse> findSimilarByText(String queryText, int limit) {
+        log.info("Finding similar books for text query: {}", queryText);
+
+        // Embed the query text using Gemini
+        EmbeddingResult queryEmbedding = generateSimpleVector(queryText.toLowerCase().trim());
+        List<Double> queryVector = queryEmbedding.vector();
+
+        // Use top-k min-heap
+        PriorityQueue<Map.Entry<Long, Double>> topK = new PriorityQueue<>(
+                Map.Entry.<Long, Double>comparingByValue()
+        );
+
+        int pageNum = 0;
+        Page<BookEmbedding> page;
+        do {
+            Pageable pageable = PageRequest.of(pageNum, BATCH_SIZE);
+            page = embeddingRepository.findAll(pageable);
+            for (BookEmbedding embedding : page.getContent()) {
+                List<Double> otherVector = parseVector(embedding.getVector());
+                double similarity = cosineSimilarity(queryVector, otherVector);
+
+                topK.offer(Map.entry(embedding.getBookId(), similarity));
+                if (topK.size() > limit) {
+                    topK.poll();
+                }
+            }
+            pageNum++;
+        } while (page.hasNext());
+
+        List<Map.Entry<Long, Double>> topResults = new ArrayList<>(topK);
+        topResults.sort(Map.Entry.<Long, Double>comparingByValue().reversed());
+
+        List<Long> topBookIds = topResults.stream()
+                .map(Map.Entry::getKey)
+                .toList();
+
+        Map<Long, Book> bookMap = bookRepository.findAllById(topBookIds).stream()
+                .collect(Collectors.toMap(Book::getId, b -> b));
+
+        return topResults.stream()
+                .map(entry -> bookMap.get(entry.getKey()))
+                .filter(Objects::nonNull)
+                .map(bookMapper::toBookResponse)
                 .collect(Collectors.toList());
     }
 
