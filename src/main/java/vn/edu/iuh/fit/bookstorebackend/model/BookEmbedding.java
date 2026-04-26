@@ -21,15 +21,16 @@ public class BookEmbedding {
     @Column(name = "book_id", nullable = false, unique = true)
     private Long bookId;
 
-    @Column(name = "vector", columnDefinition = "JSON")
-    private String vector; // Stored as JSON array: "[0.1, 0.2, 0.3, ...]"
+    @Lob
+    @Column(name = "vector", columnDefinition = "MEDIUMTEXT")
+    private String vector;
 
     @Column(name = "model")
-    private String model; // e.g., "tfidf", "openai", "sentence-transformer"
+    private String model;
 
     @Column(name = "dimension")
-    private Integer dimension; // e.g., 384, 1536
+    private Integer dimension;
 
     @Column(name = "text_used", columnDefinition = "TEXT")
-    private String textUsed; // The text used to generate embedding (title + description)
+    private String textUsed;
 }
