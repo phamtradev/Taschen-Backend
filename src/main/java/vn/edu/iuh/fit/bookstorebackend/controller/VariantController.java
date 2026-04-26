@@ -2,7 +2,10 @@ package vn.edu.iuh.fit.bookstorebackend.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import jakarta.validation.Valid;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateVariantRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.UpdateVariantRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.VariantResponse;
@@ -13,6 +16,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/variants")
+@Validated
 public class VariantController {
 
     private final VariantService variantService;
@@ -23,7 +27,7 @@ public class VariantController {
 
     @PostMapping
     public ResponseEntity<VariantResponse> createVariant(
-            @RequestBody CreateVariantRequest request) throws IdInvalidException {
+            @Valid @RequestBody CreateVariantRequest request) throws IdInvalidException {
         VariantResponse variantResponse = variantService.createVariant(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(variantResponse);
     }

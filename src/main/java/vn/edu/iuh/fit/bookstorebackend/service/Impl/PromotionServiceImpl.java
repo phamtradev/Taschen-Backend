@@ -34,8 +34,6 @@ public class PromotionServiceImpl implements PromotionService {
     @Override
     @Transactional
     public PromotionResponse createPromotion(CreatePromotionRequest request) throws IdInvalidException {
-        validateRequest(request);
-        validateCreatePromotionRequest(request);
         validateCodeNotExists(request.getCode());
         
         User currentUser = getCurrentUser();
@@ -43,12 +41,6 @@ public class PromotionServiceImpl implements PromotionService {
         
         Promotion savedPromotion = promotionRepository.save(promotion);
         return promotionMapper.toPromotionResponse(savedPromotion);
-    }
-    
-    private void validateRequest(CreatePromotionRequest request) throws IdInvalidException {
-        if (request == null) {
-            throw new IdInvalidException("CreatePromotionRequest cannot be null");
-        }
     }
     
     private void validateCodeNotExists(String code) {
@@ -299,30 +291,6 @@ public class PromotionServiceImpl implements PromotionService {
         }
 
         return user;
-    }
-
-    private void validateCreatePromotionRequest(CreatePromotionRequest request) {
-        if (request.getName() == null || request.getName().trim().isEmpty()) {
-            throw new RuntimeException("Promotion name cannot be null or empty");
-        }
-        if (request.getCode() == null || request.getCode().trim().isEmpty()) {
-            throw new RuntimeException("Promotion code cannot be null or empty");
-        }
-        if (request.getDiscountPercent() == null || request.getDiscountPercent() <= 0 || request.getDiscountPercent() > 100) {
-            throw new RuntimeException("Discount percent must be between 1 and 100");
-        }
-        if (request.getStartDate() == null) {
-            throw new RuntimeException("Start date cannot be null");
-        }
-        if (request.getEndDate() == null) {
-            throw new RuntimeException("End date cannot be null");
-        }
-        if (request.getEndDate().isBefore(request.getStartDate())) {
-            throw new RuntimeException("End date cannot be before start date");
-        }
-        if (request.getQuantity() == null || request.getQuantity() <= 0) {
-            throw new RuntimeException("Quantity must be greater than 0");
-        }
     }
 
     private List<PromotionResponse> mapToPromotionResponseList(List<Promotion> promotions) {

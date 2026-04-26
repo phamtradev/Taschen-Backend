@@ -184,8 +184,17 @@ public class PermissionServiceImpl implements PermissionService {
     }
 
     private boolean matchPath(String pattern, String path) {
+        // Pattern: /api/orders/** → match all paths starting with /api/orders/
         if (pattern.endsWith("/**")) {
             return path.startsWith(pattern.substring(0, pattern.length() - 3));
+        }
+        // Pattern: /api/orders/* → match /api/orders/123, /api/orders/456
+        if (pattern.contains("*")) {
+            String regex = pattern
+                    .replace("/", "\\/")
+                    .replace("**", ".+")
+                    .replace("*", "[^\\/]+");
+            return path.matches(regex);
         }
         return pattern.equals(path);
     }

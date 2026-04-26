@@ -3,6 +3,7 @@ package vn.edu.iuh.fit.bookstorebackend.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.bookstorebackend.common.PromotionStatus;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreatePromotionRequest;
@@ -17,6 +18,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/promotions")
 @RequiredArgsConstructor
+@Validated
 public class PromotionController {
 
     private final PromotionService promotionService;

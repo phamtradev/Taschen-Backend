@@ -39,8 +39,6 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
     @Override
     @Transactional
     public ReturnRequestResponse createReturnRequest(CreateReturnRequestRequest request) throws IdInvalidException {
-        validateCreateReturnRequestRequest(request);
-
         User currentUser = getCurrentUser();
         Order order = findOrderById(request.getOrderId());
         validateOrderOwnership(order, currentUser);
@@ -53,23 +51,13 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
         return returnRequestMapper.toReturnRequestResponse(savedReturnRequest);
     }
 
-    private void validateCreateReturnRequestRequest(CreateReturnRequestRequest request) throws IdInvalidException {
-        if (request == null) {
-            throw new IdInvalidException("Request cannot be null");
-        }
-        if (request.getOrderId() == null || request.getOrderId() <= 0) {
-            throw new IdInvalidException("Order id is invalid");
-        }
-    }
-
     private Order findOrderById(Long orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found with identifier: " + orderId));
     }
 
     private void validateOrderOwnership(Order order, User currentUser) {
-        boolean isSeller = hasSellerRole(currentUser);
-        if (!isSeller && !order.getUser().getId().equals(currentUser.getId())) {
+        if (!order.getUser().getId().equals(currentUser.getId())) {
             throw new RuntimeException("Order does not belong to user");
         }
     }
@@ -94,14 +82,6 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
         returnRequest.setCreatedBy(createdBy);
         returnRequest.setCreatedAt(LocalDateTime.now());
         return returnRequest;
-    }
-
-    private boolean hasSellerRole(User user) {
-        if (user.getRoles() == null || user.getRoles().isEmpty()) {
-            return false;
-        }
-        return user.getRoles().stream()
-                .anyMatch(role -> "SELLER".equals(role.getCode()));
     }
 
     @Override
@@ -129,13 +109,11 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
     @Transactional
     public ReturnRequestResponse approveReturnRequest(Long returnRequestId, ProcessReturnRequestRequest request) throws IdInvalidException {
         validateReturnRequestId(returnRequestId);
-        validateProcessReturnRequestRequest(request);
 
         ReturnRequest returnRequest = findReturnRequestById(returnRequestId);
         validateReturnRequestStatusForProcessing(returnRequest);
 
         User currentUser = getCurrentUser();
-        validateSellerRole(currentUser);
 
         approveReturnRequest(returnRequest, currentUser, request.getResponseNote());
         updateOrderStatusToReturned(returnRequest.getOrder().getId());
@@ -159,13 +137,11 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
     @Transactional
     public ReturnRequestResponse rejectReturnRequest(Long returnRequestId, ProcessReturnRequestRequest request) throws IdInvalidException {
         validateReturnRequestId(returnRequestId);
-        validateProcessReturnRequestRequest(request);
 
         ReturnRequest returnRequest = findReturnRequestById(returnRequestId);
         validateReturnRequestStatusForProcessing(returnRequest);
 
         User currentUser = getCurrentUser();
-        validateSellerRole(currentUser);
 
         rejectReturnRequest(returnRequest, currentUser, request.getResponseNote());
 
@@ -186,28 +162,9 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
         }
     }
 
-    private void validateProcessReturnRequestRequest(ProcessReturnRequestRequest request) throws IdInvalidException {
-        if (request == null) {
-            throw new IdInvalidException("Request cannot be null");
-        }
-    }
-
     private void validateReturnRequestStatusForProcessing(ReturnRequest returnRequest) {
         if (returnRequest.getStatus() != ReturnRequestStatus.PENDING) {
             throw new RuntimeException("Return request can only be processed when status is PENDING. Current status: " + returnRequest.getStatus());
-        }
-    }
-
-    private void validateSellerRole(User user) {
-        if (user.getRoles() == null || user.getRoles().isEmpty()) {
-            throw new RuntimeException("User does not have any roles. Required roles: ADMIN or SELLER");
-        }
-
-        boolean hasPermission = user.getRoles().stream()
-                .anyMatch(role -> "SELLER".equals(role.getCode()) || "ADMIN".equals(role.getCode()));
-
-        if (!hasPermission) {
-            throw new RuntimeException("User does not have permission to process return requests. Required roles: ADMIN or SELLER");
         }
     }
 

@@ -2,7 +2,10 @@ package vn.edu.iuh.fit.bookstorebackend.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import jakarta.validation.Valid;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateBatchDetailRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateBatchRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.BatchDetailResponse;
@@ -14,6 +17,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/batches")
+@Validated
 public class BatchController {
 
     private final BatchService batchService;
@@ -24,7 +28,7 @@ public class BatchController {
 
     @PostMapping
     public ResponseEntity<BatchResponse> createBatch(
-            @RequestBody CreateBatchRequest request) throws IdInvalidException {
+            @Valid @RequestBody CreateBatchRequest request) throws IdInvalidException {
         // Role: ADMIN hoặc WAREHOUSE_STAFF - Tạo Batch khi nhập hàng
         BatchResponse batchResponse = batchService.createBatch(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(batchResponse);
@@ -68,7 +72,7 @@ public class BatchController {
 
     @PostMapping("/details")
     public ResponseEntity<BatchDetailResponse> createBatchDetail(
-            @RequestBody CreateBatchDetailRequest request) throws IdInvalidException {
+            @Valid @RequestBody CreateBatchDetailRequest request) throws IdInvalidException {
         // Hệ thống tự động - Tạo BatchDetail khi bán hàng
         BatchDetailResponse batchDetailResponse = batchService.createBatchDetail(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(batchDetailResponse);

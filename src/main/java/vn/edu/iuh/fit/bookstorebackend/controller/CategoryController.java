@@ -2,7 +2,10 @@ package vn.edu.iuh.fit.bookstorebackend.controller;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import jakarta.validation.Valid;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateCategoryRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.UpdateCategoryRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.CategoryResponse;
@@ -13,6 +16,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/categories")
+@Validated
 public class CategoryController {
 
     private final CategoryService categoryService;
@@ -23,7 +27,7 @@ public class CategoryController {
 
     @PostMapping
     public ResponseEntity<CategoryResponse> createCategory(
-            @RequestBody CreateCategoryRequest request) throws IdInvalidException {
+            @Valid @RequestBody CreateCategoryRequest request) throws IdInvalidException {
         CategoryResponse categoryResponse = categoryService.createCategory(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(categoryResponse);
     }

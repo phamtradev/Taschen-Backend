@@ -1,5 +1,7 @@
 package vn.edu.iuh.fit.bookstorebackend.dto.request;
 
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,6 +10,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RejectStockRequestRequest {
+
+    @NotNull(message = "Processed by ID is required")
+    @Positive(message = "Processed by ID must be positive")
     private Long processedById;
+
     private String responseMessage;
 }

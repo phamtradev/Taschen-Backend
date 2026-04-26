@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -21,19 +22,21 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Service xử lý embedding (biểu diễn vector) cho sách.
+ * Service handling embedding (vector representation) for books.
  * <p>
- * Luồng hoạt động:
- * 1. Tạo embedding khi sách được tạo/cập nhật
- * 2. Tìm sách tương tự bằng cosine similarity
- * 3. Xóa embedding khi sách bị xóa
+ * Workflow:
+ * 1. Generate embedding when book is created/updated
+ * 2. Find similar books using cosine similarity
+ * 3. Delete embedding when book is deleted
+ * <p>
+ * All embedding generation runs ASYNCHRONOUSLY to avoid blocking user requests.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class BookEmbeddingServiceImpl implements BookEmbeddingService {
 
-    // Record để chứa kết quả embedding + model name
+    // Record to hold embedding result + model name
     private record EmbeddingResult(List<Double> vector, String model) {
     }
 
@@ -45,33 +48,42 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
     private String aiApiKey;
 
     /**
-     * Số chiều của vector (100 chiều)
+     * Vector dimension (100 dimensions)
      */
     private static final int VECTOR_DIMENSION = 100;
 
     @Override
+    @Async("embeddingTaskExecutor")
     @Transactional
     public void generateEmbedding(Long bookId) throws IdInvalidException {
-        Book book = bookRepository.findById(bookId)
-                .orElseThrow(() -> new IdInvalidException("Book not found"));
+        log.info("Starting async embedding generation for bookId: {}", bookId);
+        try {
+            Book book = bookRepository.findById(bookId)
+                    .orElseThrow(() -> new IdInvalidException("Book not found"));
 
-        String textToEmbed = buildTextToEmbed(book);
-        EmbeddingResult result = generateSimpleVector(textToEmbed);
+            String textToEmbed = buildTextToEmbed(book);
+            EmbeddingResult result = generateSimpleVector(textToEmbed);
 
-        saveOrUpdateEmbedding(bookId, result.vector(), result.model(), textToEmbed);
+            saveOrUpdateEmbedding(bookId, result.vector(), result.model(), textToEmbed);
+            log.info("Completed async embedding generation for bookId: {}", bookId);
+        } catch (Exception e) {
+            log.error("Failed to generate embedding for bookId: {}", bookId, e);
+        }
     }
 
     /**
-     * Tạo lại embedding khi sách được cập nhật.
+     * Regenerate embedding when book is updated.
      */
     @Override
+    @Async("embeddingTaskExecutor")
     @Transactional
     public void regenerateEmbedding(Long bookId) throws IdInvalidException {
+        log.info("Starting async embedding regeneration for bookId: {}", bookId);
         generateEmbedding(bookId);
     }
 
     /**
-     * Tìm sách tương tự dựa trên cosine similarity.
+     * Find similar books based on cosine similarity.
      */
     @Override
     @Transactional(readOnly = true)
@@ -107,16 +119,17 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
     }
 
     /**
-     * Xóa embedding khi sách bị xóa.
+     * Delete embedding when book is deleted.
      */
     @Override
     @Transactional
     public void deleteEmbedding(Long bookId) {
+        log.info("Deleting embedding for bookId: {}", bookId);
         embeddingRepository.deleteByBookId(bookId);
     }
 
     /**
-     * Ghép text từ các thuộc tính của sách.
+     * Build text from book properties for embedding.
      */
     private String buildTextToEmbed(Book book) {
         StringBuilder sb = new StringBuilder();
@@ -138,14 +151,14 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
     }
 
     /**
-     * Tạo vector từ text bằng Gemini API.
-     * Nếu API fail thì dùng thuật toán local fallback.
+     * Generate vector from text using Gemini API.
+     * Uses local fallback algorithm if API fails.
      */
     private EmbeddingResult generateSimpleVector(String text) {
         try {
             RestTemplate restTemplate = new RestTemplate();
 
-            // Gemini embedding API - dùng v1beta với header X-goog-api-key
+            // Gemini embedding API - uses v1beta with X-goog-api-key header
             String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent";
 
             String requestBody = String.format("""
@@ -158,7 +171,7 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.set("X-goog-api-key", aiApiKey); // Dùng header X-goog-api-key
+            headers.set("X-goog-api-key", aiApiKey); // Using X-goog-api-key header
 
             HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
 
@@ -192,22 +205,22 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
     }
 
     /**
-     * Fallback: Tạo vector đơn giản từ text bằng word frequency + hash.
-     * Dùng khi Gemini API fail.
+     * Fallback: Generate simple vector from text using word frequency + hash.
+     * Used when Gemini API fails.
      */
     private List<Double> generateFallbackVector(String text) {
-        // Đếm tần suất từ
+        // Count word frequency
         String[] words = text.split("\\s+");
         Map<String, Integer> wordFreq = new HashMap<>();
 
         for (String word : words) {
-            word = word.replaceAll("[^a-z0-9\u00C0-\u024F]", "");
+            word = word.replaceAll("[^a-z0-9\\u00C0-\\u024F]", "");
             if (word.length() > 2) {
                 wordFreq.merge(word, 1, (a, b) -> a + b);
             }
         }
 
-        // Tạo vector dựa trên hash
+        // Generate vector based on hash
         List<Double> vector = new ArrayList<>();
         for (int i = 0; i < VECTOR_DIMENSION; i++) {
             double sum = 0.0;
@@ -236,7 +249,7 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
     }
 
     /**
-     * Tính cosine similarity giữa 2 vector.
+     * Calculate cosine similarity between 2 vectors.
      */
     private double cosineSimilarity(List<Double> v1, List<Double> v2) {
         if (v1.size() != v2.size()) {
@@ -263,9 +276,10 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
     }
 
     /**
-     * Lưu hoặc cập nhật embedding vào database.
+     * Save or update embedding to database.
      */
-    private void saveOrUpdateEmbedding(Long bookId, List<Double> vector, String model, String textUsed) {
+    @Transactional
+    protected void saveOrUpdateEmbedding(Long bookId, List<Double> vector, String model, String textUsed) {
         Optional<BookEmbedding> existing = embeddingRepository.findByBookId(bookId);
 
         BookEmbedding embedding = existing.orElseGet(BookEmbedding::new);
@@ -277,10 +291,11 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
         embedding.setTextUsed(textUsed);
 
         embeddingRepository.save(embedding);
+        log.debug("Saved embedding for bookId: {}", bookId);
     }
 
     /**
-     * Parse vector từ JSON string sang List<Double>.
+     * Parse vector from JSON string to List<Double>.
      */
     private List<Double> parseVector(String json) {
         try {
@@ -303,7 +318,7 @@ public class BookEmbeddingServiceImpl implements BookEmbeddingService {
     }
 
     /**
-     * Chuyển List<Double> thành JSON string.
+     * Convert List<Double> to JSON string.
      */
     private String vectorToJson(List<Double> vector) {
         return vector.toString();

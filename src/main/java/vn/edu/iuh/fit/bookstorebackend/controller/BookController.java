@@ -5,7 +5,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import jakarta.validation.Valid;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateBookRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.UpdateBookRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.BookResponse;
@@ -18,6 +21,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/books")
+@Validated
 public class BookController {
 
     private final BookService bookService;
@@ -30,7 +34,7 @@ public class BookController {
 
     @PostMapping
     public ResponseEntity<BookResponse> createBook(
-            @RequestBody CreateBookRequest request) throws IdInvalidException {
+            @Valid @RequestBody CreateBookRequest request) throws IdInvalidException {
         BookResponse bookResponse = bookService.createBook(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(bookResponse);
     }

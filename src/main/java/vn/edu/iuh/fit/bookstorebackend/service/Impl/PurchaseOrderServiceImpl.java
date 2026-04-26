@@ -50,9 +50,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     @Override
     @Transactional
     public PurchaseOrderResponse createPurchaseOrder(CreatePurchaseOrderRequest request) throws IdInvalidException {
-        // Role: ADMIN, WAREHOUSE_STAFF, hoặc SELLER - Tạo đơn đặt hàng từ nhà cung cấp
-        validateCreatePurchaseOrderRequest(request);
-
         Supplier supplier = findSupplierById(request.getSupplierId());
         User createdBy = findUserById(request.getCreatedById());
 
@@ -72,8 +69,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     @Override
     @Transactional
     public PurchaseOrderResponse createPurchaseOrderFromStockRequest(CreatePurchaseOrderFromStockRequestRequest request) throws IdInvalidException {
-        validateCreatePurchaseOrderFromStockRequest(request);
-
         // Lấy StockRequest đã duyệt
         StockRequest stockRequest = findStockRequestById(request.getStockRequestId());
         validateStockRequestStatusApproved(stockRequest);
@@ -115,24 +110,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         return purchaseOrderMapper.toPurchaseOrderResponse(purchaseOrderWithItems);
     }
 
-    private void validateCreatePurchaseOrderFromStockRequest(CreatePurchaseOrderFromStockRequestRequest request) throws IdInvalidException {
-        if (request == null) {
-            throw new IdInvalidException("Request cannot be null");
-        }
-        if (request.getStockRequestId() == null || request.getStockRequestId() <= 0) {
-            throw new IdInvalidException("Stock request id is invalid");
-        }
-        if (request.getSupplierId() == null || request.getSupplierId() <= 0) {
-            throw new IdInvalidException("Supplier id is invalid");
-        }
-        if (request.getCreatedById() == null || request.getCreatedById() <= 0) {
-            throw new IdInvalidException("User id is invalid");
-        }
-        if (request.getImportPrice() < 0) {
-            throw new IdInvalidException("Import price cannot be negative");
-        }
-    }
-
     private void validateStockRequestStatusApproved(StockRequest stockRequest) {
         if (stockRequest.getStatus() != StockRequestStatus.APPROVED) {
             throw new RuntimeException("Stock request must be APPROVED to create purchase order. Current status: " + stockRequest.getStatus());
@@ -144,34 +121,10 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
                 .orElseThrow(() -> new RuntimeException("Stock request not found with identifier: " + stockRequestId));
     }
 
-    private void validateCreatePurchaseOrderRequest(CreatePurchaseOrderRequest request) throws IdInvalidException {
-        if (request == null) {
-            throw new IdInvalidException("CreatePurchaseOrderRequest cannot be null");
-        }
-        if (request.getSupplierId() == null || request.getSupplierId() <= 0) {
-            throw new IdInvalidException("Supplier identifier is invalid");
-        }
-        if (request.getCreatedById() == null || request.getCreatedById() <= 0) {
-            throw new IdInvalidException("User identifier is invalid");
-        }
-        if (request.getItems() == null || request.getItems().isEmpty()) {
-            throw new IdInvalidException("Purchase order items cannot be null or empty");
-        }
-        for (CreatePurchaseOrderRequest.PurchaseOrderItemRequest item : request.getItems()) {
-            if (item.getBookId() == null || item.getBookId() <= 0) {
-                throw new IdInvalidException("Book identifier is invalid");
-            }
-            if (item.getVariantId() == null || item.getVariantId() <= 0) {
-                throw new IdInvalidException("Variant identifier is invalid");
-            }
+    private void validatePurchaseOrderItems(List<CreatePurchaseOrderRequest.PurchaseOrderItemRequest> items) {
+        for (CreatePurchaseOrderRequest.PurchaseOrderItemRequest item : items) {
             if (!bookVariantRepository.existsByBookIdAndVariantId(item.getBookId(), item.getVariantId())) {
-                throw new IdInvalidException("Variant " + item.getVariantId() + " does not belong to Book " + item.getBookId());
-            }
-            if (item.getQuantity() <= 0) {
-                throw new IdInvalidException("Quantity must be greater than 0");
-            }
-            if (item.getImportPrice() < 0) {
-                throw new IdInvalidException("Import price cannot be negative");
+                throw new RuntimeException("Variant " + item.getVariantId() + " does not belong to Book " + item.getBookId());
             }
         }
     }
@@ -191,6 +144,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     }
 
     private void createPurchaseOrderItems(PurchaseOrder purchaseOrder, List<CreatePurchaseOrderRequest.PurchaseOrderItemRequest> itemRequests) {
+        validatePurchaseOrderItems(itemRequests);
         for (CreatePurchaseOrderRequest.PurchaseOrderItemRequest itemRequest : itemRequests) {
             Book book = findBookById(itemRequest.getBookId());
             Variant variant = findVariantById(itemRequest.getVariantId());
@@ -257,7 +211,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         validatePurchaseOrderStatusForApproval(purchaseOrder);
 
         User approvedBy = findUserById(approvedById);
-        validateApproverRole(approvedBy);
         approvePurchaseOrder(purchaseOrder, approvedBy);
 
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
@@ -287,7 +240,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         validatePurchaseOrderStatusForRejection(purchaseOrder);
 
         User approvedBy = findUserById(approvedById);
-        validateApproverRole(approvedBy);
         rejectPurchaseOrder(purchaseOrder, approvedBy);
 
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
@@ -318,7 +270,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         validatePurchaseOrderStatusForCancellation(purchaseOrder);
 
         User cancelledBy = findUserById(cancelledById);
-        validateApproverRole(cancelledBy);
         cancelPurchaseOrder(purchaseOrder, cancelledBy, cancelReason);
 
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
@@ -355,7 +306,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         validatePurchaseOrderStatusForPayment(purchaseOrder);
 
         User paidBy = findUserById(paidById);
-        validateAdminRole(paidBy);
 
         double totalAmount = calculateTotalAmount(purchaseOrder);
         payPurchaseOrder(purchaseOrder, paidBy, totalAmount);
@@ -367,19 +317,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private void validatePurchaseOrderStatusForPayment(PurchaseOrder purchaseOrder) {
         if (purchaseOrder.getStatus() != PurchaseOrderStatus.APPROVED) {
             throw new RuntimeException("Purchase order can only be paid when status is APPROVED. Current status: " + purchaseOrder.getStatus());
-        }
-    }
-
-    private void validateAdminRole(User user) {
-        if (user.getRoles() == null || user.getRoles().isEmpty()) {
-            throw new RuntimeException("User does not have any roles. Required role: ADMIN");
-        }
-
-        boolean hasPermission = user.getRoles().stream()
-                .anyMatch(role -> "ADMIN".equals(role.getCode()));
-
-        if (!hasPermission) {
-            throw new RuntimeException("User does not have permission to pay purchase order. Required role: ADMIN");
         }
     }
 
@@ -411,20 +348,6 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private void validateApprovedById(Long approvedById) throws IdInvalidException {
         if (approvedById == null || approvedById <= 0) {
             throw new IdInvalidException("Approved by user identifier is invalid: " + approvedById);
-        }
-    }
-
-    private void validateApproverRole(User approvedBy) {
-        if (approvedBy.getRoles() == null || approvedBy.getRoles().isEmpty()) {
-            throw new RuntimeException("User does not have any roles. Required roles: ADMIN or WAREHOUSE_STAFF");
-        }
-
-        boolean hasPermission = approvedBy.getRoles().stream()
-                .anyMatch(role -> "ADMIN".equals(role.getCode()) 
-                        || "WAREHOUSE_STAFF".equals(role.getCode()));
-
-        if (!hasPermission) {
-            throw new RuntimeException("User does not have permission to approve/reject purchase orders. Required roles: ADMIN or WAREHOUSE_STAFF");
         }
     }
 

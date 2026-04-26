@@ -56,12 +56,13 @@ public class BookServiceImpl implements BookService {
         setBookCategories(book, request.getCategoryIds());
         
         Book savedBook = bookRepository.save(book);
-        
+
         setBookVariants(savedBook, request.getVariantIds());
         bookVariantRepository.saveAll(savedBook.getBookVariants());
-        
+
+        // NOTE: Embedding generation runs asynchronously - does not block response
         bookEmbeddingService.generateEmbedding(savedBook.getId());
-        
+
         return bookMapper.toBookResponse(savedBook);
     }
     
@@ -184,9 +185,10 @@ public class BookServiceImpl implements BookService {
         
         Book updatedBook = bookRepository.save(book);
         updateBookVariants(updatedBook, request.getVariantIds());
-        
+
+        // Fire-and-forget: regenerate embedding asynchronously
         bookEmbeddingService.regenerateEmbedding(bookId);
-        
+
         return bookMapper.toBookResponse(updatedBook);
     }
     
@@ -262,7 +264,7 @@ public class BookServiceImpl implements BookService {
         Book book = findBookById(bookId);
         
         bookEmbeddingService.deleteEmbedding(bookId);
-        
+
         bookRepository.delete(book);
     }
 

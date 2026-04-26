@@ -33,6 +33,9 @@ build/
 .vscode/
 .cursor/
 
+### Custom Skills (Local Only) ###
+.cursor/skills/
+
 ### Environment Variables ###
 .env
 *.env

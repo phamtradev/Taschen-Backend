@@ -4,7 +4,10 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import jakarta.validation.Valid;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateRoleRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.RoleResponse;
 import vn.edu.iuh.fit.bookstorebackend.service.RoleService;
@@ -14,13 +17,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/roles")
 @RequiredArgsConstructor
+@Validated
 public class RoleController {
 
     private final RoleService roleService;
 
     @PostMapping
     public ResponseEntity<RoleResponse> createRole(
-            @RequestBody CreateRoleRequest request) {
+            @Valid @RequestBody CreateRoleRequest request) {
         RoleResponse created = roleService.createRole(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }

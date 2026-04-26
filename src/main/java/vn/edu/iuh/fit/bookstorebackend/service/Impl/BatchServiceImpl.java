@@ -1,9 +1,6 @@
 package vn.edu.iuh.fit.bookstorebackend.service.Impl;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.CreateBatchDetailRequest;
@@ -53,15 +50,11 @@ public class BatchServiceImpl implements BatchService {
     @Override
     @Transactional
     public BatchResponse createBatch(CreateBatchRequest request) throws IdInvalidException {
-        // Role: ADMIN hoặc WAREHOUSE_STAFF - Tạo Batch khi nhập hàng
-        validateCreateBatchRequest(request);
-
         Book book = findBookById(request.getBookId());
         User createdBy = findUserById(request.getCreatedById());
-        validateImporterRole(createdBy);
 
         Variant variant = findVariantById(request.getVariantId());
-        
+
         Supplier supplier = findSupplierById(request.getSupplierId());
 
         ImportStockDetail importStockDetail = null;
@@ -79,44 +72,6 @@ public class BatchServiceImpl implements BatchService {
         syncBookStockQuantity(book.getId());
 
         return batchMapper.toBatchResponse(savedBatch);
-    }
-
-    private void validateCreateBatchRequest(CreateBatchRequest request) throws IdInvalidException {
-        if (request == null) {
-            throw new IdInvalidException("CreateBatchRequest cannot be null");
-        }
-        if (request.getBookId() == null || request.getBookId() <= 0) {
-            throw new IdInvalidException("Book identifier is invalid");
-        }
-        if (request.getVariantId() == null || request.getVariantId() <= 0) {
-            throw new IdInvalidException("Variant identifier is invalid");
-        }
-        if (request.getCreatedById() == null || request.getCreatedById() <= 0) {
-            throw new IdInvalidException("User identifier is invalid");
-        }
-        if (request.getSupplierId() == null || request.getSupplierId() <= 0) {
-            throw new IdInvalidException("Supplier identifier is invalid");
-        }
-        if (request.getQuantity() == null || request.getQuantity() <= 0) {
-            throw new IdInvalidException("Quantity must be greater than 0");
-        }
-        if (request.getImportPrice() == null || request.getImportPrice() < 0) {
-            throw new IdInvalidException("Import price cannot be negative");
-        }
-    }
-
-    private void validateImporterRole(User user) {
-        if (user.getRoles() == null || user.getRoles().isEmpty()) {
-            throw new RuntimeException("User does not have any roles. Required roles: ADMIN or WAREHOUSE_STAFF");
-        } 
-
-        boolean hasPermission = user.getRoles().stream()
-                .anyMatch(role -> "ADMIN".equals(role.getCode())
-                        || "WAREHOUSE_STAFF".equals(role.getCode()));
-
-        if (!hasPermission) {
-            throw new RuntimeException("User does not have permission to create batch. Required roles: ADMIN or WAREHOUSE_STAFF");
-        }
     }
 
     private String generateBatchCode() {
@@ -191,9 +146,6 @@ public class BatchServiceImpl implements BatchService {
     @Override
     @Transactional(readOnly = true)
     public List<BatchResponse> getBatchesByUserId(Long userId) throws IdInvalidException {
-        // Role: ADMIN hoặc WAREHOUSE_STAFF - Lấy Batch theo User
-        User currentUser = getCurrentUser();
-        validateImporterRole(currentUser);
         validateUserId(userId);
         validateUserExists(userId);
         List<Batch> batches = batchRepository.findByCreatedBy_IdOrderByCreatedAtDesc(userId);
@@ -226,34 +178,13 @@ public class BatchServiceImpl implements BatchService {
     @Override
     @Transactional
     public BatchDetailResponse createBatchDetail(CreateBatchDetailRequest request) throws IdInvalidException {
-        validateCreateBatchDetailRequest(request);
-
         Batch batch = findBatchById(request.getBatchId());
         OrderDetail orderDetail = findOrderDetailById(request.getOrderDetailId());
-
         validateBatchAvailability(batch, request.getQuantity());
-
         BatchDetail batchDetail = createBatchDetailFromRequest(request, batch, orderDetail);
         BatchDetail savedBatchDetail = batchDetailRepository.save(batchDetail);
-
         updateBatchRemainingQuantity(batch.getId(), request.getQuantity());
-
         return batchMapper.toBatchDetailResponse(savedBatchDetail);
-    }
-
-    private void validateCreateBatchDetailRequest(CreateBatchDetailRequest request) throws IdInvalidException {
-        if (request == null) {
-            throw new IdInvalidException("CreateBatchDetailRequest cannot be null");
-        }
-        if (request.getBatchId() == null || request.getBatchId() <= 0) {
-            throw new IdInvalidException("Batch identifier is invalid");
-        }
-        if (request.getOrderDetailId() == null || request.getOrderDetailId() <= 0) {
-            throw new IdInvalidException("OrderDetail identifier is invalid");
-        }
-        if (request.getQuantity() <= 0) {
-            throw new IdInvalidException("Quantity must be greater than 0");
-        }
     }
 
     private void validateBatchAvailability(Batch batch, int quantity) {
@@ -373,9 +304,6 @@ public class BatchServiceImpl implements BatchService {
     @Override
     @Transactional
     public void syncBookStockQuantity(Long bookId) throws IdInvalidException {
-        // Role: ADMIN hoặc WAREHOUSE_STAFF - Đồng bộ Book.stockQuantity với tổng Batch.remainingQuantity
-        User currentUser = getCurrentUser();
-        validateImporterRole(currentUser);
         validateBookId(bookId);
         Book book = findBookById(bookId);
         int totalStock = calculateTotalStockQuantityByBookId(bookId);
@@ -418,43 +346,6 @@ public class BatchServiceImpl implements BatchService {
                 .orElseThrow(() -> new RuntimeException("OrderDetail not found with identifier: " + orderDetailId));
     }
 
-    private User getCurrentUser() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        validateAuthentication(auth);
-
-        String email = extractEmailFromAuth(auth);
-        User user = findUserByEmail(email);
-        validateUserIsActive(user);
-
-        return user;
-    }
-
-    private void validateAuthentication(Authentication auth) {
-        if (auth == null || !auth.isAuthenticated() || auth instanceof AnonymousAuthenticationToken) {
-            throw new RuntimeException("User is not authenticated. Please login first.");
-        }
-    }
-
-    private String extractEmailFromAuth(Authentication auth) {
-        String email = auth.getName();
-        if (email == null || email.trim().isEmpty()) {
-            throw new RuntimeException("Email not found in authentication token");
-        }
-        return email;
-    }
-
-    private User findUserByEmail(String email) {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
-    }
-
-    private void validateUserIsActive(User user) {
-        if (user == null) {
-            throw new RuntimeException("User is null");
-        }
-        // Có thể thêm check isActive nếu User có field này
-    }
-
     private List<BatchResponse> enrichWithSellingPrice(List<BatchResponse> responses, List<Batch> batches) {
         for (int i = 0; i < responses.size(); i++) {
             Batch batch = batches.get(i);
@@ -464,7 +355,7 @@ public class BatchServiceImpl implements BatchService {
         }
         return responses;
     }
-    
+
     private BatchResponse enrichSingleWithSellingPrice(BatchResponse response, Batch batch) {
         double sellingPrice = getSellingPrice(batch);
         response.setSellingPrice(sellingPrice);

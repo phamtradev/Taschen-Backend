@@ -36,11 +36,7 @@ public class ReturnToWarehouseRequestServiceImpl implements ReturnToWarehouseReq
     @Override
     @Transactional
     public ReturnToWarehouseRequestResponse createReturnToWarehouseRequest(CreateReturnToWarehouseRequestRequest request) throws IdInvalidException {
-        // Role: SELLER - Tạo yêu cầu trả hàng về kho
-        validateCreateReturnToWarehouseRequestRequest(request);
-
         User currentUser = getCurrentUser();
-        validateSellerRole(currentUser);
 
         Book book = findBookById(request.getBookId());
 
@@ -48,31 +44,6 @@ public class ReturnToWarehouseRequestServiceImpl implements ReturnToWarehouseReq
         ReturnToWarehouseRequest savedReturnToWarehouseRequest = returnToWarehouseRequestRepository.save(returnToWarehouseRequest);
 
         return returnToWarehouseRequestMapper.toReturnToWarehouseRequestResponse(savedReturnToWarehouseRequest);
-    }
-
-    private void validateCreateReturnToWarehouseRequestRequest(CreateReturnToWarehouseRequestRequest request) throws IdInvalidException {
-        if (request == null) {
-            throw new IdInvalidException("Request cannot be null");
-        }
-        if (request.getBookId() == null || request.getBookId() <= 0) {
-            throw new IdInvalidException("Book id is invalid");
-        }
-        if (request.getQuantity() <= 0) {
-            throw new IdInvalidException("Quantity must be greater than 0");
-        }
-    }
-
-    private void validateSellerRole(User user) {
-        if (user.getRoles() == null || user.getRoles().isEmpty()) {
-            throw new RuntimeException("User does not have any roles. Required roles: ADMIN or SELLER");
-        }
-
-        boolean hasPermission = user.getRoles().stream()
-                .anyMatch(role -> "SELLER".equals(role.getCode()) || "ADMIN".equals(role.getCode()));
-
-        if (!hasPermission) {
-            throw new RuntimeException("User does not have permission to create return to warehouse requests. Required roles: ADMIN or SELLER");
-        }
     }
 
     private ReturnToWarehouseRequest createReturnToWarehouseRequestFromRequest(CreateReturnToWarehouseRequestRequest request, Book book, User createdBy) {
@@ -110,15 +81,12 @@ public class ReturnToWarehouseRequestServiceImpl implements ReturnToWarehouseReq
     @Override
     @Transactional
     public ReturnToWarehouseRequestResponse approveReturnToWarehouseRequest(Long returnToWarehouseRequestId, ProcessReturnToWarehouseRequestRequest request) throws IdInvalidException {
-        // Role: ADMIN hoặc WAREHOUSE_STAFF - Duyệt yêu cầu trả hàng về kho và cộng tồn kho
         validateReturnToWarehouseRequestId(returnToWarehouseRequestId);
-        validateProcessReturnToWarehouseRequestRequest(request);
 
         ReturnToWarehouseRequest returnToWarehouseRequest = findReturnToWarehouseRequestById(returnToWarehouseRequestId);
         validateReturnToWarehouseRequestStatusForProcessing(returnToWarehouseRequest);
 
         User currentUser = getCurrentUser();
-        validateApproverRole(currentUser);
 
         approveReturnToWarehouseRequest(returnToWarehouseRequest, currentUser, request.getResponseNote());
         updateBookStockQuantity(returnToWarehouseRequest.getBook(), returnToWarehouseRequest.getQuantity());
@@ -142,15 +110,12 @@ public class ReturnToWarehouseRequestServiceImpl implements ReturnToWarehouseReq
     @Override
     @Transactional
     public ReturnToWarehouseRequestResponse rejectReturnToWarehouseRequest(Long returnToWarehouseRequestId, ProcessReturnToWarehouseRequestRequest request) throws IdInvalidException {
-        // Role: ADMIN hoặc WAREHOUSE_STAFF - Từ chối yêu cầu trả hàng về kho
         validateReturnToWarehouseRequestId(returnToWarehouseRequestId);
-        validateProcessReturnToWarehouseRequestRequest(request);
 
         ReturnToWarehouseRequest returnToWarehouseRequest = findReturnToWarehouseRequestById(returnToWarehouseRequestId);
         validateReturnToWarehouseRequestStatusForProcessing(returnToWarehouseRequest);
 
         User currentUser = getCurrentUser();
-        validateApproverRole(currentUser);
 
         rejectReturnToWarehouseRequest(returnToWarehouseRequest, currentUser, request.getResponseNote());
 
@@ -171,29 +136,9 @@ public class ReturnToWarehouseRequestServiceImpl implements ReturnToWarehouseReq
         }
     }
 
-    private void validateProcessReturnToWarehouseRequestRequest(ProcessReturnToWarehouseRequestRequest request) throws IdInvalidException {
-        if (request == null) {
-            throw new IdInvalidException("Request cannot be null");
-        }
-    }
-
     private void validateReturnToWarehouseRequestStatusForProcessing(ReturnToWarehouseRequest returnToWarehouseRequest) {
         if (returnToWarehouseRequest.getStatus() != ReturnToWarehouseRequestStatus.PENDING) {
             throw new RuntimeException("Return to warehouse request can only be processed when status is PENDING. Current status: " + returnToWarehouseRequest.getStatus());
-        }
-    }
-
-    private void validateApproverRole(User user) {
-        if (user.getRoles() == null || user.getRoles().isEmpty()) {
-            throw new RuntimeException("User does not have any roles. Required roles: ADMIN or WAREHOUSE_STAFF");
-        }
-
-        boolean hasPermission = user.getRoles().stream()
-                .anyMatch(role -> "ADMIN".equals(role.getCode()) 
-                        || "WAREHOUSE_STAFF".equals(role.getCode()));
-
-        if (!hasPermission) {
-            throw new RuntimeException("User does not have permission to process return to warehouse requests. Required roles: ADMIN or WAREHOUSE_STAFF");
         }
     }
 

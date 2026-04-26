@@ -55,12 +55,8 @@ public class ImportStockServiceImpl implements ImportStockService {
     @Override
     @Transactional
     public ImportStockResponse createImportStock(CreateImportStockRequest request) throws IdInvalidException {
-        // Role: ADMIN hoặc WAREHOUSE_STAFF - Tạo phiếu nhập kho từ PurchaseOrder đã APPROVED
-        validateCreateImportStockRequest(request);
-
         Supplier supplier = findSupplierById(request.getSupplierId());
         User createdBy = findUserById(request.getCreatedById());
-        validateImporterRole(createdBy);
         
         PurchaseOrder purchaseOrder = findPurchaseOrderById(request.getPurchaseOrderId());
         validatePurchaseOrderForImport(purchaseOrder);
@@ -89,58 +85,9 @@ public class ImportStockServiceImpl implements ImportStockService {
         return importStockMapper.toImportStockResponse(importStock);
     }
 
-    private void validateCreateImportStockRequest(CreateImportStockRequest request) throws IdInvalidException {
-        if (request == null) {
-            throw new IdInvalidException("CreateImportStockRequest cannot be null");
-        }
-        if (request.getSupplierId() == null || request.getSupplierId() <= 0) {
-            throw new IdInvalidException("Supplier identifier is invalid");
-        }
-        if (request.getCreatedById() == null || request.getCreatedById() <= 0) {
-            throw new IdInvalidException("User identifier is invalid");
-        }
-        if (request.getPurchaseOrderId() == null || request.getPurchaseOrderId() <= 0) {
-            throw new IdInvalidException("Purchase order identifier is invalid");
-        }
-        // Details optional: nếu null/empty, sẽ lấy từ PurchaseOrder
-        if (request.getDetails() != null && !request.getDetails().isEmpty()) {
-            for (CreateImportStockRequest.ImportStockDetailRequest detail : request.getDetails()) {
-                if (detail.getBookId() == null || detail.getBookId() <= 0) {
-                    throw new IdInvalidException("Book identifier is invalid");
-                }
-                if (detail.getVariantId() == null || detail.getVariantId() <= 0) {
-                    throw new IdInvalidException("Variant identifier is invalid");
-                }
-                if (detail.getSupplierId() == null || detail.getSupplierId() <= 0) {
-                    throw new IdInvalidException("Supplier identifier is invalid");
-                }
-                if (detail.getQuantity() <= 0) {
-                    throw new IdInvalidException("Quantity must be greater than 0");
-                }
-                if (detail.getImportPrice() < 0) {
-                    throw new IdInvalidException("Import price cannot be negative");
-                }
-            }
-        }
-    }
-
     private Supplier findSupplierById(Long supplierId) {
         return supplierRepository.findById(supplierId)
                 .orElseThrow(() -> new RuntimeException("Supplier not found with identifier: " + supplierId));
-    }
-
-    private void validateImporterRole(User user) {
-        if (user.getRoles() == null || user.getRoles().isEmpty()) {
-            throw new RuntimeException("User does not have any roles. Required roles: ADMIN or WAREHOUSE_STAFF");
-        }
-
-        boolean hasPermission = user.getRoles().stream()
-                .anyMatch(role -> "ADMIN".equals(role.getCode()) 
-                        || "WAREHOUSE_STAFF".equals(role.getCode()));
-
-        if (!hasPermission) {
-            throw new RuntimeException("User does not have permission to create import stock. Required roles: ADMIN or WAREHOUSE_STAFF");
-        }
     }
 
     private void validatePurchaseOrderForImport(PurchaseOrder purchaseOrder) {
@@ -313,7 +260,6 @@ public class ImportStockServiceImpl implements ImportStockService {
         validateImportStockNotReceived(importStock);
 
         User createdBy = findUserById(userId);
-        validateImporterRole(createdBy);
 
         List<ImportStockDetail> details = getImportStockDetails(importStock);
 

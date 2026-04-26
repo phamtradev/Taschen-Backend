@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 public class DisposalRequestServiceImpl implements DisposalRequestService {
 
     private final DisposalRequestRepository disposalRequestRepository;
-    private final DisposalRequestItemRepository disposalRequestItemRepository;
     private final BatchRepository batchRepository;
     private final UserRepository userRepository;
     private final BatchService batchService;
@@ -38,9 +37,7 @@ public class DisposalRequestServiceImpl implements DisposalRequestService {
     @Override
     @Transactional
     public DisposalRequestResponse createDisposalRequest(CreateDisposalRequestRequest request) throws IdInvalidException {
-        validateCreateRequest(request);
         User currentUser = getCurrentUser();
-        validateWarehouseStaffRole(currentUser);
 
         DisposalRequest disposalRequest = new DisposalRequest();
         disposalRequest.setReason(request.getReason());
@@ -63,12 +60,6 @@ public class DisposalRequestServiceImpl implements DisposalRequestService {
 
         DisposalRequest saved = disposalRequestRepository.save(disposalRequest);
         return disposalRequestMapper.toResponse(saved);
-    }
-
-    private void validateCreateRequest(CreateDisposalRequestRequest request) throws IdInvalidException {
-        if (request == null || request.getItems() == null || request.getItems().isEmpty()) {
-            throw new IdInvalidException("Invalid disposal request or missing item details");
-        }
     }
 
     private void validateBatchStock(Batch batch, int quantity) {
@@ -105,7 +96,6 @@ public class DisposalRequestServiceImpl implements DisposalRequestService {
         DisposalRequest disposalRequest = findDisposalRequestById(id);
         validateStatusPending(disposalRequest);
         User currentUser = getCurrentUser();
-        validateAdminRole(currentUser);
 
         disposalRequest.setStatus(DisposalRequestStatus.APPROVED);
         disposalRequest.setProcessedBy(currentUser);
@@ -135,7 +125,6 @@ public class DisposalRequestServiceImpl implements DisposalRequestService {
         DisposalRequest disposalRequest = findDisposalRequestById(id);
         validateStatusPending(disposalRequest);
         User currentUser = getCurrentUser();
-        validateAdminRole(currentUser);
 
         disposalRequest.setStatus(DisposalRequestStatus.REJECTED);
         disposalRequest.setProcessedBy(currentUser);
@@ -168,21 +157,5 @@ public class DisposalRequestServiceImpl implements DisposalRequestService {
         }
         return userRepository.findByEmail(auth.getName())
                 .orElseThrow(() -> new RuntimeException("User information not found"));
-    }
-
-    private void validateWarehouseStaffRole(User user) {
-        boolean isStaff = user.getRoles().stream()
-                .anyMatch(r -> r.getCode().equals("WAREHOUSE_STAFF") || r.getCode().equals("ADMIN"));
-        if (!isStaff) {
-            throw new RuntimeException("Only warehouse staff or Admin have permission to create this request");
-        }
-    }
-
-    private void validateAdminRole(User user) {
-        boolean isAdmin = user.getRoles().stream()
-                .anyMatch(r -> r.getCode().equals("ADMIN"));
-        if (!isAdmin) {
-            throw new RuntimeException("Only Admin has permission to process this request");
-        }
     }
 }
