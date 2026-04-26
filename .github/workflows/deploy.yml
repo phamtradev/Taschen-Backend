@@ -52,8 +52,10 @@ jobs:
       - name: Health Check
         run: |
           echo "Checking application health..."
-          MAX_RETRIES=5
+          MAX_RETRIES=10
           RETRY_COUNT=0
+          echo "Waiting 30s for application to initialize..."
+          sleep 30
           until curl -f http://localhost:8080/actuator/health > /dev/null 2>&1; do
             RETRY_COUNT=$((RETRY_COUNT + 1))
             if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
@@ -62,6 +64,6 @@ jobs:
               exit 1
             fi
             echo "Waiting for application to start... ($RETRY_COUNT/$MAX_RETRIES)"
-            sleep 5
+            sleep 6
           done
           echo "Application is healthy!"
