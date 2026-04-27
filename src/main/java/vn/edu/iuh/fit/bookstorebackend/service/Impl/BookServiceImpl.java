@@ -142,6 +142,7 @@ public class BookServiceImpl implements BookService {
     }
     
     @Override
+    @Transactional(readOnly = true)
     public BookResponse getBookById(Long bookId) throws IdInvalidException {
         validateBookId(bookId);
         Book book = findBookById(bookId);
