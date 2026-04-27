@@ -169,7 +169,7 @@ public class BookServiceImpl implements BookService {
     }
     
     private Book findBookById(Long bookId) {
-        return bookRepository.findById(bookId)
+        return bookRepository.findByIdAndIsActiveNotNull(bookId)
                 .orElseThrow(() -> new RuntimeException("Book not found with identifier: " + bookId));
     }
 
@@ -262,20 +262,21 @@ public class BookServiceImpl implements BookService {
     public void deleteBook(Long bookId) throws IdInvalidException {
         validateBookId(bookId);
         Book book = findBookById(bookId);
-        
-        bookEmbeddingService.deleteEmbedding(bookId);
 
-        bookRepository.delete(book);
+        book.setIsActive(null);
+        bookRepository.save(book);
+
+        bookEmbeddingService.deleteEmbedding(bookId);
     }
 
     @Override
     public List<BookResponse> getAllBooksSorted(String sortByField, String sortDirection) {
         String field = getSortField(sortByField);
         Sort.Direction direction = getSortDirection(sortDirection);
-        
+
         Sort sort = Sort.by(direction, field);
         List<Book> books = bookRepository.findAll(sort);
-        
+
         return mapToBookResponseList(books);
     }
     
@@ -298,7 +299,7 @@ public class BookServiceImpl implements BookService {
     public List<BookResponse> getBooksByCategoryId(Long categoryId) throws IdInvalidException {
         validateCategoryId(categoryId);
         validateCategoryExists(categoryId);
-        
+
         List<Book> books = bookRepository.findByCategoryIdWithCategories(categoryId);
         return mapToBookResponseList(books);
     }
@@ -321,9 +322,32 @@ public class BookServiceImpl implements BookService {
         if (supplierId == null || supplierId <= 0) {
             throw new IdInvalidException("Supplier identifier is invalid: " + supplierId);
         }
-        
+
         List<Book> books = bookRepository.findBySupplierId(supplierId);
         return mapToBookResponseList(books);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BookResponse> searchBooks(String keyword, Long categoryId, String sortBy, String status) {
+        List<Book> books = bookRepository.searchBooks(keyword, categoryId, sortBy, resolveStatus(status));
+        return mapToBookResponseList(books);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<BookResponse> searchBooks(String keyword, Long categoryId, String status, Pageable pageable) {
+        Page<Book> page = bookRepository.searchBooks(keyword, categoryId, resolveStatus(status), pageable);
+        Page<BookResponse> mappedPage = page.map(bookMapper::toBookResponse);
+        return PaginationUtil.toPageResponse(mappedPage);
+    }
+
+    private String resolveStatus(String status) {
+        if (status == null) return "active";
+        return switch (status.toLowerCase()) {
+            case "deleted", "all" -> status.toLowerCase();
+            default -> "active";
+        };
     }
 
     private List<BookResponse> mapToBookResponseList(List<Book> books) {
