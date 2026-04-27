@@ -185,7 +185,10 @@ public class BookServiceImpl implements BookService {
         updateBookCategories(book, request.getCategoryIds());
         
         Book updatedBook = bookRepository.save(book);
-        updateBookVariants(updatedBook, request.getVariantIds());
+        List<Long> effectiveVariantIds = request.getVariantIds() != null
+                ? request.getVariantIds()
+                : (request.getFormatId() != null ? List.of(request.getFormatId()) : null);
+        updateBookVariants(updatedBook, effectiveVariantIds);
 
         // Fire-and-forget: regenerate embedding asynchronously
         bookEmbeddingService.regenerateEmbedding(bookId);
