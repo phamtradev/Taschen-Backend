@@ -342,6 +342,21 @@ public class BookServiceImpl implements BookService {
         return PaginationUtil.toPageResponse(mappedPage);
     }
 
+    @Override
+    @Transactional
+    public BookResponse restoreBook(Long bookId) throws IdInvalidException {
+        validateBookId(bookId);
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new IdInvalidException("Book not found with identifier: " + bookId));
+
+        if (book.getIsActive() != null) {
+            throw new IdInvalidException("Book is not soft-deleted and cannot be restored");
+        }
+
+        book.setIsActive(true);
+        return bookMapper.toBookResponse(bookRepository.save(book));
+    }
+
     private String resolveStatus(String status) {
         if (status == null) return "active";
         return switch (status.toLowerCase()) {
