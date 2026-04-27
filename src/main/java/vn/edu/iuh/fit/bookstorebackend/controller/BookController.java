@@ -18,6 +18,7 @@ import vn.edu.iuh.fit.bookstorebackend.service.BookEmbeddingService;
 import vn.edu.iuh.fit.bookstorebackend.service.BookService;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/books")
@@ -98,10 +99,10 @@ public class BookController {
     }
 
     @DeleteMapping("/{bookId}")
-    public ResponseEntity<Void> deleteBook(
+    public ResponseEntity<Map<String, String>> deleteBook(
             @PathVariable Long bookId) throws IdInvalidException {
         bookService.deleteBook(bookId);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+        return ResponseEntity.ok(Map.of("message", "Book soft-deleted successfully"));
     }
 
     @GetMapping("/{bookId}/similar")
@@ -118,5 +119,22 @@ public class BookController {
             @RequestParam(required = false, defaultValue = "10") int limit) {
         List<BookResponse> similarBooks = bookEmbeddingService.findSimilarByText(query, limit);
         return ResponseEntity.status(HttpStatus.OK).body(similarBooks);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<PageResponse<BookResponse>> searchBooks(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false, defaultValue = "active") String status,
+            @RequestParam(required = false, defaultValue = "1") int page,
+            @RequestParam(required = false, defaultValue = "10") int size,
+            @RequestParam(required = false, defaultValue = "id") String sortBy,
+            @RequestParam(required = false, defaultValue = "asc") String sortDir) {
+
+        Sort.Direction direction = sortDir.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by(direction, sortBy));
+
+        PageResponse<BookResponse> result = bookService.searchBooks(keyword, categoryId, status, pageable);
+        return ResponseEntity.ok(result);
     }
 }
