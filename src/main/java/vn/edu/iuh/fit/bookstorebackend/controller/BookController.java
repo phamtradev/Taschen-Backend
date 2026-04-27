@@ -105,6 +105,13 @@ public class BookController {
         return ResponseEntity.ok(Map.of("message", "Book soft-deleted successfully"));
     }
 
+    @PutMapping("/{bookId}/restore")
+    public ResponseEntity<BookResponse> restoreBook(
+            @PathVariable Long bookId) throws IdInvalidException {
+        BookResponse bookResponse = bookService.restoreBook(bookId);
+        return ResponseEntity.ok(bookResponse);
+    }
+
     @GetMapping("/{bookId}/similar")
     public ResponseEntity<List<BookResponse>> findSimilarBooks(
             @PathVariable Long bookId,

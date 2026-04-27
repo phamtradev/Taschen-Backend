@@ -32,4 +32,6 @@ public interface BookService {
     List<BookResponse> searchBooks(String keyword, Long categoryId, String sortBy, String status);
 
     PageResponse<BookResponse> searchBooks(String keyword, Long categoryId, String status, Pageable pageable);
+
+    BookResponse restoreBook(Long bookId) throws IdInvalidException;
 }
