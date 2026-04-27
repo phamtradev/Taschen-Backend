@@ -28,4 +28,8 @@ public interface BookService {
     List<BookResponse> getBooksByCategoryId(Long categoryId) throws IdInvalidException;
     
     List<BookResponse> getBooksBySupplierId(Long supplierId) throws IdInvalidException;
+
+    List<BookResponse> searchBooks(String keyword, Long categoryId, String sortBy, String status);
+
+    PageResponse<BookResponse> searchBooks(String keyword, Long categoryId, String status, Pageable pageable);
 }
