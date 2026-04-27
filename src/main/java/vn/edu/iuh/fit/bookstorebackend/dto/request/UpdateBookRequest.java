@@ -20,5 +20,6 @@ public class UpdateBookRequest {
     private Boolean isActive;
     private List<Long> categoryIds;
     private List<Long> variantIds;
+    private Long formatId;
     private Long supplierId;
 }
