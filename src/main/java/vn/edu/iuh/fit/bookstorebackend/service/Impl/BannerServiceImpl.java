@@ -29,6 +29,7 @@ public class BannerServiceImpl implements BannerService {
         Banner banner = bannerMapper.toBanner(request);
         banner.setName(request.getName().trim());
         banner.setImageUrl(request.getImageUrl().trim());
+        banner.setSubtitle(request.getSubtitle() != null ? request.getSubtitle().trim() : null);
         
         Banner savedBanner = bannerRepository.save(banner);
         return bannerMapper.toBannerResponse(savedBanner);
@@ -81,6 +82,7 @@ public class BannerServiceImpl implements BannerService {
         Banner banner = findBannerById(bannerId);
         banner.setName(request.getName().trim());
         banner.setImageUrl(request.getImageUrl().trim());
+        banner.setSubtitle(request.getSubtitle() != null ? request.getSubtitle().trim() : null);
         
         Banner updatedBanner = bannerRepository.save(banner);
         return bannerMapper.toBannerResponse(updatedBanner);
