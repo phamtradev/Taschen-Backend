@@ -9,4 +9,5 @@ public class BannerRequest {
     private String name;
     private String imageUrl;
     private String subtitle;
+    private String tag;
 }
