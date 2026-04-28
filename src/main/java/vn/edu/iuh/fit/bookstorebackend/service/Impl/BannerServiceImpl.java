@@ -30,6 +30,7 @@ public class BannerServiceImpl implements BannerService {
         banner.setName(request.getName().trim());
         banner.setImageUrl(request.getImageUrl().trim());
         banner.setSubtitle(request.getSubtitle() != null ? request.getSubtitle().trim() : null);
+        banner.setTag(request.getTag() != null && !request.getTag().trim().isEmpty() ? request.getTag().trim() : "Featured");
         
         Banner savedBanner = bannerRepository.save(banner);
         return bannerMapper.toBannerResponse(savedBanner);
@@ -83,6 +84,7 @@ public class BannerServiceImpl implements BannerService {
         banner.setName(request.getName().trim());
         banner.setImageUrl(request.getImageUrl().trim());
         banner.setSubtitle(request.getSubtitle() != null ? request.getSubtitle().trim() : null);
+        banner.setTag(request.getTag() != null && !request.getTag().trim().isEmpty() ? request.getTag().trim() : "Featured");
         
         Banner updatedBanner = bannerRepository.save(banner);
         return bannerMapper.toBannerResponse(updatedBanner);

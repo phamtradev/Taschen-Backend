@@ -7,6 +7,7 @@ import org.springframework.web.multipart.MultipartFile;
 import vn.edu.iuh.fit.bookstorebackend.dto.request.BannerRequest;
 import vn.edu.iuh.fit.bookstorebackend.dto.response.BannerResponse;
 import vn.edu.iuh.fit.bookstorebackend.exception.IdInvalidException;
+import vn.edu.iuh.fit.bookstorebackend.model.RestRespone;
 import vn.edu.iuh.fit.bookstorebackend.service.BannerService;
 import vn.edu.iuh.fit.bookstorebackend.service.CloudinaryService;
 
@@ -34,37 +35,56 @@ public class BannerController {
     }
 
     @PostMapping
-    public ResponseEntity<BannerResponse> createBanner(
+    public ResponseEntity<RestRespone<BannerResponse>> createBanner(
             @RequestBody BannerRequest request) throws IdInvalidException {
         BannerResponse bannerResponse = bannerService.createBanner(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(bannerResponse);
+        RestRespone<BannerResponse> response = new RestRespone<>();
+        response.setStatusCode(201);
+        response.setMessage("Tạo banner thành công");
+        response.setData(bannerResponse);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @GetMapping
-    public ResponseEntity<List<BannerResponse>> getAllBanners() {
+    public ResponseEntity<RestRespone<List<BannerResponse>>> getAllBanners() {
         List<BannerResponse> banners = bannerService.getAllBanners();
-        return ResponseEntity.status(HttpStatus.OK).body(banners);
+        RestRespone<List<BannerResponse>> response = new RestRespone<>();
+        response.setStatusCode(200);
+        response.setMessage("Success");
+        response.setData(banners);
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{bannerId}")
-    public ResponseEntity<BannerResponse> getBannerById(
+    public ResponseEntity<RestRespone<BannerResponse>> getBannerById(
             @PathVariable Long bannerId) throws IdInvalidException {
         BannerResponse bannerResponse = bannerService.getBannerById(bannerId);
-        return ResponseEntity.status(HttpStatus.OK).body(bannerResponse);
+        RestRespone<BannerResponse> response = new RestRespone<>();
+        response.setStatusCode(200);
+        response.setMessage("Success");
+        response.setData(bannerResponse);
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{bannerId}")
-    public ResponseEntity<BannerResponse> updateBanner(
+    public ResponseEntity<RestRespone<BannerResponse>> updateBanner(
             @PathVariable Long bannerId,
             @RequestBody BannerRequest request) throws IdInvalidException {
         BannerResponse bannerResponse = bannerService.updateBanner(bannerId, request);
-        return ResponseEntity.status(HttpStatus.OK).body(bannerResponse);
+        RestRespone<BannerResponse> response = new RestRespone<>();
+        response.setStatusCode(200);
+        response.setMessage("Cập nhật banner thành công");
+        response.setData(bannerResponse);
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{bannerId}")
-    public ResponseEntity<Void> deleteBanner(
+    public ResponseEntity<RestRespone<Void>> deleteBanner(
             @PathVariable Long bannerId) throws IdInvalidException {
         bannerService.deleteBanner(bannerId);
-        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+        RestRespone<Void> response = new RestRespone<>();
+        response.setStatusCode(204);
+        response.setMessage("Xóa banner thành công");
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).body(response);
     }
 }

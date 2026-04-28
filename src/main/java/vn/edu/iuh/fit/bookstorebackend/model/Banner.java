@@ -20,4 +20,7 @@ public class Banner {
 
     @Column(name = "subtitle", length = 255)
     private String subtitle;
+
+    @Column(name = "tag", length = 255)
+    private String tag = "Featured";
 }
