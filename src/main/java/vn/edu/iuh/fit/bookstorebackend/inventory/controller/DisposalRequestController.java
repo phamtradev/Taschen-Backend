@@ -1,0 +1,63 @@
+package vn.edu.iuh.fit.bookstorebackend.inventory.controller;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import vn.edu.iuh.fit.bookstorebackend.inventory.dto.request.CreateDisposalRequestRequest;
+import vn.edu.iuh.fit.bookstorebackend.inventory.dto.request.ProcessDisposalRequestRequest;
+import vn.edu.iuh.fit.bookstorebackend.inventory.dto.response.DisposalRequestResponse;
+import vn.edu.iuh.fit.bookstorebackend.shared.exception.IdInvalidException;
+import vn.edu.iuh.fit.bookstorebackend.inventory.service.DisposalRequestService;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/disposal-requests")
+@RequiredArgsConstructor
+public class DisposalRequestController {
+
+    private final DisposalRequestService disposalRequestService;
+
+    @PostMapping
+    public ResponseEntity<DisposalRequestResponse> createDisposalRequest(
+            @Valid @RequestBody CreateDisposalRequestRequest request) throws IdInvalidException {
+        // Role: WAREHOUSE_STAFF - Tạo yêu cầu xuất hủy
+        DisposalRequestResponse response = disposalRequestService.createDisposalRequest(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @GetMapping("/my-requests")
+    public ResponseEntity<List<DisposalRequestResponse>> getMyDisposalRequests() {
+        // Xem yêu cầu của chính mình
+        return ResponseEntity.ok(disposalRequestService.getMyDisposalRequests());
+    }
+
+    @GetMapping
+    public ResponseEntity<List<DisposalRequestResponse>> getAllDisposalRequests() {
+        // Role: ADMIN - Xem toàn bộ yêu cầu
+        return ResponseEntity.ok(disposalRequestService.getAllDisposalRequests());
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<DisposalRequestResponse> getDisposalRequestById(@PathVariable Long id) throws IdInvalidException {
+        return ResponseEntity.ok(disposalRequestService.getDisposalRequestById(id));
+    }
+
+    @PutMapping("/{id}/approve")
+    public ResponseEntity<DisposalRequestResponse> approveDisposalRequest(
+            @PathVariable Long id,
+            @Valid @RequestBody ProcessDisposalRequestRequest request) throws IdInvalidException {
+        // Role: ADMIN - Duyệt yêu cầu xuất hủy
+        return ResponseEntity.ok(disposalRequestService.approveDisposalRequest(id, request));
+    }
+
+    @PutMapping("/{id}/reject")
+    public ResponseEntity<DisposalRequestResponse> rejectDisposalRequest(
+            @PathVariable Long id,
+            @Valid @RequestBody ProcessDisposalRequestRequest request) throws IdInvalidException {
+        // Role: ADMIN - Từ chối yêu cầu xuất hủy
+        return ResponseEntity.ok(disposalRequestService.rejectDisposalRequest(id, request));
+    }
+}
