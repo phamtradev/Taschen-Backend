@@ -1,0 +1,46 @@
+package vn.edu.iuh.fit.bookstorebackend.inventory.model;
+import vn.edu.iuh.fit.bookstorebackend.book.model.Book;
+import vn.edu.iuh.fit.bookstorebackend.book.model.Variant;
+
+import jakarta.persistence.*;
+import lombok.Data;
+
+import java.util.List;
+
+import vn.edu.iuh.fit.bookstorebackend.supplier.model.Supplier;
+
+@Entity
+@Data
+@Table(name = "import_stock_details")
+public class ImportStockDetail {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "quantity", nullable = false)
+    private int quantity;
+
+    @Column(name = "import_price", nullable = false)
+    private double importPrice;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "import_stock_id", nullable = false)
+    private ImportStock importStock;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "book_id", nullable = false)
+    private Book book;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "variant_id", nullable = false)
+    private Variant variant;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "supplier_id", nullable = false)
+    private Supplier supplier;
+
+    @OneToMany(mappedBy = "importStockDetail", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Batch> batches; // Một ImportStockDetail có thể tạo nhiều Batch
+
+}
