@@ -91,8 +91,7 @@ public class BookServiceImpl implements BookService {
     private Book createBookFromRequest(CreateBookRequest request, Supplier supplier) {
         Book book = bookMapper.toBook(request);
         book.setPrice(request.getPrice() != null ? request.getPrice() : 0.0);
-        book.setStockQuantity(request.getStockQuantity() != null 
-                ? request.getStockQuantity() : 0);
+        book.setStockQuantity(0);
         book.setIsActive(request.getIsActive() != null 
                 ? request.getIsActive() : true);
         book.setSupplier(supplier);
