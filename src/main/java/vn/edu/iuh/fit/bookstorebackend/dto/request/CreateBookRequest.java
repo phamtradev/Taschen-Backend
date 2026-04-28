@@ -36,8 +36,6 @@ public class CreateBookRequest {
     @PositiveOrZero(message = "Price cannot be negative")
     private Double price;
 
-    private Integer stockQuantity;
-
     private String imageUrl;
 
     private Boolean isActive;
