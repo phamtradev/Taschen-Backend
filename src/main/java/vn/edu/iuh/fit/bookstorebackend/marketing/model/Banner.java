@@ -17,10 +17,4 @@ public class Banner {
 
     @Column(name = "image_url", length = 500, nullable = false)
     private String imageUrl;
-
-    @Column(name = "subtitle", length = 255)
-    private String subtitle;
-
-    @Column(name = "tag", length = 255)
-    private String tag = "Featured";
 }
