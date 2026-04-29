@@ -1,7 +1,9 @@
 package vn.edu.iuh.fit.bookstorebackend.inventory.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import vn.edu.iuh.fit.bookstorebackend.shared.dto.WsEvent;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.bookstorebackend.shared.common.StockRequestStatus;
 import vn.edu.iuh.fit.bookstorebackend.inventory.dto.request.ApproveStockRequestRequest;
@@ -33,6 +35,7 @@ public class StockRequestServiceImpl implements StockRequestService {
     private final UserRepository userRepository;
     private final VariantRepository variantRepository;
     private final StockRequestMapper stockRequestMapper;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional
@@ -44,6 +47,8 @@ public class StockRequestServiceImpl implements StockRequestService {
 
         StockRequest stockRequest = createStockRequestFromRequest(request, book, variant, createdBy);
         StockRequest savedStockRequest = stockRequestRepository.save(stockRequest);
+        messagingTemplate.convertAndSend("/topic/stock-requests",
+                new WsEvent("CREATED", "STOCK_REQUEST", savedStockRequest.getId(), null));
 
         return stockRequestMapper.toStockRequestResponse(savedStockRequest);
     }
@@ -138,6 +143,8 @@ public class StockRequestServiceImpl implements StockRequestService {
         rejectStockRequest(stockRequest, processedBy, request.getResponseMessage());
 
         StockRequest savedStockRequest = stockRequestRepository.save(stockRequest);
+        messagingTemplate.convertAndSend("/topic/stock-requests",
+                new WsEvent("UPDATED", "STOCK_REQUEST", savedStockRequest.getId(), null));
         return stockRequestMapper.toStockRequestResponse(savedStockRequest);
     }
 

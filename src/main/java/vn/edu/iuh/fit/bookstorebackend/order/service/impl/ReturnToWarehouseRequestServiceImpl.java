@@ -1,7 +1,9 @@
 package vn.edu.iuh.fit.bookstorebackend.order.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import vn.edu.iuh.fit.bookstorebackend.shared.dto.WsEvent;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,7 @@ public class ReturnToWarehouseRequestServiceImpl implements ReturnToWarehouseReq
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
     private final ReturnToWarehouseRequestMapper returnToWarehouseRequestMapper;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional
@@ -42,6 +45,8 @@ public class ReturnToWarehouseRequestServiceImpl implements ReturnToWarehouseReq
 
         ReturnToWarehouseRequest returnToWarehouseRequest = createReturnToWarehouseRequestFromRequest(request, book, currentUser);
         ReturnToWarehouseRequest savedReturnToWarehouseRequest = returnToWarehouseRequestRepository.save(returnToWarehouseRequest);
+        messagingTemplate.convertAndSend("/topic/return-warehouse-requests",
+                new WsEvent("CREATED", "RETURN_WAREHOUSE_REQUEST", savedReturnToWarehouseRequest.getId(), null));
 
         return returnToWarehouseRequestMapper.toReturnToWarehouseRequestResponse(savedReturnToWarehouseRequest);
     }
@@ -92,6 +97,8 @@ public class ReturnToWarehouseRequestServiceImpl implements ReturnToWarehouseReq
         updateBookStockQuantity(returnToWarehouseRequest.getBook(), returnToWarehouseRequest.getQuantity());
 
         ReturnToWarehouseRequest savedReturnToWarehouseRequest = returnToWarehouseRequestRepository.save(returnToWarehouseRequest);
+        messagingTemplate.convertAndSend("/topic/return-warehouse-requests",
+                new WsEvent("UPDATED", "RETURN_WAREHOUSE_REQUEST", savedReturnToWarehouseRequest.getId(), null));
         return returnToWarehouseRequestMapper.toReturnToWarehouseRequestResponse(savedReturnToWarehouseRequest);
     }
 
@@ -120,6 +127,8 @@ public class ReturnToWarehouseRequestServiceImpl implements ReturnToWarehouseReq
         rejectReturnToWarehouseRequest(returnToWarehouseRequest, currentUser, request.getResponseNote());
 
         ReturnToWarehouseRequest savedReturnToWarehouseRequest = returnToWarehouseRequestRepository.save(returnToWarehouseRequest);
+        messagingTemplate.convertAndSend("/topic/return-warehouse-requests",
+                new WsEvent("UPDATED", "RETURN_WAREHOUSE_REQUEST", savedReturnToWarehouseRequest.getId(), null));
         return returnToWarehouseRequestMapper.toReturnToWarehouseRequestResponse(savedReturnToWarehouseRequest);
     }
 

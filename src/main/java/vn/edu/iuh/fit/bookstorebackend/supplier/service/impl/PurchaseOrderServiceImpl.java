@@ -2,7 +2,9 @@ package vn.edu.iuh.fit.bookstorebackend.supplier.service.impl;
 
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import vn.edu.iuh.fit.bookstorebackend.shared.dto.WsEvent;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.bookstorebackend.shared.common.PurchaseOrderStatus;
 import vn.edu.iuh.fit.bookstorebackend.shared.common.StockRequestStatus;
@@ -46,6 +48,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final StockRequestRepository stockRequestRepository;
     private final PurchaseOrderMapper purchaseOrderMapper;
     private final EntityManager entityManager;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional
@@ -62,6 +65,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         entityManager.clear();
 
         PurchaseOrder purchaseOrderWithItems = findPurchaseOrderById(savedPurchaseOrder.getId());
+        messagingTemplate.convertAndSend("/topic/purchase-orders",
+                new WsEvent("CREATED", "PURCHASE_ORDER", purchaseOrderWithItems.getId(), null));
 
         return purchaseOrderMapper.toPurchaseOrderResponse(purchaseOrderWithItems);
     }
@@ -107,6 +112,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         entityManager.clear();
 
         PurchaseOrder purchaseOrderWithItems = findPurchaseOrderById(savedPurchaseOrder.getId());
+        messagingTemplate.convertAndSend("/topic/purchase-orders",
+                new WsEvent("CREATED", "PURCHASE_ORDER", purchaseOrderWithItems.getId(), null));
         return purchaseOrderMapper.toPurchaseOrderResponse(purchaseOrderWithItems);
     }
 
@@ -243,6 +250,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         rejectPurchaseOrder(purchaseOrder, approvedBy);
 
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
+        messagingTemplate.convertAndSend("/topic/purchase-orders",
+                new WsEvent("UPDATED", "PURCHASE_ORDER", savedPurchaseOrder.getId(), null));
         return purchaseOrderMapper.toPurchaseOrderResponse(savedPurchaseOrder);
     }
 
@@ -273,6 +282,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         cancelPurchaseOrder(purchaseOrder, cancelledBy, cancelReason);
 
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
+        messagingTemplate.convertAndSend("/topic/purchase-orders",
+                new WsEvent("UPDATED", "PURCHASE_ORDER", savedPurchaseOrder.getId(), null));
         return purchaseOrderMapper.toPurchaseOrderResponse(savedPurchaseOrder);
     }
 
@@ -311,6 +322,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         payPurchaseOrder(purchaseOrder, paidBy, totalAmount);
 
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
+        messagingTemplate.convertAndSend("/topic/purchase-orders",
+                new WsEvent("UPDATED", "PURCHASE_ORDER", savedPurchaseOrder.getId(), null));
         return purchaseOrderMapper.toPurchaseOrderResponse(savedPurchaseOrder);
     }
 

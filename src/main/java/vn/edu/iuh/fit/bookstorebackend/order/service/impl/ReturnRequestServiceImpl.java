@@ -1,7 +1,9 @@
 package vn.edu.iuh.fit.bookstorebackend.order.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import vn.edu.iuh.fit.bookstorebackend.shared.dto.WsEvent;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -35,6 +37,7 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
     private final UserRepository userRepository;
     private final OrderService orderService;
     private final ReturnRequestMapper returnRequestMapper;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional
@@ -47,6 +50,8 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
 
         ReturnRequest returnRequest = createReturnRequestFromRequest(request, order, currentUser);
         ReturnRequest savedReturnRequest = returnRequestRepository.save(returnRequest);
+        messagingTemplate.convertAndSend("/topic/return-requests",
+                new WsEvent("CREATED", "RETURN_REQUEST", savedReturnRequest.getId(), null));
 
         return returnRequestMapper.toReturnRequestResponse(savedReturnRequest);
     }
@@ -146,6 +151,8 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
         rejectReturnRequest(returnRequest, currentUser, request.getResponseNote());
 
         ReturnRequest savedReturnRequest = returnRequestRepository.save(returnRequest);
+        messagingTemplate.convertAndSend("/topic/return-requests",
+                new WsEvent("UPDATED", "RETURN_REQUEST", savedReturnRequest.getId(), null));
         return returnRequestMapper.toReturnRequestResponse(savedReturnRequest);
     }
 
