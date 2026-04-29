@@ -8,7 +8,9 @@ import vn.edu.iuh.fit.bookstorebackend.user.model.User;
 import vn.edu.iuh.fit.bookstorebackend.user.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import vn.edu.iuh.fit.bookstorebackend.shared.dto.WsEvent;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -38,6 +40,7 @@ public class DisposalRequestServiceImpl implements DisposalRequestService {
     private final UserRepository userRepository;
     private final BatchService batchService;
     private final DisposalRequestMapper disposalRequestMapper;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional
@@ -64,6 +67,8 @@ public class DisposalRequestServiceImpl implements DisposalRequestService {
         disposalRequest.setItems(items);
 
         DisposalRequest saved = disposalRequestRepository.save(disposalRequest);
+        messagingTemplate.convertAndSend("/topic/disposal-requests",
+                new WsEvent("CREATED", "DISPOSAL_REQUEST", saved.getId(), null));
         return disposalRequestMapper.toResponse(saved);
     }
 
@@ -121,7 +126,10 @@ public class DisposalRequestServiceImpl implements DisposalRequestService {
             batchService.syncBookStockQuantity(bookId);
         }
 
-        return disposalRequestMapper.toResponse(disposalRequestRepository.save(disposalRequest));
+        DisposalRequest savedApproved = disposalRequestRepository.save(disposalRequest);
+        messagingTemplate.convertAndSend("/topic/disposal-requests",
+                new WsEvent("UPDATED", "DISPOSAL_REQUEST", savedApproved.getId(), null));
+        return disposalRequestMapper.toResponse(savedApproved);
     }
 
     @Override
@@ -136,7 +144,10 @@ public class DisposalRequestServiceImpl implements DisposalRequestService {
         disposalRequest.setProcessedAt(LocalDateTime.now());
         disposalRequest.setResponseNote(request.getResponseNote());
 
-        return disposalRequestMapper.toResponse(disposalRequestRepository.save(disposalRequest));
+        DisposalRequest savedRejected = disposalRequestRepository.save(disposalRequest);
+        messagingTemplate.convertAndSend("/topic/disposal-requests",
+                new WsEvent("UPDATED", "DISPOSAL_REQUEST", savedRejected.getId(), null));
+        return disposalRequestMapper.toResponse(savedRejected);
     }
 
     private void validateStatusPending(DisposalRequest request) {

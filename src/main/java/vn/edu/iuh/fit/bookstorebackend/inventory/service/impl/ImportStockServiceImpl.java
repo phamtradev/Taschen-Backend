@@ -2,7 +2,9 @@ package vn.edu.iuh.fit.bookstorebackend.inventory.service.impl;
 
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import vn.edu.iuh.fit.bookstorebackend.shared.dto.WsEvent;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.bookstorebackend.inventory.dto.request.CreateImportStockRequest;
 import vn.edu.iuh.fit.bookstorebackend.inventory.dto.response.ImportStockResponse;
@@ -51,6 +53,7 @@ public class ImportStockServiceImpl implements ImportStockService {
     private final BatchRepository batchRepository;
     private final ImportStockMapper importStockMapper;
     private final EntityManager entityManager;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional
@@ -266,6 +269,8 @@ public class ImportStockServiceImpl implements ImportStockService {
         List<ReceiveStockResponse.BatchReceiveResult> batchResults = processBatchCreation(details, createdBy);
 
         markAsReceived(importStock);
+        messagingTemplate.convertAndSend("/topic/import-stocks",
+                new WsEvent("UPDATED", "IMPORT_STOCK", importStockId, null));
 
         return buildReceiveStockResponse(importStockId, batchResults);
     }

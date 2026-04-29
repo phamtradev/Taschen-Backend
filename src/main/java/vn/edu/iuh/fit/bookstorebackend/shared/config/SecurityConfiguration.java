@@ -28,7 +28,8 @@ public class SecurityConfiguration {
             "/api/auth/**",
             "/api/promotions/validate/**",
             "/actuator/health/**",
-            "/actuator/info"
+            "/actuator/info",
+            "/ws/**"
     };
 
     private static final String[] PUBLIC_GET_ENDPOINTS = {

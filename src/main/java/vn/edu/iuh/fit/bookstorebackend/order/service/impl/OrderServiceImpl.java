@@ -17,7 +17,9 @@ import vn.edu.iuh.fit.bookstorebackend.user.repository.AddressRepository;
 import vn.edu.iuh.fit.bookstorebackend.user.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import vn.edu.iuh.fit.bookstorebackend.shared.dto.WsEvent;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -53,6 +55,7 @@ public class OrderServiceImpl implements OrderService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final OrderMapper orderMapper;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional
@@ -74,6 +77,8 @@ public class OrderServiceImpl implements OrderService {
         orderDetailRepository.saveAll(orderDetails);
         removeSelectedItemsFromCart(selectedItems, cart);
         sendOrderCreatedNotification(savedOrder, currentUser);
+        messagingTemplate.convertAndSend("/topic/orders",
+                new WsEvent("CREATED", "ORDER", savedOrder.getId(), null));
 
         return orderMapper.toOrderResponse(savedOrder);
     }
@@ -306,6 +311,8 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(newStatus);
         Order updatedOrder = orderRepository.save(order);
         createStatusChangeNotification(updatedOrder, newStatus);
+        messagingTemplate.convertAndSend("/topic/orders",
+                new WsEvent("UPDATED", "ORDER", updatedOrder.getId(), null));
 
         return orderMapper.toOrderResponse(updatedOrder);
     }
@@ -402,6 +409,8 @@ public class OrderServiceImpl implements OrderService {
         cancelOrder(order);
         Order updatedOrder = orderRepository.save(order);
         createStatusChangeNotification(updatedOrder, OrderStatus.CANCELLED);
+        messagingTemplate.convertAndSend("/topic/orders",
+                new WsEvent("UPDATED", "ORDER", updatedOrder.getId(), null));
 
         return orderMapper.toOrderResponse(updatedOrder);
     }
@@ -437,6 +446,8 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(OrderStatus.COMPLETED);
         Order updatedOrder = orderRepository.save(order);
         createStatusChangeNotification(updatedOrder, OrderStatus.COMPLETED);
+        messagingTemplate.convertAndSend("/topic/orders",
+                new WsEvent("UPDATED", "ORDER", updatedOrder.getId(), null));
 
         return orderMapper.toOrderResponse(updatedOrder);
     }
@@ -488,6 +499,8 @@ public class OrderServiceImpl implements OrderService {
         }
 
         orderRepository.save(order);
+        messagingTemplate.convertAndSend("/topic/orders",
+                new WsEvent("UPDATED", "ORDER", orderId, null));
     }
 
     @Override

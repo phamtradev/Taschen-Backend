@@ -5,9 +5,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.edu.iuh.fit.bookstorebackend.shared.dto.WsEvent;
 import vn.edu.iuh.fit.bookstorebackend.notification.dto.response.NotificationResponse;
 import vn.edu.iuh.fit.bookstorebackend.shared.exception.IdInvalidException;
 import vn.edu.iuh.fit.bookstorebackend.notification.model.Notification;
@@ -29,6 +31,7 @@ public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
     private final NotificationMapper notificationMapper;
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Override
     @Transactional(readOnly = true)
@@ -100,6 +103,8 @@ public class NotificationServiceImpl implements NotificationService {
         try {
             Notification notification = createNotificationFromParams(sender, receiver, title, content);
             notificationRepository.save(notification);
+            messagingTemplate.convertAndSend("/topic/notifications/" + receiver.getId(),
+                    new WsEvent("CREATED", "NOTIFICATION", notification.getId(), null));
             log.debug("Notification created successfully for user: {}", receiver.getId());
         } catch (Exception e) {
             log.error("Failed to create notification for user: {}", receiver.getId(), e);
