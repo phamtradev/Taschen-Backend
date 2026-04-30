@@ -31,6 +31,7 @@ import vn.edu.iuh.fit.bookstorebackend.supplier.repository.PurchaseOrderReposito
 import vn.edu.iuh.fit.bookstorebackend.supplier.repository.SupplierRepository;
 import vn.edu.iuh.fit.bookstorebackend.user.repository.UserRepository;
 import vn.edu.iuh.fit.bookstorebackend.book.repository.VariantRepository;
+import vn.edu.iuh.fit.bookstorebackend.notification.service.NotificationService;
 import vn.edu.iuh.fit.bookstorebackend.inventory.service.ImportStockService;
 
 import java.time.LocalDateTime;
@@ -51,6 +52,7 @@ public class ImportStockServiceImpl implements ImportStockService {
     private final VariantRepository variantRepository;
     private final PurchaseOrderRepository purchaseOrderRepository;
     private final BatchRepository batchRepository;
+    private final NotificationService notificationService;
     private final ImportStockMapper importStockMapper;
     private final EntityManager entityManager;
     private final SimpMessagingTemplate messagingTemplate;
@@ -271,6 +273,12 @@ public class ImportStockServiceImpl implements ImportStockService {
         markAsReceived(importStock);
         messagingTemplate.convertAndSend("/topic/import-stocks",
                 new WsEvent("UPDATED", "IMPORT_STOCK", importStockId, null));
+        notificationService.notifyAllByRole("ADMIN",
+                "Da nhan hang phieu nhap #" + importStockId,
+                "Kho da xac nhan nhan hang thanh cong");
+        notificationService.notifyAllByRole("SELLER",
+                "Da nhan hang phieu nhap #" + importStockId,
+                "Kho da xac nhan nhan hang thanh cong");
 
         return buildReceiveStockResponse(importStockId, batchResults);
     }

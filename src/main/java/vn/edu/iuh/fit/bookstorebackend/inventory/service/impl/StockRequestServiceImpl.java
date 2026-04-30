@@ -20,6 +20,7 @@ import vn.edu.iuh.fit.bookstorebackend.book.repository.BookRepository;
 import vn.edu.iuh.fit.bookstorebackend.inventory.repository.StockRequestRepository;
 import vn.edu.iuh.fit.bookstorebackend.user.repository.UserRepository;
 import vn.edu.iuh.fit.bookstorebackend.book.repository.VariantRepository;
+import vn.edu.iuh.fit.bookstorebackend.notification.service.NotificationService;
 import vn.edu.iuh.fit.bookstorebackend.inventory.service.StockRequestService;
 
 import java.time.LocalDateTime;
@@ -34,6 +35,7 @@ public class StockRequestServiceImpl implements StockRequestService {
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
     private final VariantRepository variantRepository;
+    private final NotificationService notificationService;
     private final StockRequestMapper stockRequestMapper;
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -49,6 +51,9 @@ public class StockRequestServiceImpl implements StockRequestService {
         StockRequest savedStockRequest = stockRequestRepository.save(stockRequest);
         messagingTemplate.convertAndSend("/topic/stock-requests",
                 new WsEvent("CREATED", "STOCK_REQUEST", savedStockRequest.getId(), null));
+        notificationService.notifyAllByRole("ADMIN",
+                "Yeu cau nhap kho #" + savedStockRequest.getId() + " moi",
+                "Co yeu cau nhap kho moi can duyet");
 
         return stockRequestMapper.toStockRequestResponse(savedStockRequest);
     }
@@ -115,6 +120,14 @@ public class StockRequestServiceImpl implements StockRequestService {
         approveStockRequest(stockRequest, processedBy, request.getResponseMessage());
 
         StockRequest savedStockRequest = stockRequestRepository.save(stockRequest);
+        messagingTemplate.convertAndSend("/topic/stock-requests",
+                new WsEvent("UPDATED", "STOCK_REQUEST", savedStockRequest.getId(), null));
+        notificationService.notifyAllByRole("WAREHOUSE_STAFF",
+                "Yeu cau nhap kho #" + savedStockRequest.getId() + " duoc duyet",
+                "Co yeu cau nhap kho moi can xu ly");
+        notificationService.createNotification(null, savedStockRequest.getCreatedBy(),
+                "Yeu cau nhap kho #" + savedStockRequest.getId() + " duoc duyet",
+                "Yeu cau nhap kho cua ban da duoc chap thuan");
         return stockRequestMapper.toStockRequestResponse(savedStockRequest);
     }
 
@@ -145,6 +158,9 @@ public class StockRequestServiceImpl implements StockRequestService {
         StockRequest savedStockRequest = stockRequestRepository.save(stockRequest);
         messagingTemplate.convertAndSend("/topic/stock-requests",
                 new WsEvent("UPDATED", "STOCK_REQUEST", savedStockRequest.getId(), null));
+        notificationService.createNotification(null, savedStockRequest.getCreatedBy(),
+                "Yeu cau nhap kho #" + savedStockRequest.getId() + " bi tu choi",
+                "Yeu cau nhap kho cua ban da bi tu choi");
         return stockRequestMapper.toStockRequestResponse(savedStockRequest);
     }
 
