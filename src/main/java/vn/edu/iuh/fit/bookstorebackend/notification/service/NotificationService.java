@@ -16,6 +16,10 @@ public interface NotificationService {
 
     long getUnreadCount() throws IdInvalidException;
 
+    void deleteNotification(Long notificationId) throws IdInvalidException;
+
+    void deleteAllNotifications() throws IdInvalidException;
+
     /**
      * Phương thức nội bộ để hệ thống tạo thông báo.
      * Ví dụ: Gửi thông báo khi đơn hàng được giao.
