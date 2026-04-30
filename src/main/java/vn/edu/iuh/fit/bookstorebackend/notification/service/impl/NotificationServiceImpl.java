@@ -92,6 +92,24 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     @Override
+    @Async("notificationTaskExecutor")
+    @Transactional
+    public void notifyAllByRole(String roleCode, String title, String content) {
+        log.info("Sending notification to all users with role: {}", roleCode);
+        List<User> users = userRepository.findAllActiveByRoleCode(roleCode);
+        for (User user : users) {
+            try {
+                Notification notification = createNotificationFromParams(null, user, title, content);
+                notificationRepository.save(notification);
+                messagingTemplate.convertAndSend("/topic/notifications/" + user.getId(),
+                        new WsEvent("CREATED", "NOTIFICATION", notification.getId(), null));
+            } catch (Exception e) {
+                log.error("Failed to send notification to user: {}", user.getId(), e);
+            }
+        }
+    }
+
+    @Override
     @Transactional
     public void deleteNotification(Long notificationId) throws IdInvalidException {
         validateNotificationId(notificationId);

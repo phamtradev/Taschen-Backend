@@ -28,6 +28,7 @@ import vn.edu.iuh.fit.bookstorebackend.inventory.repository.StockRequestReposito
 import vn.edu.iuh.fit.bookstorebackend.supplier.repository.SupplierRepository;
 import vn.edu.iuh.fit.bookstorebackend.user.repository.UserRepository;
 import vn.edu.iuh.fit.bookstorebackend.book.repository.VariantRepository;
+import vn.edu.iuh.fit.bookstorebackend.notification.service.NotificationService;
 import vn.edu.iuh.fit.bookstorebackend.supplier.service.PurchaseOrderService;
 
 import java.time.LocalDateTime;
@@ -46,6 +47,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
     private final VariantRepository variantRepository;
     private final BookVariantRepository bookVariantRepository;
     private final StockRequestRepository stockRequestRepository;
+    private final NotificationService notificationService;
     private final PurchaseOrderMapper purchaseOrderMapper;
     private final EntityManager entityManager;
     private final SimpMessagingTemplate messagingTemplate;
@@ -67,6 +69,9 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         PurchaseOrder purchaseOrderWithItems = findPurchaseOrderById(savedPurchaseOrder.getId());
         messagingTemplate.convertAndSend("/topic/purchase-orders",
                 new WsEvent("CREATED", "PURCHASE_ORDER", purchaseOrderWithItems.getId(), null));
+        notificationService.notifyAllByRole("ADMIN",
+                "Don dat hang NCC #" + purchaseOrderWithItems.getId() + " moi",
+                "Co don dat hang NCC moi can duyet");
 
         return purchaseOrderMapper.toPurchaseOrderResponse(purchaseOrderWithItems);
     }
@@ -114,6 +119,9 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         PurchaseOrder purchaseOrderWithItems = findPurchaseOrderById(savedPurchaseOrder.getId());
         messagingTemplate.convertAndSend("/topic/purchase-orders",
                 new WsEvent("CREATED", "PURCHASE_ORDER", purchaseOrderWithItems.getId(), null));
+        notificationService.notifyAllByRole("ADMIN",
+                "Don dat hang NCC #" + purchaseOrderWithItems.getId() + " moi",
+                "Co don dat hang NCC moi can duyet");
         return purchaseOrderMapper.toPurchaseOrderResponse(purchaseOrderWithItems);
     }
 
@@ -221,6 +229,11 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         approvePurchaseOrder(purchaseOrder, approvedBy);
 
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
+        messagingTemplate.convertAndSend("/topic/purchase-orders",
+                new WsEvent("UPDATED", "PURCHASE_ORDER", savedPurchaseOrder.getId(), null));
+        notificationService.notifyAllByRole("WAREHOUSE_STAFF",
+                "Don dat hang #" + savedPurchaseOrder.getId() + " duoc duyet",
+                "Don dat hang moi duoc duyet, chuan bi nhan hang");
         return purchaseOrderMapper.toPurchaseOrderResponse(savedPurchaseOrder);
     }
 
@@ -252,6 +265,9 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         PurchaseOrder savedPurchaseOrder = purchaseOrderRepository.save(purchaseOrder);
         messagingTemplate.convertAndSend("/topic/purchase-orders",
                 new WsEvent("UPDATED", "PURCHASE_ORDER", savedPurchaseOrder.getId(), null));
+        notificationService.createNotification(null, savedPurchaseOrder.getCreatedBy(),
+                "Don dat hang #" + savedPurchaseOrder.getId() + " bi tu choi",
+                "Don dat hang NCC cua ban da bi tu choi");
         return purchaseOrderMapper.toPurchaseOrderResponse(savedPurchaseOrder);
     }
 

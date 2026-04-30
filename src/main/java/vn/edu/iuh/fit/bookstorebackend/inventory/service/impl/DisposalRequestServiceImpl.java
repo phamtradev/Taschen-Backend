@@ -4,6 +4,7 @@ import vn.edu.iuh.fit.bookstorebackend.inventory.model.DisposalRequest;
 import vn.edu.iuh.fit.bookstorebackend.inventory.model.DisposalRequestItem;
 import vn.edu.iuh.fit.bookstorebackend.inventory.repository.BatchRepository;
 import vn.edu.iuh.fit.bookstorebackend.inventory.repository.DisposalRequestRepository;
+import vn.edu.iuh.fit.bookstorebackend.notification.service.NotificationService;
 import vn.edu.iuh.fit.bookstorebackend.user.model.User;
 import vn.edu.iuh.fit.bookstorebackend.user.repository.UserRepository;
 
@@ -39,6 +40,7 @@ public class DisposalRequestServiceImpl implements DisposalRequestService {
     private final BatchRepository batchRepository;
     private final UserRepository userRepository;
     private final BatchService batchService;
+    private final NotificationService notificationService;
     private final DisposalRequestMapper disposalRequestMapper;
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -69,6 +71,9 @@ public class DisposalRequestServiceImpl implements DisposalRequestService {
         DisposalRequest saved = disposalRequestRepository.save(disposalRequest);
         messagingTemplate.convertAndSend("/topic/disposal-requests",
                 new WsEvent("CREATED", "DISPOSAL_REQUEST", saved.getId(), null));
+        notificationService.notifyAllByRole("ADMIN",
+                "Yeu cau xuat huy #" + saved.getId() + " moi",
+                "Co yeu cau xuat huy moi can duyet");
         return disposalRequestMapper.toResponse(saved);
     }
 
@@ -129,6 +134,9 @@ public class DisposalRequestServiceImpl implements DisposalRequestService {
         DisposalRequest savedApproved = disposalRequestRepository.save(disposalRequest);
         messagingTemplate.convertAndSend("/topic/disposal-requests",
                 new WsEvent("UPDATED", "DISPOSAL_REQUEST", savedApproved.getId(), null));
+        notificationService.createNotification(null, savedApproved.getCreatedBy(),
+                "Yeu cau xuat huy #" + savedApproved.getId() + " duoc duyet",
+                "Yeu cau xuat huy cua ban da duoc chap thuan");
         return disposalRequestMapper.toResponse(savedApproved);
     }
 
@@ -147,6 +155,9 @@ public class DisposalRequestServiceImpl implements DisposalRequestService {
         DisposalRequest savedRejected = disposalRequestRepository.save(disposalRequest);
         messagingTemplate.convertAndSend("/topic/disposal-requests",
                 new WsEvent("UPDATED", "DISPOSAL_REQUEST", savedRejected.getId(), null));
+        notificationService.createNotification(null, savedRejected.getCreatedBy(),
+                "Yeu cau xuat huy #" + savedRejected.getId() + " bi tu choi",
+                "Yeu cau xuat huy cua ban da bi tu choi");
         return disposalRequestMapper.toResponse(savedRejected);
     }
 

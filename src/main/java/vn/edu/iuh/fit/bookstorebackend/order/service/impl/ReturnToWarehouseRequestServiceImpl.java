@@ -20,6 +20,7 @@ import vn.edu.iuh.fit.bookstorebackend.user.model.User;
 import vn.edu.iuh.fit.bookstorebackend.book.repository.BookRepository;
 import vn.edu.iuh.fit.bookstorebackend.order.repository.ReturnToWarehouseRequestRepository;
 import vn.edu.iuh.fit.bookstorebackend.user.repository.UserRepository;
+import vn.edu.iuh.fit.bookstorebackend.notification.service.NotificationService;
 import vn.edu.iuh.fit.bookstorebackend.order.service.ReturnToWarehouseRequestService;
 
 import java.time.LocalDateTime;
@@ -33,6 +34,7 @@ public class ReturnToWarehouseRequestServiceImpl implements ReturnToWarehouseReq
     private final ReturnToWarehouseRequestRepository returnToWarehouseRequestRepository;
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
     private final ReturnToWarehouseRequestMapper returnToWarehouseRequestMapper;
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -47,6 +49,12 @@ public class ReturnToWarehouseRequestServiceImpl implements ReturnToWarehouseReq
         ReturnToWarehouseRequest savedReturnToWarehouseRequest = returnToWarehouseRequestRepository.save(returnToWarehouseRequest);
         messagingTemplate.convertAndSend("/topic/return-warehouse-requests",
                 new WsEvent("CREATED", "RETURN_WAREHOUSE_REQUEST", savedReturnToWarehouseRequest.getId(), null));
+        notificationService.notifyAllByRole("ADMIN",
+                "Yeu cau tra hang ve kho #" + savedReturnToWarehouseRequest.getId() + " moi",
+                "Co yeu cau tra hang ve kho moi can duyet");
+        notificationService.notifyAllByRole("WAREHOUSE_STAFF",
+                "Yeu cau tra hang ve kho #" + savedReturnToWarehouseRequest.getId() + " moi",
+                "Co yeu cau tra hang ve kho moi can xu ly");
 
         return returnToWarehouseRequestMapper.toReturnToWarehouseRequestResponse(savedReturnToWarehouseRequest);
     }
@@ -99,6 +107,9 @@ public class ReturnToWarehouseRequestServiceImpl implements ReturnToWarehouseReq
         ReturnToWarehouseRequest savedReturnToWarehouseRequest = returnToWarehouseRequestRepository.save(returnToWarehouseRequest);
         messagingTemplate.convertAndSend("/topic/return-warehouse-requests",
                 new WsEvent("UPDATED", "RETURN_WAREHOUSE_REQUEST", savedReturnToWarehouseRequest.getId(), null));
+        notificationService.createNotification(null, savedReturnToWarehouseRequest.getCreatedBy(),
+                "Yeu cau tra hang ve kho #" + savedReturnToWarehouseRequest.getId() + " duoc duyet",
+                "Yeu cau tra hang ve kho cua ban da duoc chap thuan");
         return returnToWarehouseRequestMapper.toReturnToWarehouseRequestResponse(savedReturnToWarehouseRequest);
     }
 
@@ -129,6 +140,9 @@ public class ReturnToWarehouseRequestServiceImpl implements ReturnToWarehouseReq
         ReturnToWarehouseRequest savedReturnToWarehouseRequest = returnToWarehouseRequestRepository.save(returnToWarehouseRequest);
         messagingTemplate.convertAndSend("/topic/return-warehouse-requests",
                 new WsEvent("UPDATED", "RETURN_WAREHOUSE_REQUEST", savedReturnToWarehouseRequest.getId(), null));
+        notificationService.createNotification(null, savedReturnToWarehouseRequest.getCreatedBy(),
+                "Yeu cau tra hang ve kho #" + savedReturnToWarehouseRequest.getId() + " bi tu choi",
+                "Yeu cau tra hang ve kho cua ban da bi tu choi");
         return returnToWarehouseRequestMapper.toReturnToWarehouseRequestResponse(savedReturnToWarehouseRequest);
     }
 

@@ -2,6 +2,7 @@ package vn.edu.iuh.fit.bookstorebackend.user.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import vn.edu.iuh.fit.bookstorebackend.user.model.User;
 
@@ -19,5 +20,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.roles LEFT JOIN FETCH u.addresses WHERE u.id = :id")
     Optional<User> findByIdWithRoles(Long id);
+
+    @Query("SELECT DISTINCT u FROM User u JOIN u.roles r WHERE r.code = :roleCode AND u.active = true")
+    List<User> findAllActiveByRoleCode(@Param("roleCode") String roleCode);
 }
 
