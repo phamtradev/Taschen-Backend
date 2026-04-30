@@ -17,9 +17,11 @@ public class ProdCorsConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // frontend deploy trên Vercel
         config.setAllowedOriginPatterns(List.of(
-//                "https://*.vercel.app"
+                "https://taschen.huydarealest.dev",
+                "http://localhost:3000",
+                "http://localhost:5173",
+                "https://*.vercel.app"
         ));
 
         config.setAllowedMethods(List.of(
