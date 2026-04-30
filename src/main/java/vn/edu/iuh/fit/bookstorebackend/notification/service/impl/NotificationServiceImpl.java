@@ -91,6 +91,23 @@ public class NotificationServiceImpl implements NotificationService {
         return notificationRepository.countByReceiverAndIsRead(currentUser, false);
     }
 
+    @Override
+    @Transactional
+    public void deleteNotification(Long notificationId) throws IdInvalidException {
+        validateNotificationId(notificationId);
+        User currentUser = getCurrentUser();
+        Notification notification = findNotificationById(notificationId);
+        validateNotificationAccess(notification, currentUser);
+        notificationRepository.delete(notification);
+    }
+
+    @Override
+    @Transactional
+    public void deleteAllNotifications() throws IdInvalidException {
+        User currentUser = getCurrentUser();
+        notificationRepository.deleteAllByReceiver(currentUser);
+    }
+
     /**
      * Create a notification asynchronously.
      * This method runs in a separate thread to avoid blocking the main request.

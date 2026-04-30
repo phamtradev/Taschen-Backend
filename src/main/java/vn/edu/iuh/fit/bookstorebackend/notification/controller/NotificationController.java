@@ -45,11 +45,24 @@ public class NotificationController {
     }
 
     @GetMapping("/unread-count")
-    public ResponseEntity<Map<String, Long>> getUnreadCount() 
+    public ResponseEntity<Map<String, Long>> getUnreadCount()
             throws IdInvalidException {
         long count = notificationService.getUnreadCount();
         Map<String, Long> response = new HashMap<>();
         response.put("unreadCount", count);
         return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @DeleteMapping("/{notificationId}")
+    public ResponseEntity<Void> deleteNotification(
+            @PathVariable Long notificationId) throws IdInvalidException {
+        notificationService.deleteNotification(notificationId);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    @DeleteMapping
+    public ResponseEntity<Void> deleteAllNotifications() throws IdInvalidException {
+        notificationService.deleteAllNotifications();
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 }
