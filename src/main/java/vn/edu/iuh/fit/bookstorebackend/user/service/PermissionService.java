@@ -9,6 +9,9 @@ import vn.edu.iuh.fit.bookstorebackend.user.dto.response.PermissionResponse;
 import vn.edu.iuh.fit.bookstorebackend.shared.exception.IdInvalidException;
 
 import java.util.Set;
+
+import vn.edu.iuh.fit.bookstorebackend.user.model.Role;
+
 import java.util.List;
 
 public interface PermissionService {
@@ -26,6 +29,8 @@ public interface PermissionService {
     void deletePermission(Long id) throws IdInvalidException;
 
     boolean hasPermission(Set<Long> roleIds, HttpMethod httpMethod, String path);
+
+    boolean hasPermissionWithRoles(Set<Role> roles, HttpMethod httpMethod, String path);
 
     PermissionResponse createAndAssignToRole(CreatePermissionForRoleRequest request) throws IdInvalidException;
 

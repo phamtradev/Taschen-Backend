@@ -183,6 +183,12 @@ public class PermissionServiceImpl implements PermissionService {
             return false;
         }
         Set<Role> roles = roleRepository.findByIdIn(roleIds);
+        return hasPermissionWithRoles(roles, httpMethod, path);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasPermissionWithRoles(Set<Role> roles, HttpMethod httpMethod, String path) {
         if (isEmpty(roles)) {
             return false;
         }

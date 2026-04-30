@@ -14,6 +14,7 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import vn.edu.iuh.fit.bookstorebackend.shared.common.HttpMethod;
+import vn.edu.iuh.fit.bookstorebackend.user.model.Role;
 import vn.edu.iuh.fit.bookstorebackend.user.model.User;
 import vn.edu.iuh.fit.bookstorebackend.user.service.PermissionService;
 
@@ -76,12 +77,9 @@ public class PermissionFilter extends OncePerRequestFilter {
                     .getSingleResult();
 
             if (user != null && user.getRoles() != null) {
-                Set<Long> roleIds = user.getRoles().stream()
-                        .map(role -> role.getId())
-                        .collect(Collectors.toSet());
-
+                Set<Role> roles = user.getRoles();
                 HttpMethod httpMethod = HttpMethod.valueOf(method);
-                boolean hasPermission = permissionService.hasPermission(roleIds, httpMethod, path);
+                boolean hasPermission = permissionService.hasPermissionWithRoles(roles, httpMethod, path);
 
                 if (!hasPermission) {
                     log.warn("Access denied for user {} on {} {}", email, method, path);
