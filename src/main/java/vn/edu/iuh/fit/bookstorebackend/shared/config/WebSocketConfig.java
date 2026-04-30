@@ -18,7 +18,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                         "http://localhost:3000",
                         "http://localhost:5173",
                         "https://*.vercel.app",
-                        "https://taschen.huydarealest.dev"
+                        "https://taschen.huydarealest.dev",
+                        "https://api.phamtra.dev"
                 )
                 .withSockJS();
     }

@@ -21,7 +21,8 @@ public class ProdCorsConfig {
                 "https://taschen.huydarealest.dev",
                 "http://localhost:3000",
                 "http://localhost:5173",
-                "https://*.vercel.app"
+                "https://*.vercel.app",
+                "https://api.phamtra.dev"
         ));
 
         config.setAllowedMethods(List.of(
