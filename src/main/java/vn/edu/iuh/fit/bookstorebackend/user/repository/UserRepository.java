@@ -13,6 +13,10 @@ import java.util.Optional;
 public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
 
+    @EntityGraph(attributePaths = {"roles.permissions", "addresses"})
+    @Query("SELECT u FROM User u WHERE u.email = :email")
+    Optional<User> findByEmailWithRoles(@Param("email") String email);
+
     boolean existsByEmail(String email);
 
     @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.roles r LEFT JOIN FETCH r.permissions LEFT JOIN FETCH u.addresses")
