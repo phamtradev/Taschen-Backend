@@ -249,9 +249,13 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private void sendOrderCreatedNotification(Order order, User user) {
-        String title = "Đơn hàng #" + order.getId() + " đã được tạo";
-        String content = "Đặt hàng thành công, đơn hàng của bạn đang chờ xác nhận";
-        notificationService.createNotification(null, user, title, content);
+        notificationService.createNotification(null, user,
+                "Đơn hàng #" + order.getId() + " đã được tạo",
+                "Đặt hàng thành công, đơn hàng của bạn đang chờ xác nhận");
+        String staffTitle = "Đơn hàng mới #" + order.getId();
+        String staffContent = "Khách hàng " + user.getFirstName() + " " + user.getLastName() + " vừa đặt đơn hàng";
+        notificationService.notifyAllByRole("ADMIN", staffTitle, staffContent);
+        notificationService.notifyAllByRole("SELLER", staffTitle, staffContent);
     }
 
     @Override
@@ -409,6 +413,10 @@ public class OrderServiceImpl implements OrderService {
         cancelOrder(order);
         Order updatedOrder = orderRepository.save(order);
         createStatusChangeNotification(updatedOrder, OrderStatus.CANCELLED);
+        String cancelTitle = "Đơn hàng #" + updatedOrder.getId() + " bị hủy";
+        String cancelContent = "Khách hàng vừa hủy đơn hàng #" + updatedOrder.getId();
+        notificationService.notifyAllByRole("ADMIN", cancelTitle, cancelContent);
+        notificationService.notifyAllByRole("SELLER", cancelTitle, cancelContent);
         messagingTemplate.convertAndSend("/topic/orders",
                 new WsEvent("UPDATED", "ORDER", updatedOrder.getId(), null));
 

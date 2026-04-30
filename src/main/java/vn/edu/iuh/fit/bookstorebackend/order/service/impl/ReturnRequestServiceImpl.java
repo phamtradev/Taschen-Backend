@@ -21,6 +21,7 @@ import vn.edu.iuh.fit.bookstorebackend.user.model.User;
 import vn.edu.iuh.fit.bookstorebackend.order.repository.OrderRepository;
 import vn.edu.iuh.fit.bookstorebackend.order.repository.ReturnRequestRepository;
 import vn.edu.iuh.fit.bookstorebackend.user.repository.UserRepository;
+import vn.edu.iuh.fit.bookstorebackend.notification.service.NotificationService;
 import vn.edu.iuh.fit.bookstorebackend.order.service.OrderService;
 import vn.edu.iuh.fit.bookstorebackend.order.service.ReturnRequestService;
 
@@ -36,6 +37,7 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final OrderService orderService;
+    private final NotificationService notificationService;
     private final ReturnRequestMapper returnRequestMapper;
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -52,6 +54,8 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
         ReturnRequest savedReturnRequest = returnRequestRepository.save(returnRequest);
         messagingTemplate.convertAndSend("/topic/return-requests",
                 new WsEvent("CREATED", "RETURN_REQUEST", savedReturnRequest.getId(), null));
+        notificationService.notifyAllByRole("ADMIN", "Yêu cầu trả hàng #" + savedReturnRequest.getId() + " mới", "Khách hàng vừa gửi yêu cầu trả hàng cần xem xét");
+        notificationService.notifyAllByRole("SELLER", "Yêu cầu trả hàng #" + savedReturnRequest.getId() + " mới", "Khách hàng vừa gửi yêu cầu trả hàng cần xem xét");
 
         return returnRequestMapper.toReturnRequestResponse(savedReturnRequest);
     }
@@ -124,6 +128,11 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
         updateOrderStatusToReturned(returnRequest.getOrder().getId());
 
         ReturnRequest savedReturnRequest = returnRequestRepository.save(returnRequest);
+        messagingTemplate.convertAndSend("/topic/return-requests",
+                new WsEvent("UPDATED", "RETURN_REQUEST", savedReturnRequest.getId(), null));
+        notificationService.createNotification(null, savedReturnRequest.getCreatedBy(),
+                "Yeu cau tra hang #" + savedReturnRequest.getId() + " duoc chap nhan",
+                "Yeu cau tra hang cua ban da duoc chap nhan");
         return returnRequestMapper.toReturnRequestResponse(savedReturnRequest);
     }
 
@@ -153,6 +162,9 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
         ReturnRequest savedReturnRequest = returnRequestRepository.save(returnRequest);
         messagingTemplate.convertAndSend("/topic/return-requests",
                 new WsEvent("UPDATED", "RETURN_REQUEST", savedReturnRequest.getId(), null));
+        notificationService.createNotification(null, savedReturnRequest.getCreatedBy(),
+                "Yeu cau tra hang #" + savedReturnRequest.getId() + " bi tu choi",
+                "Yeu cau tra hang cua ban da bi tu choi");
         return returnRequestMapper.toReturnRequestResponse(savedReturnRequest);
     }
 
