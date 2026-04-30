@@ -9,6 +9,9 @@ import vn.edu.iuh.fit.bookstorebackend.user.dto.response.PermissionResponse;
 import vn.edu.iuh.fit.bookstorebackend.shared.exception.IdInvalidException;
 
 import java.util.Set;
+
+import vn.edu.iuh.fit.bookstorebackend.user.model.Role;
+
 import java.util.List;
 
 public interface PermissionService {
