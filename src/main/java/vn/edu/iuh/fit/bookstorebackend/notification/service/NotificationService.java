@@ -16,6 +16,8 @@ public interface NotificationService {
 
     long getUnreadCount() throws IdInvalidException;
 
+    void notifyAllByRole(String roleCode, String title, String content);
+
     void deleteNotification(Long notificationId) throws IdInvalidException;
 
     void deleteAllNotifications() throws IdInvalidException;
