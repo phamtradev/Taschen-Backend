@@ -51,6 +51,13 @@ public class RoleController {
         roleService.deleteRole(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/{code}/permissions/{permissionId}")
+    public ResponseEntity<RoleResponse> assignPermissionToRole(
+            @PathVariable String code,
+            @PathVariable Long permissionId) {
+        return ResponseEntity.ok(roleService.assignPermissionToRole(code, permissionId));
+    }
 }
 
 

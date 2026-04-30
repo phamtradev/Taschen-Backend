@@ -2,10 +2,13 @@ package vn.edu.iuh.fit.bookstorebackend.user.service.impl;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.bookstorebackend.user.dto.request.CreateRoleRequest;
 import vn.edu.iuh.fit.bookstorebackend.user.dto.response.RoleResponse;
+import vn.edu.iuh.fit.bookstorebackend.user.model.Permission;
 import vn.edu.iuh.fit.bookstorebackend.user.model.Role;
 import vn.edu.iuh.fit.bookstorebackend.user.mapper.RoleMapper;
+import vn.edu.iuh.fit.bookstorebackend.user.repository.PermissionRepository;
 import vn.edu.iuh.fit.bookstorebackend.user.repository.RoleRepository;
 import vn.edu.iuh.fit.bookstorebackend.user.service.RoleService;
 
@@ -17,6 +20,7 @@ import java.util.stream.Collectors;
 public class RoleServiceImpl implements RoleService {
 
     private final RoleRepository roleRepository;
+    private final PermissionRepository permissionRepository;
     private final RoleMapper roleMapper;
 
     @Override
@@ -71,6 +75,27 @@ public class RoleServiceImpl implements RoleService {
         if (!roleRepository.existsById(id)) {
             throw new RuntimeException("Role not found: " + id);
         }
+    }
+
+    @Override
+    @Transactional
+    public RoleResponse assignPermissionToRole(String roleCode, Long permissionId) {
+        Role role = roleRepository.findByCode(roleCode)
+                .orElseThrow(() -> new RuntimeException("Role not found: " + roleCode));
+
+        Permission permission = permissionRepository.findById(permissionId)
+                .orElseThrow(() -> new RuntimeException("Permission not found: " + permissionId));
+
+        if (role.getPermissions() == null) {
+            role.setPermissions(new java.util.ArrayList<>());
+        }
+
+        if (!role.getPermissions().contains(permission)) {
+            role.getPermissions().add(permission);
+            role = roleRepository.save(role);
+        }
+
+        return roleMapper.toRoleResponse(role);
     }
 
     private List<RoleResponse> mapToRoleResponseList(List<Role> roles) {
