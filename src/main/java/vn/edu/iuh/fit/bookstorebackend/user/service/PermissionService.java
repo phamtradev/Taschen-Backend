@@ -27,6 +27,8 @@ public interface PermissionService {
 
     boolean hasPermission(Set<Long> roleIds, HttpMethod httpMethod, String path);
 
+    boolean hasPermissionWithRoles(Set<Role> roles, HttpMethod httpMethod, String path);
+
     PermissionResponse createAndAssignToRole(CreatePermissionForRoleRequest request) throws IdInvalidException;
 
     List<PermissionResponse> getPermissionsByRoleCode(String roleCode) throws IdInvalidException;
