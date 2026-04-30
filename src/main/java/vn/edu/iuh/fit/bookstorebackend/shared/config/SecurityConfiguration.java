@@ -40,7 +40,7 @@ public class SecurityConfiguration {
             "/api/book-variants/**",
             "/api/batches/**",
             "/api/banners/**",
-            "/api/permissions/**"
+        //     "/api/permissions/**"
     };
 
     @Bean
