@@ -21,7 +21,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT DISTINCT u FROM User u LEFT JOIN FETCH u.roles LEFT JOIN FETCH u.addresses WHERE u.id = :id")
     Optional<User> findByIdWithRoles(Long id);
 
-    @Query("SELECT DISTINCT u FROM User u JOIN u.roles r WHERE r.code = :roleCode AND u.active = true")
+    @Query("SELECT DISTINCT u FROM User u JOIN u.roles r WHERE r.code = :roleCode AND u.isActive = true")
     List<User> findAllActiveByRoleCode(@Param("roleCode") String roleCode);
 }
 
