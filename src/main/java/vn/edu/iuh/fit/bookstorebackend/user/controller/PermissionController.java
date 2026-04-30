@@ -11,6 +11,8 @@ import vn.edu.iuh.fit.bookstorebackend.user.dto.response.PermissionResponse;
 import vn.edu.iuh.fit.bookstorebackend.shared.exception.IdInvalidException;
 import vn.edu.iuh.fit.bookstorebackend.user.service.PermissionService;
 
+import vn.edu.iuh.fit.bookstorebackend.shared.dto.response.PageResponse;
+
 import java.util.List;
 
 @RestController
@@ -29,8 +31,11 @@ public class PermissionController {
     }
 
     @GetMapping
-    public ResponseEntity<List<PermissionResponse>> getAllPermissions() {
-        return ResponseEntity.ok(permissionService.getAllPermissions());
+    public ResponseEntity<PageResponse<PermissionResponse>> getAllPermissions(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String keyword) {
+        return ResponseEntity.ok(permissionService.getAllPermissions(page, size, keyword));
     }
 
     @GetMapping("/{id}")

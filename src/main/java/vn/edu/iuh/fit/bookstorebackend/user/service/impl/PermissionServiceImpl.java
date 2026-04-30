@@ -1,8 +1,12 @@
 package vn.edu.iuh.fit.bookstorebackend.user.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import vn.edu.iuh.fit.bookstorebackend.shared.dto.response.PageResponse;
 import vn.edu.iuh.fit.bookstorebackend.shared.common.HttpMethod;
 import vn.edu.iuh.fit.bookstorebackend.user.dto.request.CreatePermissionForRoleRequest;
 import vn.edu.iuh.fit.bookstorebackend.user.dto.request.CreatePermissionRequest;
@@ -75,6 +79,28 @@ public class PermissionServiceImpl implements PermissionService {
         return permissionRepository.findAll().stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<PermissionResponse> getAllPermissions(int page, int size, String keyword) {
+        Pageable pageable = PageRequest.of(page - 1, size);
+        String kw = (keyword == null || keyword.isBlank()) ? null : keyword.trim();
+        Page<Permission> permissionPage = permissionRepository.findByKeyword(kw, pageable);
+
+        List<PermissionResponse> content = permissionPage.getContent().stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+
+        return PageResponse.<PermissionResponse>builder()
+                .meta(PageResponse.Meta.builder()
+                        .page(page)
+                        .pageSize(size)
+                        .pages(permissionPage.getTotalPages())
+                        .total(permissionPage.getTotalElements())
+                        .build())
+                .result(content)
+                .build();
     }
 
     @Override
