@@ -1,5 +1,7 @@
 package vn.edu.iuh.fit.bookstorebackend.shared.config;
 
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -13,7 +15,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import vn.edu.iuh.fit.bookstorebackend.shared.common.HttpMethod;
 import vn.edu.iuh.fit.bookstorebackend.user.model.User;
-import vn.edu.iuh.fit.bookstorebackend.user.repository.UserRepository;
 import vn.edu.iuh.fit.bookstorebackend.user.service.PermissionService;
 
 import java.io.IOException;
@@ -26,7 +27,9 @@ import java.util.stream.Collectors;
 public class PermissionFilter extends OncePerRequestFilter {
 
     private final PermissionService permissionService;
-    private final UserRepository userRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     // Các endpoint không cần kiểm tra permission (đã được permitAll trong Security)
     private static final String[] SKIP_FILTER_PATHS = {
@@ -64,8 +67,13 @@ public class PermissionFilter extends OncePerRequestFilter {
 
         String email = auth.getName();
         try {
-            User user = userRepository.findByEmailWithRoles(email)
-                    .orElse(null);
+            User user = entityManager.createQuery(
+                    "SELECT DISTINCT u FROM User u " +
+                    "LEFT JOIN FETCH u.roles r " +
+                    "LEFT JOIN FETCH r.permissions " +
+                    "WHERE u.email = :email", User.class)
+                    .setParameter("email", email)
+                    .getSingleResult();
 
             if (user != null && user.getRoles() != null) {
                 Set<Long> roleIds = user.getRoles().stream()
