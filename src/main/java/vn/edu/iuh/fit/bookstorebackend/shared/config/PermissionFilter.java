@@ -14,7 +14,6 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import vn.edu.iuh.fit.bookstorebackend.shared.common.HttpMethod;
-import vn.edu.iuh.fit.bookstorebackend.user.model.Role;
 import vn.edu.iuh.fit.bookstorebackend.user.model.User;
 import vn.edu.iuh.fit.bookstorebackend.user.service.PermissionService;
 
@@ -68,18 +67,20 @@ public class PermissionFilter extends OncePerRequestFilter {
 
         String email = auth.getName();
         try {
+            // Chỉ fetch User để lấy role IDs, KHÔNG fetch permissions
+            // Permissions sẽ được load bên trong service qua RoleRepository.findByIdIn
+            // (nằm trong @Transactional(readOnly = true) nên entities luôn attached)
             User user = entityManager.createQuery(
-                    "SELECT DISTINCT u FROM User u " +
-                    "LEFT JOIN FETCH u.roles r " +
-                    "LEFT JOIN FETCH r.permissions " +
-                    "WHERE u.email = :email", User.class)
+                    "SELECT u FROM User u WHERE u.email = :email", User.class)
                     .setParameter("email", email)
                     .getSingleResult();
 
             if (user != null && user.getRoles() != null) {
-                Set<Role> roles = user.getRoles();
+                Set<Long> roleIds = user.getRoles().stream()
+                        .map(r -> r.getId())
+                        .collect(Collectors.toSet());
                 HttpMethod httpMethod = HttpMethod.valueOf(method);
-                boolean hasPermission = permissionService.hasPermissionWithRoles(roles, httpMethod, path);
+                boolean hasPermission = permissionService.hasPermission(roleIds, httpMethod, path);
 
                 if (!hasPermission) {
                     log.warn("Access denied for user {} on {} {}", email, method, path);
