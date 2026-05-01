@@ -87,18 +87,21 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<UserResponse> getAllUsers() {
         List<User> users = userRepository.findAllWithRoles();
         return mapToUserResponseList(users);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserResponse getUserById(Long id) {
         User user = findUserById(id);
         return userMapper.toUserResponse(user);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserResponse getUserByEmail(String email) {
         User user = findUserByEmail(email);
         return userMapper.toUserResponse(user);
