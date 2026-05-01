@@ -55,7 +55,7 @@ public interface BookRepository extends JpaRepository<Book, Long> {
 
     @Query(value = """
             SELECT b FROM Book b
-            LEFT JOIN FETCH b.categories c
+            LEFT JOIN b.categories c
             WHERE (:status = 'all'
                    OR (:status = 'active' AND b.isActive IS NOT NULL)
                    OR (:status = 'deleted' AND b.isActive IS NULL))
