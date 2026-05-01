@@ -14,6 +14,7 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import vn.edu.iuh.fit.bookstorebackend.shared.common.HttpMethod;
+import vn.edu.iuh.fit.bookstorebackend.user.model.Role;
 import vn.edu.iuh.fit.bookstorebackend.user.model.User;
 import vn.edu.iuh.fit.bookstorebackend.user.service.PermissionService;
 
@@ -70,15 +71,14 @@ public class PermissionFilter extends OncePerRequestFilter {
             // Chỉ fetch User để lấy role IDs, KHÔNG fetch permissions
             // Permissions sẽ được load bên trong service qua RoleRepository.findByIdIn
             // (nằm trong @Transactional(readOnly = true) nên entities luôn attached)
-            User user = entityManager.createQuery(
-                    "SELECT u FROM User u WHERE u.email = :email", User.class)
+            Set<Long> roleIds = entityManager.createQuery(
+                    "SELECT r.id FROM User u JOIN u.roles r WHERE u.email = :email", Long.class)
                     .setParameter("email", email)
-                    .getSingleResult();
+                    .getResultList()
+                    .stream()
+                    .collect(Collectors.toSet());
 
-            if (user != null && user.getRoles() != null) {
-                Set<Long> roleIds = user.getRoles().stream()
-                        .map(r -> r.getId())
-                        .collect(Collectors.toSet());
+            if (!roleIds.isEmpty()) {
                 HttpMethod httpMethod = HttpMethod.valueOf(method);
                 boolean hasPermission = permissionService.hasPermission(roleIds, httpMethod, path);
 

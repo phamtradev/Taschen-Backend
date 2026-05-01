@@ -1,6 +1,7 @@
 package vn.edu.iuh.fit.bookstorebackend.user.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PermissionServiceImpl implements PermissionService {
 
     private final PermissionRepository permissionRepository;
@@ -180,9 +182,12 @@ public class PermissionServiceImpl implements PermissionService {
     @Transactional(readOnly = true)
     public boolean hasPermission(Set<Long> roleIds, HttpMethod httpMethod, String path) {
         if (isEmpty(roleIds)) {
+            log.warn("hasPermission: roleIds is empty for path {} {}", httpMethod, path);
             return false;
         }
         Set<Role> roles = roleRepository.findByIdIn(roleIds);
+        log.debug("hasPermission: loaded {} roles for roleIds={}, checking {} {}",
+                roles.size(), roleIds, httpMethod, path);
         return hasPermissionWithRoles(roles, httpMethod, path);
     }
 
