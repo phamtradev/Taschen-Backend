@@ -70,7 +70,6 @@ public class PermissionFilter extends OncePerRequestFilter {
         try {
             User user = entityManager.createQuery(
                     "SELECT DISTINCT u FROM User u " +
-                    "LEFT JOIN FETCH u.roles " +
                     "LEFT JOIN FETCH u.roles r " +
                     "LEFT JOIN FETCH r.permissions " +
                     "WHERE u.email = :email", User.class)
