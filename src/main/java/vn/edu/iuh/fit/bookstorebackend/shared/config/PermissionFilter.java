@@ -39,7 +39,10 @@ public class PermissionFilter extends OncePerRequestFilter {
             "/api/batches/",
             "/api/variants/",
             "/api/book-variants/",
-            "/api/banners/",
+            "/api/banners",
+            "/api/books",
+            "/api/categories",
+            "/api/suppliers",
             "/actuator/"
     };
 
