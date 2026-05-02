@@ -43,6 +43,12 @@ public class PermissionFilter extends OncePerRequestFilter {
             "/api/books",
             "/api/categories",
             "/api/suppliers",
+            "/api/carts/",
+            "/api/cart-items/",
+            "/api/orders/",
+            "/api/notifications/",
+            "/api/payments/",
+            "/api/return-requests/",
             "/actuator/"
     };
 
