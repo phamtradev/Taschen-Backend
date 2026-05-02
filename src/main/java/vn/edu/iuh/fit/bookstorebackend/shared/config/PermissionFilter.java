@@ -49,6 +49,7 @@ public class PermissionFilter extends OncePerRequestFilter {
             "/api/notifications/",
             "/api/payments/",
             "/api/return-requests/",
+            "/api/users/me",
             "/actuator/"
     };
 
