@@ -41,4 +41,6 @@ public interface ReturnRequestRepository extends JpaRepository<ReturnRequest, Lo
     List<ReturnRequest> findAllByOrderByCreatedAtDesc();
 
     boolean existsByOrder_Id(Long orderId);
+
+    void deleteAllByOrder_UserId(Long userId);
 }

@@ -28,6 +28,10 @@ import vn.edu.iuh.fit.bookstorebackend.user.mapper.UserMapper;
 import vn.edu.iuh.fit.bookstorebackend.auth.service.AuthService;
 import vn.edu.iuh.fit.bookstorebackend.shared.util.JwtService;
 import vn.edu.iuh.fit.bookstorebackend.shared.util.MailService;
+import vn.edu.iuh.fit.bookstorebackend.notification.repository.NotificationRepository;
+import vn.edu.iuh.fit.bookstorebackend.order.repository.OrderRepository;
+import vn.edu.iuh.fit.bookstorebackend.order.repository.ReturnRequestRepository;
+import vn.edu.iuh.fit.bookstorebackend.cart.repository.CartRepository;
 
 import java.time.Instant;
 import java.util.HashSet;
@@ -50,6 +54,10 @@ public class AuthServiceImpl implements AuthService {
     private final VerificationTokenRepository verificationTokenRepository;
     private final MailService mailService;
     private final UserMapper userMapper;
+    private final NotificationRepository notificationRepository;
+    private final OrderRepository orderRepository;
+    private final ReturnRequestRepository returnRequestRepository;
+    private final CartRepository cartRepository;
 
     @Override
     @Transactional
@@ -92,6 +100,11 @@ public class AuthServiceImpl implements AuthService {
     }
     
     private void deleteInactiveUser(User user) {
+        notificationRepository.deleteAllByReceiver(user);
+        returnRequestRepository.deleteAllByOrder_UserId(user.getId());
+        orderRepository.deleteAllByUserId(user.getId());
+        cartRepository.deleteByUser(user);
+        refreshTokenRepository.deleteByUser(user);
         verificationTokenRepository.deleteByUser(user);
         userRepository.delete(user);
     }
