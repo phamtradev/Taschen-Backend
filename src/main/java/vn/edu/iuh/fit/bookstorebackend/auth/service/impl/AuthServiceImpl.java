@@ -30,6 +30,7 @@ import vn.edu.iuh.fit.bookstorebackend.shared.util.JwtService;
 import vn.edu.iuh.fit.bookstorebackend.shared.util.MailService;
 import vn.edu.iuh.fit.bookstorebackend.notification.repository.NotificationRepository;
 import vn.edu.iuh.fit.bookstorebackend.order.repository.OrderRepository;
+import vn.edu.iuh.fit.bookstorebackend.order.repository.ReturnRequestRepository;
 import vn.edu.iuh.fit.bookstorebackend.cart.repository.CartRepository;
 
 import java.time.Instant;
@@ -55,6 +56,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserMapper userMapper;
     private final NotificationRepository notificationRepository;
     private final OrderRepository orderRepository;
+    private final ReturnRequestRepository returnRequestRepository;
     private final CartRepository cartRepository;
 
     @Override
@@ -99,6 +101,7 @@ public class AuthServiceImpl implements AuthService {
     
     private void deleteInactiveUser(User user) {
         notificationRepository.deleteAllByReceiver(user);
+        returnRequestRepository.deleteAllByOrder_UserId(user.getId());
         orderRepository.deleteAllByUserId(user.getId());
         cartRepository.deleteByUser(user);
         refreshTokenRepository.deleteByUser(user);
