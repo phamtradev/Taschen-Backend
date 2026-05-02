@@ -12,6 +12,8 @@ import vn.edu.iuh.fit.bookstorebackend.user.model.Role;
 import vn.edu.iuh.fit.bookstorebackend.user.model.User;
 import vn.edu.iuh.fit.bookstorebackend.user.mapper.UserMapper;
 import vn.edu.iuh.fit.bookstorebackend.auth.repository.RefreshTokenRepository;
+import vn.edu.iuh.fit.bookstorebackend.auth.repository.VerificationTokenRepository;
+import vn.edu.iuh.fit.bookstorebackend.cart.repository.CartRepository;
 import vn.edu.iuh.fit.bookstorebackend.user.repository.RoleRepository;
 import vn.edu.iuh.fit.bookstorebackend.user.repository.UserRepository;
 import vn.edu.iuh.fit.bookstorebackend.user.service.UserService;
@@ -27,6 +29,8 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final VerificationTokenRepository verificationTokenRepository;
+    private final CartRepository cartRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
 
@@ -171,6 +175,8 @@ public class UserServiceImpl implements UserService {
     public void deleteUser(Long id) {
         User user = findUserById(id);
         refreshTokenRepository.deleteByUser(user);
+        verificationTokenRepository.deleteByUser(user);
+        cartRepository.deleteByUser(user);
         userRepository.delete(user);
     }
 
