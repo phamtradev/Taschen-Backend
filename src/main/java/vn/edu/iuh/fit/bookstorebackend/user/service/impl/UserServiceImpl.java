@@ -14,9 +14,11 @@ import vn.edu.iuh.fit.bookstorebackend.user.mapper.UserMapper;
 import vn.edu.iuh.fit.bookstorebackend.auth.repository.RefreshTokenRepository;
 import vn.edu.iuh.fit.bookstorebackend.auth.repository.VerificationTokenRepository;
 import vn.edu.iuh.fit.bookstorebackend.cart.repository.CartRepository;
+import vn.edu.iuh.fit.bookstorebackend.user.repository.AddressRepository;
 import vn.edu.iuh.fit.bookstorebackend.user.repository.RoleRepository;
 import vn.edu.iuh.fit.bookstorebackend.user.repository.UserRepository;
 import vn.edu.iuh.fit.bookstorebackend.user.service.UserService;
+import vn.edu.iuh.fit.bookstorebackend.order.repository.OrderRepository;
 
 import java.util.List;
 import java.util.Set;
@@ -31,6 +33,8 @@ public class UserServiceImpl implements UserService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final VerificationTokenRepository verificationTokenRepository;
     private final CartRepository cartRepository;
+    private final AddressRepository addressRepository;
+    private final OrderRepository orderRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
 
@@ -177,6 +181,8 @@ public class UserServiceImpl implements UserService {
         refreshTokenRepository.deleteByUser(user);
         verificationTokenRepository.deleteByUser(user);
         cartRepository.deleteByUser(user);
+        addressRepository.deleteByUserId(user.getId());
+        orderRepository.deleteAllByUserId(user.getId());
         userRepository.delete(user);
     }
 

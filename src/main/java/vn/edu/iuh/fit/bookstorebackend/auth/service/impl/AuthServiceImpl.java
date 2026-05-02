@@ -144,7 +144,7 @@ public class AuthServiceImpl implements AuthService {
         VerificationToken verificationToken = new VerificationToken();
         verificationToken.setToken(token);
         verificationToken.setUser(user);
-        verificationToken.setExpiresAt(Instant.now().plusSeconds(60L * 2L));
+        verificationToken.setExpiresAt(Instant.now().plusSeconds(60L * 60L * 24L));
         return verificationToken;
     }
     
