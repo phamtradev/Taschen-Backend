@@ -1,6 +1,7 @@
 package vn.edu.iuh.fit.bookstorebackend.cart.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -87,7 +88,12 @@ public class CartServiceImpl implements CartService {
     public CartResponse addToCart(Long userId, AddToCartRequest request) throws IdInvalidException {
         validateUserId(userId);
         validateAddToCartRequest(request);
-        
+
+        User currentUser = getCurrentAuthenticatedUser();
+        if (!currentUser.getId().equals(userId)) {
+            throw new AccessDeniedException("Bạn chỉ có thể thêm vào giỏ hàng của chính mình");
+        }
+
         User user = findUserById(userId);
         Book book = findAndValidateBook(request.getBookId(), request.getQuantity());
         Cart cart = getOrCreateCartForUser(user);
