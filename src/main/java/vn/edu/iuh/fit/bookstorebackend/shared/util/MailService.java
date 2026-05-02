@@ -24,7 +24,7 @@ public class MailService {
     @Value("${app.mail.from-name:}")
     private String fromName;
 
-    @Value("${app.frontend.verify-url:http://13.239.226.13:8080/api/auth/verify?token=}")
+    @Value("${app.frontend.verify-url:https://api.phamtra.dev/api/auth/verify?token=}")
     private String verifyUrlPrefix;
 
     public void sendVerificationEmail(String to, String token, Long userId) throws MessagingException {
