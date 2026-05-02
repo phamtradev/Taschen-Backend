@@ -351,8 +351,7 @@ public class AuthServiceImpl implements AuthService {
     private void validateTokenNotExpired(VerificationToken token) {
         if (token.getExpiresAt().isBefore(Instant.now())) {
             User expiredUser = token.getUser();
-            verificationTokenRepository.delete(token);
-            userRepository.delete(expiredUser);
+            deleteInactiveUser(expiredUser);
             throw new RuntimeException(
                     "Verification token expired - account deleted. Please register again.");
         }
