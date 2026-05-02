@@ -13,6 +13,7 @@ import vn.edu.iuh.fit.bookstorebackend.auth.dto.response.AuthenticationResponse;
 import vn.edu.iuh.fit.bookstorebackend.auth.dto.response.RefreshTokenResponse;
 import vn.edu.iuh.fit.bookstorebackend.user.dto.response.RegisterResponse;
 import vn.edu.iuh.fit.bookstorebackend.auth.service.AuthService;
+import vn.edu.iuh.fit.bookstorebackend.shared.model.RestRespone;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -32,11 +33,14 @@ public class AuthController {
     }
 
     @GetMapping("/verify")
-    public ResponseEntity<Void> verifyEmail(
+    public ResponseEntity<RestRespone<Void>> verifyEmail(
             @RequestParam("token") String token,
             @RequestParam("userId") Long userId) {
         authService.verifyEmailTokenForUser(userId, token);
-        return ResponseEntity.noContent().build();
+        RestRespone<Void> res = new RestRespone<>();
+        res.setStatusCode(HttpStatus.OK.value());
+        res.setMessage("Email verified successfully");
+        return ResponseEntity.ok(res);
     }
 
     @PostMapping("/verify/{userId}")
