@@ -19,6 +19,9 @@ import vn.edu.iuh.fit.bookstorebackend.notification.repository.NotificationRepos
 import vn.edu.iuh.fit.bookstorebackend.user.repository.UserRepository;
 import vn.edu.iuh.fit.bookstorebackend.notification.service.NotificationService;
 
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -101,8 +104,15 @@ public class NotificationServiceImpl implements NotificationService {
             try {
                 Notification notification = createNotificationFromParams(null, user, title, content);
                 notificationRepository.save(notification);
-                messagingTemplate.convertAndSend("/topic/notifications/" + user.getId(),
-                        new WsEvent("CREATED", "NOTIFICATION", notification.getId(), null));
+                Long notifId = notification.getId();
+                Long userId = user.getId();
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        messagingTemplate.convertAndSend("/topic/notifications/" + userId,
+                                new WsEvent("CREATED", "NOTIFICATION", notifId, null));
+                    }
+                });
             } catch (Exception e) {
                 log.error("Failed to send notification to user: {}", user.getId(), e);
             }
@@ -138,9 +148,16 @@ public class NotificationServiceImpl implements NotificationService {
         try {
             Notification notification = createNotificationFromParams(sender, receiver, title, content);
             notificationRepository.save(notification);
-            messagingTemplate.convertAndSend("/topic/notifications/" + receiver.getId(),
-                    new WsEvent("CREATED", "NOTIFICATION", notification.getId(), null));
-            log.debug("Notification created successfully for user: {}", receiver.getId());
+            Long notifId = notification.getId();
+            Long receiverId = receiver.getId();
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    messagingTemplate.convertAndSend("/topic/notifications/" + receiverId,
+                            new WsEvent("CREATED", "NOTIFICATION", notifId, null));
+                    log.debug("WsEvent sent after commit for user: {}", receiverId);
+                }
+            });
         } catch (Exception e) {
             log.error("Failed to create notification for user: {}", receiver.getId(), e);
         }
