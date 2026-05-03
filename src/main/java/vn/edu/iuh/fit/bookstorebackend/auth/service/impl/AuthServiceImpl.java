@@ -335,14 +335,24 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     @Override
     public void verifyEmailTokenForUser(Long userId, String token) {
-        VerificationToken verificationToken = findVerificationToken(token);
+        Optional<VerificationToken> optToken = verificationTokenRepository.findByToken(token);
+        if (optToken.isEmpty()) {
+            // Token already consumed — check if user is already active (idempotent success)
+            userRepository.findById(userId).ifPresent(user -> {
+                if (!user.isActive()) {
+                    throw new RuntimeException("Invalid verification token");
+                }
+            });
+            return;
+        }
+        VerificationToken verificationToken = optToken.get();
         validateTokenNotExpired(verificationToken);
         validateTokenBelongsToUser(verificationToken, userId);
-        
+
         activateUser(verificationToken.getUser());
         verificationTokenRepository.deleteByToken(token);
     }
-    
+
     private VerificationToken findVerificationToken(String token) {
         return verificationTokenRepository.findByToken(token)
                 .orElseThrow(() -> new RuntimeException("Invalid verification token"));
