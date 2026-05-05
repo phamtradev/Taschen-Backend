@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import vn.edu.iuh.fit.bookstorebackend.user.dto.request.CreateRoleRequest;
+import vn.edu.iuh.fit.bookstorebackend.user.dto.request.SetRolePermissionsRequest;
 import vn.edu.iuh.fit.bookstorebackend.user.dto.response.RoleResponse;
 import vn.edu.iuh.fit.bookstorebackend.user.model.Permission;
 import vn.edu.iuh.fit.bookstorebackend.user.model.Role;
@@ -78,7 +79,6 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    @Transactional
     public RoleResponse assignPermissionToRole(String roleCode, Long permissionId) {
         Role role = roleRepository.findByCode(roleCode)
                 .orElseThrow(() -> new RuntimeException("Role not found: " + roleCode));
@@ -94,6 +94,20 @@ public class RoleServiceImpl implements RoleService {
             role.getPermissions().add(permission);
             role = roleRepository.save(role);
         }
+
+        return roleMapper.toRoleResponse(role);
+    }
+
+    @Override
+    @Transactional
+    public RoleResponse setRolePermissions(String roleCode, SetRolePermissionsRequest request) {
+        Role role = roleRepository.findByCode(roleCode)
+                .orElseThrow(() -> new RuntimeException("Role not found: " + roleCode));
+
+        List<Permission> permissions = permissionRepository.findAllById(request.getPermissionIds());
+
+        role.setPermissions(permissions);
+        role = roleRepository.save(role);
 
         return roleMapper.toRoleResponse(role);
     }
