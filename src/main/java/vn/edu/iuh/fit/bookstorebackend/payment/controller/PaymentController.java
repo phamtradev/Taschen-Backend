@@ -1,14 +1,18 @@
 package vn.edu.iuh.fit.bookstorebackend.payment.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.iuh.fit.bookstorebackend.order.dto.response.OrderResponse;
-import vn.edu.iuh.fit.bookstorebackend.shared.exception.IdInvalidException;
 import vn.edu.iuh.fit.bookstorebackend.order.service.OrderService;
+import vn.edu.iuh.fit.bookstorebackend.payment.config.VnPayConfig;
 import vn.edu.iuh.fit.bookstorebackend.payment.service.VnPayService;
+import vn.edu.iuh.fit.bookstorebackend.shared.exception.IdInvalidException;
 
-import jakarta.servlet.http.HttpServletRequest;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -19,6 +23,7 @@ public class PaymentController {
 
     private final VnPayService vnPayService;
     private final OrderService orderService;
+    private final VnPayConfig vnPayConfig;
 
     @PostMapping("/vnpay/create/{orderId}")
     public ResponseEntity<Map<String, String>> createVnPayPayment(
@@ -34,8 +39,9 @@ public class PaymentController {
     }
 
     @GetMapping("/vnpay/return")
-    public ResponseEntity<Map<String, String>> vnPayReturn(
-            HttpServletRequest request) throws IdInvalidException {
+    public void vnPayReturn(
+            HttpServletRequest request,
+            HttpServletResponse response) throws Exception {
         Map<String, String> params = getParamsFromRequest(request);
         Map<String, String> result = vnPayService.processPaymentReturn(params);
 
@@ -45,10 +51,7 @@ public class PaymentController {
                 try {
                     Long orderId = Long.parseLong(vnp_TxnRef);
                     String vnp_TransactionNo = result.get("vnp_TransactionNo");
-
                     orderService.updatePaymentFromVnPayCallback(orderId, vnp_TransactionNo);
-
-                    result.put("orderId", String.valueOf(orderId));
                 } catch (NumberFormatException e) {
                     result.put("status", "failed");
                     result.put("message", "Mã giao dịch không hợp lệ: " + vnp_TxnRef);
@@ -56,13 +59,16 @@ public class PaymentController {
                     result.put("status", "failed");
                     result.put("message", "Lỗi cập nhật đơn hàng: " + e.getMessage());
                 }
-            } else {
-                result.put("status", "failed");
-                result.put("message", "Không tìm thấy mã giao dịch");
             }
         }
 
-        return ResponseEntity.ok(result);
+        String frontendUrl = vnPayConfig.getFrontendRedirectUrl();
+        String redirectUrl = frontendUrl
+                + "?status=" + URLEncoder.encode(result.get("status") == null ? "failed" : result.get("status"), StandardCharsets.UTF_8)
+                + "&orderId=" + (result.get("vnp_TxnRef") == null ? "" : URLEncoder.encode(result.get("vnp_TxnRef"), StandardCharsets.UTF_8))
+                + "&message=" + URLEncoder.encode(result.get("message") == null ? "" : result.get("message"), StandardCharsets.UTF_8);
+
+        response.sendRedirect(redirectUrl);
     }
     
     private Map<String, String> getParamsFromRequest(HttpServletRequest request) {
