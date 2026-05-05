@@ -42,6 +42,8 @@ jobs:
             -e MAIL_PASSWORD='${{ secrets.MAIL_PASSWORD }}' \
             -e MAIL_FROM='${{ secrets.MAIL_FROM }}' \
             -e MAIL_FROM_NAME='${{ secrets.MAIL_FROM_NAME }}' \
+            -e VNPAY_TMN_CODE='${{ secrets.VNPAY_TMN_CODE }}' \
+            -e VNPAY_SECRET_KEY='${{ secrets.VNPAY_SECRET_KEY }}' \
             --memory=768m \
             --restart unless-stopped \
             bookstore-backend:prod
