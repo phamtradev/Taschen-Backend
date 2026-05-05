@@ -61,10 +61,12 @@ public class VnPayServiceImpl implements VnPayService {
             String fieldName = itr.next();
             String fieldValue = vnp_Params.get(fieldName);
             if ((fieldValue != null) && (fieldValue.length() > 0)) {
+                // hashData uses raw (unencoded) values as per VNPay spec
                 hashData.append(fieldName);
                 hashData.append('=');
-                hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.UTF_8));
+                hashData.append(fieldValue);
                 
+                // query uses URL-encoded values
                 query.append(URLEncoder.encode(fieldName, StandardCharsets.UTF_8));
                 query.append('=');
                 query.append(URLEncoder.encode(fieldValue, StandardCharsets.UTF_8));
@@ -150,9 +152,10 @@ public class VnPayServiceImpl implements VnPayService {
                 if (hashData.length() > 0) {
                     hashData.append('&');
                 }
+                // hashData uses raw (unencoded) values as per VNPay spec
                 hashData.append(fieldName);
                 hashData.append('=');
-                hashData.append(URLEncoder.encode(fieldValue, StandardCharsets.UTF_8));
+                hashData.append(fieldValue);
             }
         }
         
