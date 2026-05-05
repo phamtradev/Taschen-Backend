@@ -62,11 +62,17 @@ public class PaymentController {
             }
         }
 
-        String frontendUrl = vnPayConfig.getFrontendRedirectUrl();
-        String redirectUrl = frontendUrl
-                + "?status=" + URLEncoder.encode(result.get("status") == null ? "failed" : result.get("status"), StandardCharsets.UTF_8)
-                + "&orderId=" + (result.get("vnp_TxnRef") == null ? "" : URLEncoder.encode(result.get("vnp_TxnRef"), StandardCharsets.UTF_8))
-                + "&message=" + URLEncoder.encode(result.get("message") == null ? "" : result.get("message"), StandardCharsets.UTF_8);
+        String redirectUrl;
+        if ("success".equals(result.get("status"))) {
+            redirectUrl = vnPayConfig.getFrontendRedirectUrl()
+                    + "?status=success"
+                    + "&orderId=" + (result.get("vnp_TxnRef") == null ? "" : URLEncoder.encode(result.get("vnp_TxnRef"), StandardCharsets.UTF_8))
+                    + "&message=" + URLEncoder.encode(result.get("message") == null ? "" : result.get("message"), StandardCharsets.UTF_8);
+        } else {
+            String errorMessage = result.get("message") == null ? "Thanh_toan_that_bai" : result.get("message");
+            redirectUrl = vnPayConfig.getCheckoutUrl()
+                    + "?error=" + URLEncoder.encode(errorMessage, StandardCharsets.UTF_8);
+        }
 
         response.sendRedirect(redirectUrl);
     }

@@ -21,4 +21,5 @@ public class VnPayConfig {
     private String queryDrUrl;
     private String refundUrl;
     private String frontendRedirectUrl;
+    private String checkoutUrl;
 }
