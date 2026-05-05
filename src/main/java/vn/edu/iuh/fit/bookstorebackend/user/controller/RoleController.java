@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import vn.edu.iuh.fit.bookstorebackend.user.dto.request.CreateRoleRequest;
+import vn.edu.iuh.fit.bookstorebackend.user.dto.request.SetRolePermissionsRequest;
 import vn.edu.iuh.fit.bookstorebackend.user.dto.response.RoleResponse;
 import vn.edu.iuh.fit.bookstorebackend.user.service.RoleService;
 
@@ -57,6 +58,13 @@ public class RoleController {
             @PathVariable String code,
             @PathVariable Long permissionId) {
         return ResponseEntity.ok(roleService.assignPermissionToRole(code, permissionId));
+    }
+
+    @PutMapping("/{code}/permissions")
+    public ResponseEntity<RoleResponse> setRolePermissions(
+            @PathVariable String code,
+            @RequestBody SetRolePermissionsRequest request) {
+        return ResponseEntity.ok(roleService.setRolePermissions(code, request));
     }
 }
 

@@ -6,7 +6,9 @@ import vn.edu.iuh.fit.bookstorebackend.cart.model.CartItem;
 import vn.edu.iuh.fit.bookstorebackend.cart.repository.CartItemRepository;
 import vn.edu.iuh.fit.bookstorebackend.cart.repository.CartRepository;
 import vn.edu.iuh.fit.bookstorebackend.marketing.model.Promotion;
+import vn.edu.iuh.fit.bookstorebackend.marketing.model.PromotionUsage;
 import vn.edu.iuh.fit.bookstorebackend.marketing.repository.PromotionRepository;
+import vn.edu.iuh.fit.bookstorebackend.marketing.repository.PromotionUsageRepository;
 import vn.edu.iuh.fit.bookstorebackend.order.model.Order;
 import vn.edu.iuh.fit.bookstorebackend.order.model.OrderDetail;
 import vn.edu.iuh.fit.bookstorebackend.order.repository.OrderDetailRepository;
@@ -52,6 +54,7 @@ public class OrderServiceImpl implements OrderService {
     private final BookRepository bookRepository;
     private final AddressRepository addressRepository;
     private final PromotionRepository promotionRepository;
+    private final PromotionUsageRepository promotionUsageRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final OrderMapper orderMapper;
@@ -64,7 +67,7 @@ public class OrderServiceImpl implements OrderService {
         Cart cart = findCartByUser(currentUser);
         List<CartItem> selectedItems = getSelectedCartItems(cart, request.getCartItemIds());
         Address deliveryAddress = getAndValidateDeliveryAddress(request.getAddressId(), currentUser);
-        Promotion promotion = getAndValidatePromotion(request.getPromotionCode());
+        Promotion promotion = getAndValidatePromotion(request.getPromotionCode(), currentUser);
 
         Order order = createOrderFromRequest(currentUser, request, promotion, deliveryAddress);
         List<OrderDetail> orderDetails = createOrderDetails(selectedItems, order);
@@ -75,6 +78,9 @@ public class OrderServiceImpl implements OrderService {
 
         Order savedOrder = orderRepository.save(order);
         orderDetailRepository.saveAll(orderDetails);
+        if (promotion != null) {
+            savePromotionUsage(currentUser, promotion, savedOrder);
+        }
         removeSelectedItemsFromCart(selectedItems, cart);
         sendOrderCreatedNotification(savedOrder, currentUser);
         messagingTemplate.convertAndSend("/topic/orders",
@@ -128,7 +134,7 @@ public class OrderServiceImpl implements OrderService {
         return deliveryAddress;
     }
 
-    private Promotion getAndValidatePromotion(String promotionCode) {
+    private Promotion getAndValidatePromotion(String promotionCode, User currentUser) {
         if (promotionCode == null || promotionCode.trim().isEmpty()) {
             return null;
         }
@@ -137,11 +143,11 @@ public class OrderServiceImpl implements OrderService {
         Promotion promotion = promotionRepository.findByCode(code)
                 .orElseThrow(() -> new RuntimeException("Promotion not found with code: " + code));
 
-        validatePromotion(promotion);
+        validatePromotion(promotion, currentUser);
         return promotion;
     }
 
-    private void validatePromotion(Promotion promotion) {
+    private void validatePromotion(Promotion promotion, User currentUser) {
         LocalDate today = LocalDate.now();
         if (!Boolean.TRUE.equals(promotion.getIsActive())
                 || promotion.getStatus() != PromotionStatus.ACTIVE
@@ -152,6 +158,10 @@ public class OrderServiceImpl implements OrderService {
 
         if (promotion.getQuantity() <= 0) {
             throw new IllegalStateException("Promotion code has been fully used");
+        }
+
+        if (promotionUsageRepository.existsByUserIdAndPromotionId(currentUser.getId(), promotion.getId())) {
+            throw new IllegalStateException("Bạn đã sử dụng mã giảm giá này rồi");
         }
     }
 
@@ -164,7 +174,6 @@ public class OrderServiceImpl implements OrderService {
 
         if (promotion != null) {
             order.setPromotion(promotion);
-            applyPromotion(promotion);
         }
 
         if (deliveryAddress != null) {
@@ -188,6 +197,16 @@ public class OrderServiceImpl implements OrderService {
     private void applyPromotion(Promotion promotion) {
         promotion.setQuantity(promotion.getQuantity() - 1);
         promotionRepository.save(promotion);
+    }
+
+    private void savePromotionUsage(User user, Promotion promotion, Order order) {
+        applyPromotion(promotion);
+        PromotionUsage usage = new PromotionUsage();
+        usage.setUser(user);
+        usage.setPromotion(promotion);
+        usage.setOrder(order);
+        usage.setUsedAt(LocalDateTime.now());
+        promotionUsageRepository.save(usage);
     }
 
     private List<OrderDetail> createOrderDetails(List<CartItem> selectedItems, Order order) {
