@@ -32,7 +32,7 @@ public class VnPayServiceImpl implements VnPayService {
         String vnp_OrderType = vnPayConfig.getOrderType();
         String vnp_Locale = vnPayConfig.getLocale();
         String vnp_ReturnUrl = vnPayConfig.getReturnUrl();
-        String vnp_IpAddr = "127.0.0.1";
+        String vnp_IpAddr = VnPayUtil.getIpAddress(request);
         String vnp_CreateDate = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
         String vnp_Amount = String.valueOf((long) (amount * 100));
 
