@@ -188,10 +188,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private OrderStatus determineInitialOrderStatus(PaymentMethod paymentMethod) {
-        if (paymentMethod == null) {
-            return OrderStatus.PENDING;
-        }
-        return paymentMethod == PaymentMethod.VNPAY ? OrderStatus.UNPAID : OrderStatus.PENDING;
+        return OrderStatus.PENDING_PAYMENT;
     }
 
     private void applyPromotion(Promotion promotion) {
@@ -217,7 +214,6 @@ public class OrderServiceImpl implements OrderService {
             int quantity = cartItem.getQuantity();
 
             validateBookForOrder(book, quantity);
-            updateBookStock(book, quantity);
 
             OrderDetail detail = createOrderDetail(order, book, quantity);
             orderDetails.add(detail);
@@ -238,6 +234,18 @@ public class OrderServiceImpl implements OrderService {
     private void updateBookStock(Book book, int quantity) {
         book.setStockQuantity(book.getStockQuantity() - quantity);
         bookRepository.save(book);
+    }
+
+    private void deductInventoryForOrder(Order order) {
+        if (order.getOrderDetails() == null || order.getOrderDetails().isEmpty()) {
+            return;
+        }
+        for (OrderDetail detail : order.getOrderDetails()) {
+            Book book = detail.getBook();
+            int quantityToDeduct = detail.getQuantity();
+            book.setStockQuantity(book.getStockQuantity() - quantityToDeduct);
+            bookRepository.save(book);
+        }
     }
 
     private OrderDetail createOrderDetail(Order order, Book book, int quantity) {
@@ -268,11 +276,11 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private void sendOrderCreatedNotification(Order order, User user) {
-        notificationService.createNotification(null, user,
-                "Đơn hàng #" + order.getId() + " đã được tạo",
-                "Đặt hàng thành công, đơn hàng của bạn đang chờ xác nhận");
+        String userTitle = "Đơn hàng #" + order.getId() + " đã được tạo";
+        String userContent = "Đơn hàng của bạn đang chờ thanh toán. Vui lòng hoàn tất thanh toán để đơn hàng được xử lý.";
+        notificationService.createNotification(null, user, userTitle, userContent);
         String staffTitle = "Đơn hàng mới #" + order.getId();
-        String staffContent = "Khách hàng " + user.getFirstName() + " " + user.getLastName() + " vừa đặt đơn hàng";
+        String staffContent = "Khách hàng " + user.getFirstName() + " " + user.getLastName() + " vừa đặt đơn hàng, đang chờ thanh toán";
         notificationService.notifyAllByRole("ADMIN", staffTitle, staffContent);
         notificationService.notifyAllByRole("SELLER", staffTitle, staffContent);
     }
@@ -400,7 +408,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private void validateOrderStatusForPaymentMethodChange(Order order) {
-        if (order.getStatus() != OrderStatus.UNPAID && order.getStatus() != OrderStatus.PENDING) {
+        if (order.getStatus() != OrderStatus.PENDING_PAYMENT && order.getStatus() != OrderStatus.PENDING) {
             throw new IllegalStateException(
                     "Không thể đổi phương thức với trạng thái hiện tại: " + order.getStatus());
         }
@@ -409,12 +417,13 @@ public class OrderServiceImpl implements OrderService {
     private void updateOrderPaymentMethod(Order order, PaymentMethod paymentMethod) {
         order.setPaymentMethod(paymentMethod);
 
-        if (paymentMethod == PaymentMethod.COD && order.getStatus() == OrderStatus.UNPAID) {
+        if (paymentMethod == PaymentMethod.COD && order.getStatus() == OrderStatus.PENDING_PAYMENT) {
+            deductInventoryForOrder(order);
             order.setStatus(OrderStatus.PENDING);
         }
 
         if (paymentMethod == PaymentMethod.VNPAY) {
-            order.setStatus(OrderStatus.UNPAID);
+            order.setStatus(OrderStatus.PENDING_PAYMENT);
             order.setPaymentCode(null);
         }
     }
@@ -449,9 +458,9 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private void validateOrderCanBeCancelled(Order order) {
-        if (!(order.getStatus() == OrderStatus.PENDING || order.getStatus() == OrderStatus.UNPAID)) {
+        if (!(order.getStatus() == OrderStatus.PENDING_PAYMENT || order.getStatus() == OrderStatus.PENDING)) {
             throw new IllegalStateException(
-                    "Chỉ có thể hủy đơn hàng khi trạng thái là Chờ xác nhận/Chưa thanh toán");
+                    "Chỉ có thể hủy đơn hàng khi trạng thái là Chờ thanh toán/Chờ xác nhận");
         }
     }
 
@@ -499,7 +508,8 @@ public class OrderServiceImpl implements OrderService {
         Order order = findOrderById(orderId);
         order.setPaymentCode(paymentCode.trim());
 
-        if (order.getStatus() == OrderStatus.UNPAID) {
+        if (order.getStatus() == OrderStatus.PENDING_PAYMENT) {
+            deductInventoryForOrder(order);
             order.setStatus(OrderStatus.PENDING);
         }
 
@@ -507,13 +517,17 @@ public class OrderServiceImpl implements OrderService {
         return orderMapper.toOrderResponse(savedOrder);
     }
 
-    @Override
-    @Transactional
-    public void updatePaymentFromVnPayCallback(Long orderId, String transactionNo)
+    private void updatePaymentFromVnPayCallback(Long orderId, String transactionNo)
             throws IdInvalidException {
         validateOrderId(orderId);
 
         Order order = findOrderById(orderId);
+
+        if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
+            return;
+        }
+
+        deductInventoryForOrder(order);
 
         order.setPaymentMethod(PaymentMethod.VNPAY);
 
@@ -521,11 +535,11 @@ public class OrderServiceImpl implements OrderService {
             order.setPaymentCode(transactionNo.trim());
         }
 
-        if (order.getStatus() == OrderStatus.UNPAID) {
-            order.setStatus(OrderStatus.PENDING);
-        }
+        order.setStatus(OrderStatus.PENDING);
 
         orderRepository.save(order);
+
+        createStatusChangeNotification(order, OrderStatus.PENDING);
         messagingTemplate.convertAndSend("/topic/orders",
                 new WsEvent("UPDATED", "ORDER", orderId, null));
     }
@@ -554,16 +568,17 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private void validateOrderStatusForCODPayment(Order order) {
-        if (order.getStatus() != OrderStatus.UNPAID && order.getStatus() != OrderStatus.PENDING) {
+        if (order.getStatus() != OrderStatus.PENDING_PAYMENT && order.getStatus() != OrderStatus.PENDING) {
             throw new IllegalStateException(
-                    "Order can only be paid by COD when status is UNPAID or PENDING. Current status: " + order.getStatus());
+                    "Order can only be paid by COD when status is PENDING_PAYMENT or PENDING. Current status: " + order.getStatus());
         }
     }
 
     private void processCODPayment(Order order) {
         order.setPaymentMethod(PaymentMethod.COD);
 
-        if (order.getStatus() == OrderStatus.UNPAID) {
+        if (order.getStatus() == OrderStatus.PENDING_PAYMENT) {
+            deductInventoryForOrder(order);
             order.setStatus(OrderStatus.PENDING);
         }
 
@@ -580,7 +595,7 @@ public class OrderServiceImpl implements OrderService {
 
     private boolean isValidTransition(OrderStatus oldStatus, OrderStatus newStatus) {
         return switch (oldStatus) {
-            case UNPAID -> newStatus == OrderStatus.PENDING || newStatus == OrderStatus.CANCELLED;
+            case PENDING_PAYMENT -> newStatus == OrderStatus.PENDING || newStatus == OrderStatus.CANCELLED;
             case PENDING -> newStatus == OrderStatus.PROCESSING || newStatus == OrderStatus.CANCELLED;
             case PROCESSING -> newStatus == OrderStatus.DELIVERING || newStatus == OrderStatus.CANCELLED;
             case DELIVERING -> newStatus == OrderStatus.COMPLETED
