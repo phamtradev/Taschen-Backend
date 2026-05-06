@@ -517,7 +517,9 @@ public class OrderServiceImpl implements OrderService {
         return orderMapper.toOrderResponse(savedOrder);
     }
 
-    private void updatePaymentFromVnPayCallback(Long orderId, String transactionNo)
+    @Override
+    @Transactional
+    public void updatePaymentFromVnPayCallback(Long orderId, String transactionNo)
             throws IdInvalidException {
         validateOrderId(orderId);
 
