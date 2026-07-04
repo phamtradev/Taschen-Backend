@@ -37,16 +37,25 @@ public class CartServiceImpl implements CartService {
     @Transactional
     public CartResponse getCartByAccount(Long userId) throws IdInvalidException {
         validateUserId(userId);
+        verifyCurrentUserOwns(userId);
         User user = findUserById(userId);
         Cart cart = getOrCreateCartForUser(user);
         return cartMapper.toCartResponse(cart);
     }
-    
+
     private void validateUserId(Long userId) throws IdInvalidException {
         if (userId == null || userId <= 0) {
             throw new IdInvalidException("User identifier is invalid: " + userId);
         }
         }
+
+    // A user may only operate on their own cart. Prevents IDOR via the {userId} path variable.
+    private void verifyCurrentUserOwns(Long userId) {
+        User currentUser = getCurrentAuthenticatedUser();
+        if (!currentUser.getId().equals(userId)) {
+            throw new AccessDeniedException("Bạn chỉ có thể thao tác trên giỏ hàng của chính mình");
+        }
+    }
 
     private User findUserById(Long userId) {
         return userRepository.findById(userId)
@@ -88,11 +97,7 @@ public class CartServiceImpl implements CartService {
     public CartResponse addToCart(Long userId, AddToCartRequest request) throws IdInvalidException {
         validateUserId(userId);
         validateAddToCartRequest(request);
-
-        User currentUser = getCurrentAuthenticatedUser();
-        if (!currentUser.getId().equals(userId)) {
-            throw new AccessDeniedException("Bạn chỉ có thể thêm vào giỏ hàng của chính mình");
-        }
+        verifyCurrentUserOwns(userId);
 
         User user = findUserById(userId);
         Book book = findAndValidateBook(request.getBookId(), request.getQuantity());
@@ -162,6 +167,7 @@ public class CartServiceImpl implements CartService {
     @Transactional
     public void clearCart(Long userId) throws IdInvalidException {
         validateUserId(userId);
+        verifyCurrentUserOwns(userId);
         User user = findUserById(userId);
         Cart cart = findCartByUser(user);
         clearCartItems(cart);
@@ -182,6 +188,7 @@ public class CartServiceImpl implements CartService {
     @Transactional
     public CartResponse checkout(Long userId) throws IdInvalidException {
         validateUserId(userId);
+        verifyCurrentUserOwns(userId);
         User user = findUserById(userId);
         Cart cart = findCartByUser(user);
         processCheckout(cart);

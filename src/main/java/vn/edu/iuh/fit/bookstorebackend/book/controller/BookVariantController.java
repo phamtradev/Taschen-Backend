@@ -62,7 +62,7 @@ public class BookVariantController {
     @PutMapping("/{id}")
     public ResponseEntity<BookVariantResponse> updateBookVariant(
             @PathVariable Long id,
-            @RequestBody UpdateBookVariantRequest request) throws IdInvalidException {
+            @Valid @RequestBody UpdateBookVariantRequest request) throws IdInvalidException {
         BookVariantResponse response = bookVariantService.updateBookVariant(id, request);
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }

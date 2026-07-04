@@ -40,3 +40,7 @@ build/
 ### Environment Variables ###
 .env
 *.env
+
+### Local-only docs (not pushed) ###
+requirement/
+docs/

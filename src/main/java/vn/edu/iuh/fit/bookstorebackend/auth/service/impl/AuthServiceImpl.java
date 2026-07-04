@@ -79,14 +79,14 @@ public class AuthServiceImpl implements AuthService {
         }
         
         User existingUser = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Email already exists: " + email));
+                .orElseThrow(() -> new RuntimeException("Email is already registered"));
         
         if (existingUser.isActive()) {
-            throw new RuntimeException("Email already exists: " + email);
+            throw new RuntimeException("Email is already registered");
         }
         
         if (hasValidVerificationToken(existingUser)) {
-            throw new RuntimeException("Email already exists: " + email);
+            throw new RuntimeException("Email is already registered");
         }
         
         deleteInactiveUser(existingUser);
@@ -269,11 +269,12 @@ public class AuthServiceImpl implements AuthService {
     }
 
     @Override
+    @Transactional
     public void changePassword(ChangePasswordRequest request) {
         User user = getCurrentAuthenticatedUser();
         validateOldPassword(user, request.getOldPassword());
         validateNewPassword(request.getNewPassword());
-        
+
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
     }
@@ -309,9 +310,9 @@ public class AuthServiceImpl implements AuthService {
         VerificationToken verificationToken = createVerificationToken(user, token);
         verificationTokenRepository.save(verificationToken);
         sendVerificationEmail(user, token);
-        
-        log.info("Created verification token for email={} token={} userId={}",
-                user.getEmail(), token, user.getId());
+
+        // Do not log the verification token itself (sensitive). Log only non-sensitive identifiers.
+        log.info("Created verification token for userId={}", user.getId());
     }
 
     @Override

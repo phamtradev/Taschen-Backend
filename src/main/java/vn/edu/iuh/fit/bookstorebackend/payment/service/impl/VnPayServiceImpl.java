@@ -101,9 +101,9 @@ public class VnPayServiceImpl implements VnPayService {
 
     @Override
     public Map<String, String> processPaymentReturn(Map<String, String> params) {
-        log.info("VNPay Return Params received (raw): {}", params);
-        log.info("VNPay Return Params size: {}", params.size());
-        
+        log.debug("VNPay Return Params received (raw): {}", params);
+        log.debug("VNPay Return Params size: {}", params.size());
+
         if (params == null || params.isEmpty()) {
             log.error("VNPay Return Params is null or empty");
             Map<String, String> errorResult = new HashMap<>();
@@ -116,9 +116,9 @@ public class VnPayServiceImpl implements VnPayService {
         String vnp_SecureHash = paramsCopy.remove("vnp_SecureHash");
         String vnp_SecureHashType = paramsCopy.remove("vnp_SecureHashType");
         
-        log.info("VNPay SecureHash from params: {}", vnp_SecureHash);
-        log.info("VNPay SecureHashType: {}", vnp_SecureHashType);
-        log.info("VNPay Params after removing hash fields: {}", paramsCopy);
+        log.debug("VNPay SecureHash from params: {}", vnp_SecureHash);
+        log.debug("VNPay SecureHashType: {}", vnp_SecureHashType);
+        log.debug("VNPay Params after removing hash fields: {}", paramsCopy);
         
         if (vnp_SecureHash == null || vnp_SecureHash.isEmpty()) {
             log.error("VNPay SecureHash is missing in params");
@@ -141,7 +141,7 @@ public class VnPayServiceImpl implements VnPayService {
         List<String> fieldNames = new ArrayList<>(paramsCopy.keySet());
         Collections.sort(fieldNames);
         
-        log.info("VNPay Sorted field names: {}", fieldNames);
+        log.debug("VNPay Sorted field names: {}", fieldNames);
 
         StringBuilder hashData = new StringBuilder();
         Iterator<String> itr = fieldNames.iterator();
@@ -160,9 +160,8 @@ public class VnPayServiceImpl implements VnPayService {
         }
         
         String hashDataString = hashData.toString();
-        log.info("VNPay Return Hash Data String: {}", hashDataString);
-        log.info("VNPay Return Secure Hash from VNPay: {}", vnp_SecureHash);
-        log.info("VNPay Secret Key length: {}", secretKey.length());
+        log.debug("VNPay Return Hash Data String: {}", hashDataString);
+        log.debug("VNPay Return Secure Hash from VNPay: {}", vnp_SecureHash);
 
         if (hashDataString.isEmpty()) {
             log.error("Hash data string is empty! Params: {}", paramsCopy);
@@ -173,14 +172,14 @@ public class VnPayServiceImpl implements VnPayService {
         }
 
         String signValue = VnPayUtil.hmacSHA512(secretKey, hashDataString);
-        log.info("VNPay Return Calculated Hash: {}", signValue);
-        log.info("Hash comparison - Equal: {}", signValue != null && signValue.equals(vnp_SecureHash));
+        log.debug("VNPay Return Calculated Hash: {}", signValue);
+        log.debug("Hash comparison - Equal: {}", signValue != null && signValue.equals(vnp_SecureHash));
 
         Map<String, String> result = new HashMap<>();
 
         if (signValue != null && signValue.equals(vnp_SecureHash)) {
             String vnp_ResponseCode = paramsCopy.get("vnp_ResponseCode");
-            log.info("VNPay Response Code: {}", vnp_ResponseCode);
+            log.debug("VNPay Response Code: {}", vnp_ResponseCode);
             
             if ("00".equals(vnp_ResponseCode)) {
                 result.put("status", "success");
@@ -196,9 +195,9 @@ public class VnPayServiceImpl implements VnPayService {
             result.put("vnp_OrderInfo", paramsCopy.get("vnp_OrderInfo"));
         } else {
             log.error("VNPay signature verification failed!");
-            log.error("Expected hash from VNPay: {}", vnp_SecureHash);
-            log.error("Calculated hash: {}", signValue);
-            log.error("Hash data used: {}", hashDataString);
+            log.debug("Expected hash from VNPay: {}", vnp_SecureHash);
+            log.debug("Calculated hash: {}", signValue);
+            log.debug("Hash data used: {}", hashDataString);
             result.put("status", "failed");
             result.put("message", "Chữ ký không hợp lệ");
         }

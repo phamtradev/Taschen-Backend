@@ -1,58 +1,61 @@
-name: CI
-
-on:
-  push:
-    branches: [ "dev" ]
-  pull_request:
-    branches: [ "dev" ]
-
-jobs:
-  build_test:
-    if: |
-      github.event_name == 'push' || 
-      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: ubuntu-latest
-
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: 123456
-          MYSQL_DATABASE: bookstoreecommerce
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -p123456"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=10
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Create cursor rules (dev only)
-        if: github.event.pull_request.head.repo.fork == false || github.event_name == 'push'
-        run: |
-          rm -rf .cursor/rules
-          mkdir -p .cursor
-          echo "${{ secrets.CURSOR_RULES }}" > .cursor/rules
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "21"
-          cache: maven
-
-      - name: Build & Test
-        env:
-          SPRING_DATASOURCE_URL: jdbc:mysql://127.0.0.1:3306/bookstoreecommerce?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh
-          SPRING_DATASOURCE_USERNAME: root
-          SPRING_DATASOURCE_PASSWORD: 123456
-
-          AI_API_KEY: ${{ secrets.AI_API_KEY }}
-          CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
-          CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
-          CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
-        run: mvn -q clean test
-
+# ------------------------------------------------------------------
+# CI DISABLED — commented out on 2026-07-04 (hiện chưa cần).
+# Để bật lại: bỏ ký tự '# ' ở đầu mỗi dòng bên dưới.
+# ------------------------------------------------------------------
+# name: CI
+#
+# on:
+#   push:
+#     branches: [ "dev" ]
+#   pull_request:
+#     branches: [ "dev" ]
+#
+# jobs:
+#   build_test:
+#     if: |
+#       github.event_name == 'push' ||
+#       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+#     runs-on: ubuntu-latest
+#
+#     services:
+#       postgres:
+#         image: postgres:16
+#         env:
+#           POSTGRES_PASSWORD: postgres
+#           POSTGRES_DB: bookstoreecommerce
+#         ports:
+#           - 5432:5432
+#         options: >-
+#           --health-cmd="pg_isready -U postgres"
+#           --health-interval=10s
+#           --health-timeout=5s
+#           --health-retries=10
+#
+#     steps:
+#       - uses: actions/checkout@v4
+#
+#       - name: Create cursor rules (dev only)
+#         if: github.event.pull_request.head.repo.fork == false || github.event_name == 'push'
+#         run: |
+#           rm -rf .cursor/rules
+#           mkdir -p .cursor
+#           echo "${{ secrets.CURSOR_RULES }}" > .cursor/rules
+#
+#       - name: Set up JDK 21
+#         uses: actions/setup-java@v4
+#         with:
+#           distribution: temurin
+#           java-version: "21"
+#           cache: maven
+#
+#       - name: Build & Test
+#         env:
+#           SPRING_DATASOURCE_URL: jdbc:postgresql://127.0.0.1:5432/bookstoreecommerce
+#           SPRING_DATASOURCE_USERNAME: postgres
+#           SPRING_DATASOURCE_PASSWORD: postgres
+#
+#           AI_API_KEY: ${{ secrets.AI_API_KEY }}
+#           CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
+#           CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
+#           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+#         run: mvn -q clean test

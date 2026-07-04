@@ -51,7 +51,8 @@ public class PaymentController {
                 try {
                     Long orderId = Long.parseLong(vnp_TxnRef);
                     String vnp_TransactionNo = result.get("vnp_TransactionNo");
-                    orderService.updatePaymentFromVnPayCallback(orderId, vnp_TransactionNo);
+                    String vnp_Amount = result.get("vnp_Amount");
+                    orderService.updatePaymentFromVnPayCallback(orderId, vnp_TransactionNo, vnp_Amount);
                 } catch (NumberFormatException e) {
                     result.put("status", "failed");
                     result.put("message", "Mã giao dịch không hợp lệ: " + vnp_TxnRef);

@@ -93,7 +93,7 @@ public class BookController {
     @PutMapping("/{bookId}")
     public ResponseEntity<BookResponse> updateBook(
             @PathVariable Long bookId,
-            @RequestBody UpdateBookRequest request) throws IdInvalidException {
+            @Valid @RequestBody UpdateBookRequest request) throws IdInvalidException {
         BookResponse bookResponse = bookService.updateBook(bookId, request);
         return ResponseEntity.status(HttpStatus.OK).body(bookResponse);
     }

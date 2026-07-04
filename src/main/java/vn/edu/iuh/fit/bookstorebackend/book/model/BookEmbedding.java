@@ -21,8 +21,9 @@ public class BookEmbedding {
     @Column(name = "book_id", nullable = false, unique = true)
     private Long bookId;
 
-    @Lob
-    @Column(name = "vector", columnDefinition = "MEDIUMTEXT")
+    // Vector is stored as a JSON string; TEXT is portable (unlimited length in PostgreSQL).
+    // Note: no @Lob — on PostgreSQL @Lob on a String maps to a large object (oid), which breaks plain text reads/writes.
+    @Column(name = "vector", columnDefinition = "TEXT")
     private String vector;
 
     @Column(name = "model")

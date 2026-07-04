@@ -26,7 +26,7 @@ public interface OrderService {
 
     OrderResponse updatePaymentCode(Long orderId, String paymentCode) throws IdInvalidException;
 
-    void updatePaymentFromVnPayCallback(Long orderId, String transactionNo) throws IdInvalidException;
+    void updatePaymentFromVnPayCallback(Long orderId, String transactionNo, String vnpAmount) throws IdInvalidException;
 
     OrderResponse payByCOD(Long orderId) throws IdInvalidException;
 

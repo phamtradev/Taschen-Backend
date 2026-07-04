@@ -14,11 +14,11 @@ public interface AddressService {
     
     List<AddressResponse> getUserAddresses(Long userId) throws IdInvalidException;
 
-    AddressResponse getAddressById(Long id) throws IdInvalidException;
+    AddressResponse getAddressById(Long userId, Long id) throws IdInvalidException;
 
-    AddressResponse updateAddress(Long id, AddressRequest request) throws IdInvalidException;
-    
-    void deleteAddress(Long id) throws IdInvalidException;
+    AddressResponse updateAddress(Long userId, Long id, AddressRequest request) throws IdInvalidException;
+
+    void deleteAddress(Long userId, Long id) throws IdInvalidException;
     
     void setDefaultAddress(Long userId, Long addressId) throws IdInvalidException;
 }

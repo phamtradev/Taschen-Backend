@@ -112,16 +112,18 @@ public class AddressServiceImpl implements AddressService {
     }
 
     @Override
-    public AddressResponse getAddressById(Long id) throws IdInvalidException {
+    public AddressResponse getAddressById(Long userId, Long id) throws IdInvalidException {
         Address address = findAddressById(id);
+        validateAddressBelongsToUser(address, userId);
         return addressMapper.toAddressResponse(address);
     }
 
     @Override
     @Transactional
-    public AddressResponse updateAddress(Long id, AddressRequest request) throws IdInvalidException {
+    public AddressResponse updateAddress(Long userId, Long id, AddressRequest request) throws IdInvalidException {
         Address address = findAddressById(id);
-        
+        validateAddressBelongsToUser(address, userId);
+
         updateAddressFields(address, request);
         handleDefaultAddressUpdate(address, request);
         
@@ -176,15 +178,11 @@ public class AddressServiceImpl implements AddressService {
     }
 
     @Override
-    public void deleteAddress(Long id) throws IdInvalidException {
-        validateAddressExists(id);
+    @Transactional
+    public void deleteAddress(Long userId, Long id) throws IdInvalidException {
+        Address address = findAddressById(id);
+        validateAddressBelongsToUser(address, userId);
         addressRepository.deleteById(id);
-    }
-    
-    private void validateAddressExists(Long id) throws IdInvalidException {
-        if (!addressRepository.existsById(id)) {
-            throw new IdInvalidException("Address not found: " + id);
-        }
     }
 
     private List<AddressResponse> mapToAddressResponseList(List<Address> addresses) {

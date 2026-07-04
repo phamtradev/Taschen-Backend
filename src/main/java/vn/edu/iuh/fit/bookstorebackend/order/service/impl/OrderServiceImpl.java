@@ -519,7 +519,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     @Transactional
-    public void updatePaymentFromVnPayCallback(Long orderId, String transactionNo)
+    public void updatePaymentFromVnPayCallback(Long orderId, String transactionNo, String vnpAmount)
             throws IdInvalidException {
         validateOrderId(orderId);
 
@@ -527,6 +527,13 @@ public class OrderServiceImpl implements OrderService {
 
         if (order.getStatus() != OrderStatus.PENDING_PAYMENT) {
             return;
+        }
+
+        // Reconcile the amount VNPay reports against the order total (minor units),
+        // computed exactly as in createPaymentUrl. Reject on mismatch: do not mark paid or deduct stock.
+        long expectedAmount = (long) (order.getTotalAmount() * 100);
+        if (!isVnpAmountMatching(vnpAmount, expectedAmount)) {
+            throw new IllegalStateException("VNPay amount mismatch for order " + orderId);
         }
 
         deductInventoryForOrder(order);
@@ -544,6 +551,18 @@ public class OrderServiceImpl implements OrderService {
         createStatusChangeNotification(order, OrderStatus.PENDING);
         messagingTemplate.convertAndSend("/topic/orders",
                 new WsEvent("UPDATED", "ORDER", orderId, null));
+    }
+
+    // Verifies the VNPay-reported amount (minor units string) equals the expected order amount.
+    private boolean isVnpAmountMatching(String vnpAmount, long expectedAmount) {
+        if (vnpAmount == null || vnpAmount.trim().isEmpty()) {
+            return false;
+        }
+        try {
+            return Long.parseLong(vnpAmount.trim()) == expectedAmount;
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     @Override

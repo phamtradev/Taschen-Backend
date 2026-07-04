@@ -61,7 +61,7 @@ public class AddressController {
             @PathVariable String userId,
             @PathVariable("id") Long addressId) throws IdInvalidException {
 
-        return ResponseEntity.ok(addressService.getAddressById(addressId));
+        return ResponseEntity.ok(addressService.getAddressById(resolveUserId(userId), addressId));
     }
 
     @PutMapping("/{id}")
@@ -70,7 +70,7 @@ public class AddressController {
             @PathVariable("id") Long addressId,
             @Valid @RequestBody AddressRequest request) throws IdInvalidException {
 
-        return ResponseEntity.ok(addressService.updateAddress(addressId, request));
+        return ResponseEntity.ok(addressService.updateAddress(resolveUserId(userId), addressId, request));
     }
 
     @DeleteMapping("/{id}")
@@ -78,7 +78,7 @@ public class AddressController {
             @PathVariable String userId,
             @PathVariable("id") Long addressId) throws IdInvalidException {
 
-        addressService.deleteAddress(addressId);
+        addressService.deleteAddress(resolveUserId(userId), addressId);
         return ResponseEntity.noContent().build();
     }
 
